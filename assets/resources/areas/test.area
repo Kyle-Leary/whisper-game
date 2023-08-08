@@ -1,0 +1,10 @@
+# this is a comment
+--- metadata ---
+x_size = 2
+y_size = 5
+--- tiledata ---
+0 1
+0 1
+0 0
+1 0
+1 0

@@ -1,0 +1,71 @@
+#include "backends/graphics_api.h"
+#include "main.h"
+
+#include "../ogl_includes.h"
+#include <GL/gl.h>
+#include <stdbool.h>
+#include <sys/types.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+static TextureHandle curr_bound_texture = 0;
+
+TextureHandle textures[NUM_TEXTURES] = {
+    0}; // zero init so we can compare to zero to check if the texture's been
+        // set. never use the blank 0 texture handle, it's invalid just like
+        // NULL.
+
+// returns an index into the global textures array.
+uint g_load_texture(const char *filepath) {
+  int width, height, channels;
+
+  // flip BEFORE we load the first image.
+  stbi_set_flip_vertically_on_load(true);
+
+  unsigned char *image_data =
+      stbi_load(filepath, &width, &height, &channels, 0);
+  if (!image_data) {
+    printf("Error loading the image: %s\n", stbi_failure_reason());
+    return 0;
+  }
+
+  uint textureID;
+  glGenTextures(1, &textureID);
+  glBindTexture(GL_TEXTURE_2D, textureID);
+
+  // Set the texture wrapping/filtering options (modify as needed)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  // Load the image data into the texture
+  GLenum format = channels == 4 ? GL_RGBA : GL_RGB;
+  glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
+               GL_UNSIGNED_BYTE, image_data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+
+  // Free the image data after it has been loaded into the texture
+  stbi_image_free(image_data);
+
+  for (int i = 0; i < NUM_TEXTURES; i++) {
+    TextureHandle *t = &textures[i];
+    if (*t == 0) {
+      *t = textureID;
+      glBindTexture(
+          GL_TEXTURE_2D,
+          curr_bound_texture); // rebind the old texture we were using.
+      return i;
+    }
+  }
+
+  fprintf(stderr, "Too many textures in the textures array.");
+  exit(1);
+  return 0;
+}
+
+void g_use_texture(TextureHandle handle) {
+  glBindTexture(GL_TEXTURE_2D, handle);
+  curr_bound_texture = handle;
+}
