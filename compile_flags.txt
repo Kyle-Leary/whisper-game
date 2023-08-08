@@ -1,0 +1,5 @@
+-Ideps/wjson/api
+-I.
+-Isrc
+-Ideps
+-DDEBUG=1

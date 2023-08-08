@@ -1,0 +1,3 @@
+[submodule "deps/wjson"]
+	path = deps/wjson
+	url = https://github.com/Kyle-Leary/whisper-json.git

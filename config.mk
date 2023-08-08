@@ -1,9 +1,9 @@
-CFLAGS +=  -c -Wall
+CFLAGS += -Wall
 
-INCLUDES :=  -I. -Isrc 
+INCLUDES +=  -I. -Isrc -Ideps/wjson/api -Ideps
 
 # ignore the whole backend folder, and only add in the backend subfolder.
 ALL_BACKEND := src/backends
 
 # The final target (change this to your desired target name)
-TARGET:=walk
+TARGET:=whisper

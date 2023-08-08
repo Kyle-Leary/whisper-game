@@ -1,8 +1,8 @@
 // object that displays a texture on a quad in the HUD.
 #include "texture.h"
 
-#include "../cglm/types.h"
-#include "../cglm/vec3.h"
+#include "cglm/types.h"
+#include "cglm/vec3.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"

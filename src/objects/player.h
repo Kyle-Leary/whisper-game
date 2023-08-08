@@ -3,10 +3,10 @@
 
 #include "../object_lut.h"
 
-#include "../cglm/types.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
+#include "cglm/types.h"
 #include "defines.h"
 
 // the camera is basically an object that controls and modifies the view matrix.

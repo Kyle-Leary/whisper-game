@@ -27,8 +27,8 @@ build/
 *.app
 *.elf
 
-walk
-walk.elf
+whisper
+whisper_test
 
 # IDE / editor specific files
 *.swp
