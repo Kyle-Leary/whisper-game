@@ -1,3 +1,4 @@
+#include "backends/graphics_api.h"
 #include "backends/input_api.h"
 #include "backends/lifecycle_api.h"
 
@@ -72,6 +73,8 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
           message);
 }
 
+static GLuint light_data_ubo = 0;
+
 int l_init() {
   // Initialize GLFW
   if (!glfwInit()) {
@@ -95,7 +98,7 @@ int l_init() {
   }
 
   // hide the cursor
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   // Make the window's context current
   glfwMakeContextCurrent(window);
@@ -129,6 +132,23 @@ int l_init() {
   gouraud_program =
       make_shader(SHADER_PATH("gouraud.vs"), SHADER_PATH("gouraud.fs"));
 
+  { // SET UP UBOS
+    unsigned int blockIndex =
+        glGetUniformBlockIndex(gouraud_program->id, "LightData");
+
+    glUniformBlockBinding(gouraud_program->id, blockIndex, 0);
+
+    glGenBuffers(1, &light_data_ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, light_data_ubo);
+    // we're going to change the ubo frequently with subdata calls, so make this
+    // dynamic.
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(g_light_data), NULL,
+                 GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, light_data_ubo, 0,
+                      sizeof(g_light_data));
+  }
+
   // init the pipeline with sensible default settings.
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_DEPTH_TEST);
@@ -146,8 +166,16 @@ int l_init() {
 int l_should_close() { return glfwWindowShouldClose(window); }
 
 int l_begin_draw() {
+  { // write the light data to the active shader through a UBO.
+    // Step 4: Bind the UBO to the same binding point
+    glBindBuffer(GL_UNIFORM_BUFFER, light_data_ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(g_light_data), &g_light_data);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+  }
+
   glClearColor(0.1F, 0.1F, 0.3F, 1.0F);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
   return 0;
 }
 

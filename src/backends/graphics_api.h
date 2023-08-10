@@ -68,23 +68,29 @@ void g_use_material(Material *mat);
 
 // an index into a light array, operating as a "light slot", since the lights
 // are simply stored as elements in a global array.
-typedef int LightSlot;
+typedef uint LightSlot;
 
 typedef struct SpotLight {
   vec3 position;
+  char pad1[4];
 } SpotLight;
 
 typedef struct PointLight {
   vec3 position;
+  char pad1[4];
   vec4 color;
+  // vec4 is already padded
   float intensity;
   float range;
+  char pad2[8];
 } PointLight;
 
 typedef struct DirectionalLight {
   vec3 direction;
+  char pad1[4];
   vec4 color;
   float intensity;
+  char pad2[12];
 } DirectionalLight;
 
 // this is the odd one out, only one instance. a kind of global illumination in
@@ -92,6 +98,7 @@ typedef struct DirectionalLight {
 typedef struct AmbientLight {
   vec4 color;
   float intensity;
+  char pad1[12];
 } AmbientLight;
 
 // the global structure that holds all the light data in the scene. one of these
@@ -103,16 +110,20 @@ typedef struct LightData {
   // variable-sized data in a shader, it's just how cpu gpu communication works.
 
   SpotLight spot_lights[SPOT_LIGHT_SLOTS];
+
   // how many slots are currently active? we fill the slots from left to right,
   // and make things as easy as possible on the GPU. the glsl shader is dumb, it
   // can't know that much about the shape or context of this data.
   int n_spot_lights;
+  char pad2[12];
 
-  PointLight point_lights[DIRECTIONAL_LIGHT_SLOTS];
+  PointLight point_lights[POINT_LIGHT_SLOTS];
   int n_point_lights;
+  char pad3[12];
 
-  DirectionalLight directional_lights[POINT_LIGHT_SLOTS];
+  DirectionalLight directional_lights[DIRECTIONAL_LIGHT_SLOTS];
   int n_directional_lights;
+  char pad4[12];
 
   AmbientLight ambient_light;
 } LightData;

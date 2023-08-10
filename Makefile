@@ -36,6 +36,8 @@ SHADERS := $(shell find $(SHADER_PATH) -type f)
 # target preprocessed shaders.
 SHADERS := $(patsubst %.vs,%.vs.pp,$(SHADERS))
 SHADERS := $(patsubst %.fs,%.fs.pp,$(SHADERS))
+# don't delete the common includes in make clean
+SHADERS := $(filter-out %.glinc,$(SHADERS))
 
 REQUIREMENTS += $(SHADERS)
 REQUIREMENTS += $(GLPP)

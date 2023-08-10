@@ -106,6 +106,36 @@ int main() {
 
   start_time = clock();
 
+  g_light_data.ambient_light.color[0] = 1.0f;
+  g_light_data.ambient_light.color[1] = 0.5f;
+  g_light_data.ambient_light.color[2] = 0.5f;
+  g_light_data.ambient_light.color[3] = 1.0f;
+  g_light_data.ambient_light.intensity = 0.5f;
+
+  PointLight *pl;
+
+  pl->intensity = 1.0f;
+  pl->position[0] = 0.0f;
+  pl->position[1] = 0.0f;
+  pl->position[2] = 0.0f;
+  pl->color[0] = 0.1f;
+  pl->color[1] = 0.1f;
+  pl->color[2] = 0.9f;
+  pl->color[3] = 1.0f;
+
+  g_add_point_light(pl);
+
+  pl->position[0] = -3.0f;
+  pl->position[1] = -3.0f;
+  pl->position[2] = -3.0f;
+
+  pl->color[0] = 0.9f;
+  pl->color[1] = 0.1f;
+  pl->color[2] = 0.1f;
+  pl->color[3] = 1.0f;
+
+  g_add_point_light(pl);
+
   /// limit fps to match the main.h macro defined value.
   // Variables for controlling FPS
   clock_t last_time = clock();

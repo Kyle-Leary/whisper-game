@@ -13,5 +13,5 @@ void main()
 	// we need to sample the texture HERE, even in a vertex-bound gouraud shader method.
 	// it just doesn't make sense to do in in the vs, unless you have an absurdly high poly count.
 	vec4 texColor = texture(tex_sampler, fsTexCoord);
-	color = vec4(lightColor, 1); // this is COMPONENT-WISE, not a convolution.
+	color = texColor * vec4(lightColor, 1); 
 }

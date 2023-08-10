@@ -184,3 +184,9 @@ void shader_set_matrix4fv(Shader *shader, const char *uniform_name,
   shader_use(shader);
   glUniformMatrix4fv(get_uniform_loc(shader, uniform_name), 1, GL_FALSE, value);
 }
+
+void shader_set_block(Shader *shader, const char *uniform_name,
+                      const void *value) {
+  shader_use(shader);
+  glUniformMatrix4fv(get_uniform_loc(shader, uniform_name), 1, GL_FALSE, value);
+}
