@@ -13,8 +13,7 @@
 // these are global and cross-backend. it's just a matrix, we can handle the
 // difference between actually setting the matrix in the graphics_api.h file.
 extern mat4 m_model;
-extern mat4 m_view_rot;
-extern mat4 m_view_tf;
+extern mat4 m_view;
 extern mat4 m_projection;
 
 extern mat4 m_ui_model;

@@ -1,3 +1,9 @@
 [submodule "deps/wjson"]
 	path = deps/wjson
 	url = https://github.com/Kyle-Leary/whisper-json.git
+[submodule "deps/libwhisper"]
+	path = deps/libwhisper
+	url = https://github.com/Kyle-Leary/libwhisper.git
+[submodule "deps/glpp"]
+	path = deps/glpp
+	url = https://github.com/Kyle-Leary/glpp.git

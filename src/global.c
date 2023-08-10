@@ -3,8 +3,7 @@
 #include "cglm/types.h"
 
 mat4 m_model = {0};
-mat4 m_view_rot = {0};
-mat4 m_view_tf = {0};
+mat4 m_view = {0};
 mat4 m_projection = {0};
 
 mat4 m_ui_model = {0};

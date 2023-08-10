@@ -53,8 +53,7 @@ int main() {
   // glm is general purpose math, this isn't gl-specific. everything uses
   // projection matrices!
   glm_perspective(glm_rad(75.0f), WIN_W / WIN_H, 0.1f, 100.0f, m_projection);
-  glm_mat4_identity(m_view_rot);
-  glm_mat4_identity(m_view_tf);
+  glm_mat4_identity(m_view);
   glm_mat4_identity(m_model);
 
   hud_init();
@@ -144,7 +143,7 @@ int main() {
     // after admin matrix stuff is over with, actually draw all the Renders.
 
     { // draw the 3d scene
-      g_use_pipeline(PC_BASIC);
+      g_use_pipeline(PC_BLANK_GOURAUD);
       g_use_texture(nepeta);
       g_draw_render(glb);
       object_draw(); // handle all the individual draw routines for all the

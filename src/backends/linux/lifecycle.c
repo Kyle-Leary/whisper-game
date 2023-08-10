@@ -15,23 +15,9 @@
 // define the externs in ogl_includes.h
 GLFWwindow *window = NULL;
 
-int loc_model = 0;
-int loc_view_rot = 0;
-int loc_view_tf = 0;
-int loc_projection = 0;
-
-int loc_main_slot = 0;
-int loc_u_time = 0;
-
-int loc_ui_model = 0;
-int loc_ui_projection = 0;
-int loc_ui_u_time = 0;
-
-int loc_ui_font_slot = 0;
-int loc_ui_text_color = 0;
-
-GLuint basic_program = 0;
-GLuint hud_program = 0;
+Shader *basic_program = NULL;
+Shader *hud_program = NULL;
+Shader *gouraud_program = NULL;
 
 // dumb
 static void save_screenshot(GLFWwindow *window, const char *filename) {
@@ -133,37 +119,15 @@ int l_init() {
 
   // the "default" shader for normal 3d scenes
   basic_program = make_shader(SHADER_PATH("basic.vs"), SHADER_PATH("basic.fs"));
-  glUseProgram(basic_program);
-
-  // we don't need to regrab them everytime we bind, they're dependent on the
-  // existence of the program itself, not the binding. so we can only do this
-  // once, right at the start of the application.
-  loc_model = glGetUniformLocation(basic_program, "model");
-  loc_view_rot = glGetUniformLocation(basic_program, "view_rot");
-  loc_view_tf = glGetUniformLocation(basic_program, "view_tf");
-  loc_projection = glGetUniformLocation(basic_program, "projection");
-
-  loc_u_time = glGetUniformLocation(basic_program, "u_time");
-  loc_main_slot = glGetUniformLocation(basic_program, "main_slot");
-
-  // set the main shader uniforms while that's bound.
-  glUniform1i(loc_main_slot, 0); // use the 0th texture slot for basic tris
+  shader_set_1i(basic_program, "main_slot", 0);
 
   // the default for the hud rendering, eg text stuff. we don't really want to
   // render the hud in perspective.
   hud_program = make_shader(SHADER_PATH("hud.vs"), SHADER_PATH("hud.fs"));
+  shader_set_1i(hud_program, "ui_font_slot", 0);
 
-  loc_ui_model = glGetUniformLocation(hud_program, "model");
-  loc_ui_projection = glGetUniformLocation(hud_program, "projection");
-
-  loc_ui_u_time = glGetUniformLocation(hud_program, "u_time");
-
-  loc_ui_font_slot = glGetUniformLocation(hud_program, "ui_font_slot");
-  loc_ui_text_color = glGetUniformLocation(hud_program, "ui_text_color");
-
-  glUseProgram(hud_program);
-  glUniform1i(loc_ui_font_slot,
-              0); // temporary, just assume the font will be bound to slot 0
+  gouraud_program =
+      make_shader(SHADER_PATH("gouraud.vs"), SHADER_PATH("gouraud.fs"));
 
   // init the pipeline with sensible default settings.
   glEnable(GL_DEPTH_TEST);
@@ -195,7 +159,9 @@ int l_update() {
   if (i_state.act_just_pressed[ACT_SCREENSHOT]) {
     save_screenshot(window, "screen.png");
   }
-  glUniform1f(loc_u_time, u_time);
+
+  shader_set_1f(basic_program, "u_time", u_time);
+
   u_time += delta_time;
   return 0;
 }

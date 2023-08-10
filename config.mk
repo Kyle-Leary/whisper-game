@@ -1,6 +1,6 @@
 CFLAGS += -Wall
 
-INCLUDES +=  -I. -Isrc -Ideps/wjson/api -Ideps -Ideps/stb
+INCLUDES +=  -I. -Isrc -Ideps/wjson/api -Ideps -Ideps/stb -Ideps/libwhisper/api
 
 # ignore the whole backend folder, and only add in the backend subfolder.
 ALL_BACKEND := src/backends

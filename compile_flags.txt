@@ -1,4 +1,5 @@
 -Ideps/wjson/api
+-Ideps/libwhisper/api
 -Ideps/stb
 -Ideps
 -I.

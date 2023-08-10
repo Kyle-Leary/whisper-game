@@ -1,9 +1,39 @@
 #pragma once
 
 #include "../ogl_includes.h"
+#include "whisper.h"
+#include <stdbool.h>
 
+// apply a cache on top of the hashmap to store the locations, grabbing them
+// lazily when we need them.
 typedef struct Shader {
-  GLuint id;
+  GLint id; // the whole program id, only complete programs have uniform id
+            // getters in opengl, not individual vert/frag/geo shaders etc.
+  WHashMap locs;
 } Shader;
 
-GLuint make_shader(const char *vs_path, const char *fs_path);
+Shader *make_shader(const char *vs_path, const char *fs_path);
+
+void shader_use(Shader *program);
+
+void shader_set_1f(Shader *shader, const char *uniform_name, float f0);
+void shader_set_2f(Shader *shader, const char *uniform_name, float f0,
+                   float f1);
+void shader_set_3f(Shader *shader, const char *uniform_name, float f0, float f1,
+                   float f2);
+void shader_set_4f(Shader *shader, const char *uniform_name, float f0, float f1,
+                   float f2, float f3);
+
+void shader_set_1i(Shader *shader, const char *uniform_name, int i0);
+void shader_set_2i(Shader *shader, const char *uniform_name, int i0, int i1);
+void shader_set_3i(Shader *shader, const char *uniform_name, int i0, int i1,
+                   int i2);
+void shader_set_4i(Shader *shader, const char *uniform_name, int i0, int i1,
+                   int i2, int i3);
+
+void shader_set_matrix2fv(Shader *shader, const char *uniform_name,
+                          const float *value);
+void shader_set_matrix3fv(Shader *shader, const char *uniform_name,
+                          const float *value);
+void shader_set_matrix4fv(Shader *shader, const char *uniform_name,
+                          const float *value);

@@ -1,5 +1,7 @@
 #include "backends/graphics_api.h"
+#include "backends/linux/graphics/shader.h"
 #include "global.h"
+#include "linux_graphics_globals.h"
 #include "main.h"
 #include "vao.h"
 #include <sys/types.h>
@@ -129,10 +131,10 @@ void g_draw_render(GraphicsRender *gr) {
 
   glBindVertexArray(gr->internal->vao);
 
-  // how can this function know which type it needs to set? should the caller
-  // somehow abstract over this?
-  glUniformMatrix4fv(loc_model, 1, GL_FALSE, (float *)gr->model);
-  glUniformMatrix4fv(loc_ui_model, 1, GL_FALSE, (float *)gr->model);
+  if (curr_program == NULL)
+    shader_use(basic_program);
+
+  shader_set_matrix4fv(curr_program, "model", (const float *)gr->model);
   glDrawElements(GL_TRIANGLES, gr->internal->n_idx, GL_UNSIGNED_INT, 0);
 }
 

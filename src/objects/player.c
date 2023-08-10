@@ -1,15 +1,15 @@
 #include "backends/graphics_api.h"
 #include "camera.h"
 
-#include "cglm/types.h"
-#include "cglm/vec3.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/input_api.h"
 #include "cglm/affine-pre.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
+#include "cglm/types.h"
 #include "cglm/vec2.h"
+#include "cglm/vec3.h"
 #include "core/area_defines.h"
 #include "core/area_server.h"
 #include "core/battle.h"
@@ -105,7 +105,7 @@ static void player_handle_walking_state(Player *player) {
     } else {
       glm_vec2_scale(v_move, player->forward_speed, v_move);
 
-      Basis b = get_basis(m_view_tf);
+      Basis b = get_basis(m_view);
 
       b.forward[1] = 0; // don't move vertically for now.
       b.right[1] = 0;

@@ -27,6 +27,7 @@ void g_use_texture(TextureHandle handle);
 typedef enum PipelineConfiguration {
   PC_BASIC,
   PC_HUD,
+  PC_BLANK_GOURAUD, // does a blank gouraud shader over the ambient coloring.
   PC_COUNT,
 } PipelineConfiguration;
 

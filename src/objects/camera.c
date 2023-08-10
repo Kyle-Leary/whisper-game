@@ -1,12 +1,12 @@
 #include "camera.h"
 
-#include "cglm/types.h"
-#include "cglm/vec3.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
+#include "cglm/types.h"
+#include "cglm/vec3.h"
 #include "global.h"
 #include "glprim.h"
 
@@ -52,7 +52,7 @@ void camera_update(void *p) {
     glm_mat4_identity(offset_m);
     glm_translate(offset_m, camera->position);
 
-    glm_lookat((vec3){0}, *camera->target, (vec3){0, 0.9, 0.01}, m_view_tf);
+    glm_lookat((vec3){0}, *camera->target, (vec3){0, 0.9, 0.01}, m_view);
   }
 }
 

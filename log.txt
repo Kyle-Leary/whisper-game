@@ -1,0 +1,26 @@
+Max uniforms supported: 16384.
+Compiled vs
+Compiled fs
+Compiled vs
+Compiled fs
+Made Texture object.
+past gltf magic
+past full gltf header
+parsing the 0th section header
+WARN: the parsed JSON chunk of the glb file doesn't have the top-level parameter textures.
+WARN: the parsed JSON chunk of the glb file doesn't have the top-level parameter images.
+WARN: the parsed JSON chunk of the glb file doesn't have the top-level parameter samplers.
+WARN: the parsed JSON chunk of the glb file doesn't have the top-level parameter skins.
+WARN: the parsed JSON chunk of the glb file doesn't have the top-level parameter animations.
+WARN: the parsed JSON chunk of the glb file doesn't have the top-level parameter cameras.
+WARN: the parsed JSON chunk of the glb file doesn't have the top-level parameter extensions.
+WARN: the parsed JSON chunk of the glb file doesn't have the top-level parameter extras.
+parsing the 1th section header
+ptr file->binary_data: 0x55c9a24de430
+making render from GLTFFile structure 0x55c9a2c90530.
+ptr prims: 0x55c9a2faa648
+ptr prim: 0x55c9a2f64b20
+ptr attributes: 0x55c9a2fb89e0
+glb position buffer length: 288 bytes.
+glb index buffer length: 72 bytes.
+Made Texture object.

@@ -15,6 +15,8 @@ TEST_TARGET := whisper_test
 SRC_DIR := src 
 
 WJSON := deps/wjson/libwjson.a
+LIBWHISPER := deps/libwhisper/libwhisper.a
+GLPP := deps/glpp/glpp
 
 SRCS := $(shell find $(SRC_DIR) -type f -name "*.c" | grep -v "$(ALL_BACKEND)") 
 SRCS += $(shell find $(ALL_BACKEND)/$(BACKEND_DIR) -type f -name "*.c")
@@ -25,15 +27,18 @@ SRCS += $(shell find $(ALL_BACKEND)/general -type f -name "*.c")
 OBJS := $(patsubst %.c,%.o,$(SRCS))
 SYMBOLS := $(OBJS)
 SYMBOLS += $(WJSON)
+SYMBOLS += $(LIBWHISPER)
 
 REQUIREMENTS := $(SYMBOLS)
 
-# SHADERS := $(shell find assets/shaders -type f)
-# # target preprocessed shaders.
-# SHADERS := $(patsubst %.vs,%.vs.pp,$(SHADERS))
-# SHADERS := $(patsubst %.fs,%.fs.pp,$(SHADERS))
+SHADER_PATH := assets/shaders
+SHADERS := $(shell find $(SHADER_PATH) -type f)
+# target preprocessed shaders.
+SHADERS := $(patsubst %.vs,%.vs.pp,$(SHADERS))
+SHADERS := $(patsubst %.fs,%.fs.pp,$(SHADERS))
 
 REQUIREMENTS += $(SHADERS)
+REQUIREMENTS += $(GLPP)
 
 $(info OBJS is $(OBJS))
 
@@ -46,6 +51,10 @@ test: $(TEST_TARGET)
 
 $(WJSON):
 	make -C deps/wjson
+$(LIBWHISPER):
+	make -C deps/libwhisper
+$(GLPP):
+	make -C deps/glpp
 
 # compile different definitions of main into the binary depending on what we're building.
 $(TARGET): $(REQUIREMENTS) main.o 
@@ -58,13 +67,16 @@ $(TEST_TARGET): $(REQUIREMENTS) test.o
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCLUDES) -g
 
-## argh glsl has pragmas so this doesn't really work
-# %.vs.pp: %.vs
-# 	cpp -P $< -o $@
-# %.fs.pp: %.fs
-# 	cpp -P $< -o $@
+# note: right now, only vs and fs files are being directly glpp'd. this means that
+# the common includes themselves may not, so watch out for that.
+# with the -I, it'll automatically pick up on any shader includes in the $(SHADER_PATH)
+# directory.
+%.vs.pp: %.vs $(GLPP)
+	$(GLPP) $< -o $@ -I$(SHADER_PATH)
+%.fs.pp: %.fs $(GLPP)
+	$(GLPP) $< -o $@ -I$(SHADER_PATH)
 
 clean:
-	rm -f $(shell find . -name "*.o") $(TARGET) $(TEST_TARGET) $(WJSON)
+	rm -f $(shell find . -name "*.o") $(TARGET) $(TEST_TARGET) $(WJSON) $(LIBWHISPER) $(GLPP) $(SHADERS)
 
 .PHONY: clean
