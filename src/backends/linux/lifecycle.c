@@ -1,3 +1,4 @@
+#include "backends/input_api.h"
 #include "backends/lifecycle_api.h"
 
 #include "backends/linux/graphics/shader.h"
@@ -6,6 +7,10 @@
 #include "ogl_includes.h"
 #include "path.h"
 #include <stdio.h>
+#include <string.h>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 // define the externs in ogl_includes.h
 GLFWwindow *window = NULL;
@@ -27,6 +32,45 @@ int loc_ui_text_color = 0;
 
 GLuint basic_program = 0;
 GLuint hud_program = 0;
+
+// dumb
+static void save_screenshot(GLFWwindow *window, const char *filename) {
+  int width, height;
+  glfwGetFramebufferSize(window, &width, &height);
+
+  // Allocate space for the pixels
+  GLubyte *pixels = (GLubyte *)malloc(width * height * 4 * sizeof(GLubyte));
+  if (!pixels) {
+    fprintf(stderr, "Failed to allocate memory for screenshot\n");
+    return;
+  }
+
+  // Read the pixels from the current frame buffer
+  glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+  // Flip the image vertically, as OpenGL's origin is in the lower-left
+  int channels = 4; // RGBA
+  GLubyte *flipped_pixels = (GLubyte *)malloc(width * height * channels);
+  if (!flipped_pixels) {
+    fprintf(stderr, "Failed to allocate memory for flipped image\n");
+    free(pixels);
+    return;
+  }
+
+  for (int y = 0; y < height; y++) {
+    memcpy(&flipped_pixels[y * width * channels],
+           &pixels[(height - y - 1) * width * channels], width * channels);
+  }
+
+  // Save the pixel data to a PNG file
+  if (!stbi_write_png(filename, width, height, channels, flipped_pixels,
+                      width * channels)) {
+    fprintf(stderr, "Failed to save screenshot to %s\n", filename);
+  }
+
+  free(pixels);
+  free(flipped_pixels);
+}
 
 // Function to handle GLFW errors
 static void error_callback(int error, const char *description) {
@@ -82,6 +126,10 @@ int l_init() {
   glEnable(GL_DEBUG_OUTPUT); // use the newer debug output, instead of
   // manually handling the error stack from the gpu.
   glDebugMessageCallback(MessageCallback, 0);
+
+  GLint maxUniforms;
+  glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &maxUniforms);
+  printf("Max uniforms supported: %d.\n", maxUniforms);
 
   // the "default" shader for normal 3d scenes
   basic_program = make_shader(SHADER_PATH("basic.vs"), SHADER_PATH("basic.fs"));
@@ -144,6 +192,9 @@ float u_time = 0.016;
 int l_update() {
   glfwPollEvents(); // call this before the input update, this signals the
                     // callbacks.
+  if (i_state.act_just_pressed[ACT_SCREENSHOT]) {
+    save_screenshot(window, "screen.png");
+  }
   glUniform1f(loc_u_time, u_time);
   u_time += delta_time;
   return 0;

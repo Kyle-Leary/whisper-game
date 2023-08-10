@@ -1,5 +1,6 @@
 -Ideps/wjson/api
+-Ideps/stb
+-Ideps
 -I.
 -Isrc
--Ideps
 -DDEBUG=1

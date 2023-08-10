@@ -36,8 +36,8 @@ uint make_vbo(const float *data, unsigned int count,
   uint render_id;
   glGenBuffers(1, &render_id);
   glBindBuffer(GL_ARRAY_BUFFER, render_id);
-  printf("Making a VBO with data size %d.\n", sizeof_vtx * count);
-  printf("Making a VBO from pointer %p.\n", data);
+  // printf("Making a VBO with data size %d.\n", sizeof_vtx * count);
+  // printf("Making a VBO from pointer %p.\n", data);
   glBufferData(GL_ARRAY_BUFFER, sizeof_vtx * count, data,
                GL_STATIC_DRAW); // we could actually get away with passing this
                                 // stack-allocated vertices, since we're calling
@@ -122,6 +122,10 @@ void g_draw_render(GraphicsRender *gr) {
         stderr,
         "ERROR: [g_draw_render()] Could not render NULL GraphicsRender*.\n");
   }
+
+  // TODO: somehow use the curr_mat PBR Material in this render? pass the props
+  // to the shader? how can we abstract over shaders and shader uniforms
+  // cleanly?
 
   glBindVertexArray(gr->internal->vao);
 

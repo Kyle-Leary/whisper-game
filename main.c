@@ -16,6 +16,7 @@
 #include "main.h"
 #include "meshing/dungeon.h"
 #include "meshing/flat_dungeon.h"
+#include "meshing/gltf_mesher.h"
 #include "object.h"
 #include "objects/camera.h"
 #include "objects/character.h"
@@ -82,9 +83,15 @@ int main() {
   object_add((Object *)cube_build((vec3){-9, -1, -9}));
   object_add((Object *)cube_build((vec3){7, -1, -9}));
 
-  object_add((Object *)sphere_build((vec3){2, -1, 2}, 1, 10));
+  object_add((Object *)sphere_build((vec3){2, -1, -2}, 1, 10));
 
   object_add((Object *)floor_build((vec3){0, -1, 0}, 50));
+
+  // parse then mesh the glb file, then render it in the normal drawing loop.
+  GraphicsRender *glb =
+      gltf_to_render_simple(gltf_parse(MODEL_PATH("final_boss.glb")));
+
+  glm_translate(glb->model, (vec3){5, -1, 5});
 
   Camera *cam = (Camera *)object_add(
       (Object *)camera_build((vec3){0}, &player->lerp_position));
@@ -139,6 +146,7 @@ int main() {
     { // draw the 3d scene
       g_use_pipeline(PC_BASIC);
       g_use_texture(nepeta);
+      g_draw_render(glb);
       object_draw(); // handle all the individual draw routines for all the
                      // objects in the world.
     }

@@ -18,10 +18,22 @@ WJSON := deps/wjson/libwjson.a
 
 SRCS := $(shell find $(SRC_DIR) -type f -name "*.c" | grep -v "$(ALL_BACKEND)") 
 SRCS += $(shell find $(ALL_BACKEND)/$(BACKEND_DIR) -type f -name "*.c")
+# then, include all the general backend function implementations.
+SRCS += $(shell find $(ALL_BACKEND)/general -type f -name "*.c")
 
 # Object files (corresponding .o files in the obj/ directory)
 OBJS := $(patsubst %.c,%.o,$(SRCS))
-OBJS += $(WJSON)
+SYMBOLS := $(OBJS)
+SYMBOLS += $(WJSON)
+
+REQUIREMENTS := $(SYMBOLS)
+
+# SHADERS := $(shell find assets/shaders -type f)
+# # target preprocessed shaders.
+# SHADERS := $(patsubst %.vs,%.vs.pp,$(SHADERS))
+# SHADERS := $(patsubst %.fs,%.fs.pp,$(SHADERS))
+
+REQUIREMENTS += $(SHADERS)
 
 $(info OBJS is $(OBJS))
 
@@ -36,16 +48,21 @@ $(WJSON):
 	make -C deps/wjson
 
 # compile different definitions of main into the binary depending on what we're building.
-$(TARGET): $(OBJS) main.o 
-	@echo $(OBJS)
-	$(CC) -o $@ $^ $(LIBS)
+$(TARGET): $(REQUIREMENTS) main.o 
+	$(CC) -o $@ $(SYMBOLS) main.o $(LIBS)
 
-$(TEST_TARGET): $(OBJS) test.o
-	$(CC) -o $@ $^ $(LIBS)
+$(TEST_TARGET): $(REQUIREMENTS) test.o
+	$(CC) -o $@ $(SYMBOLS) test.o $(LIBS)
 
 # Pattern rule to compile .c files into .o files
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCLUDES) -g
+
+## argh glsl has pragmas so this doesn't really work
+# %.vs.pp: %.vs
+# 	cpp -P $< -o $@
+# %.fs.pp: %.fs
+# 	cpp -P $< -o $@
 
 clean:
 	rm -f $(shell find . -name "*.o") $(TARGET) $(TEST_TARGET) $(WJSON)

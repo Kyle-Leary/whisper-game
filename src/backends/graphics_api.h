@@ -3,6 +3,7 @@
 
 #include "cglm/types.h"
 #include "main.h"
+#include <stdbool.h>
 #include <sys/types.h>
 
 // a handle to a texture, an id can always be rep'd as a uint, likely.
@@ -36,6 +37,91 @@ typedef enum RenderConfiguration {
   RC_HUD,
   RC_COUNT,
 } RenderConfiguration;
+
+// a general Material structure, materials can be selected at any time and
+// affect the rendering process in a platform-specific way.
+typedef struct Material {
+  // goes by the PBR spec generally laid out by the glb format.
+  vec4 albedo;
+  float metallic;
+  float roughness;
+  TextureHandle base_color_texture;
+  TextureHandle metallic_roughness_texture;
+  TextureHandle normal_texture;
+  TextureHandle occlusion_texture;
+  TextureHandle emissive_texture;
+  vec3 emissive_factor;
+  bool double_sided;
+} Material;
+
+// all renders from now on will use the mat Material.
+// all shaders are implicitly PBR shaders?
+void g_use_material(Material *mat);
+
+/* define light structures that will be passed directly into a PBR-type shader.
+ */
+
+#define POINT_LIGHT_SLOTS 5
+#define SPOT_LIGHT_SLOTS 5
+#define DIRECTIONAL_LIGHT_SLOTS 5
+
+// an index into a light array, operating as a "light slot", since the lights
+// are simply stored as elements in a global array.
+typedef int LightSlot;
+
+typedef struct SpotLight {
+  vec3 position;
+} SpotLight;
+
+typedef struct PointLight {
+  vec3 position;
+  vec4 color;
+  float intensity;
+  float range;
+} PointLight;
+
+typedef struct DirectionalLight {
+  vec3 direction;
+  vec4 color;
+  float intensity;
+} DirectionalLight;
+
+// this is the odd one out, only one instance. a kind of global illumination in
+// the scene.
+typedef struct AmbientLight {
+  vec4 color;
+  float intensity;
+} AmbientLight;
+
+// the global structure that holds all the light data in the scene. one of these
+// should be active at a time, and it should generally be managed through helper
+// methods.
+typedef struct LightData {
+  // shaders can only store and pass around fixed-width data, so we need this
+  // all structured at compile-time. that's the point of "slots" rather than
+  // variable-sized data in a shader, it's just how cpu gpu communication works.
+
+  SpotLight spot_lights[SPOT_LIGHT_SLOTS];
+  // how many slots are currently active? we fill the slots from left to right,
+  // and make things as easy as possible on the GPU. the glsl shader is dumb, it
+  // can't know that much about the shape or context of this data.
+  int n_spot_lights;
+
+  PointLight point_lights[DIRECTIONAL_LIGHT_SLOTS];
+  int n_point_lights;
+
+  DirectionalLight directional_lights[POINT_LIGHT_SLOTS];
+  int n_directional_lights;
+
+  AmbientLight ambient_light;
+} LightData;
+
+extern LightData g_light_data;
+
+// we need to be able to remove the light later, so let the caller manage the
+// lightslot. worst comes to worst, we can just flush the light data.
+LightSlot g_add_point_light(PointLight *light); // copy into the newest slot
+void g_remove_point_light(LightSlot slot);
 
 /* v_count - the amount of vertices (actual points) in the data. not the amount
  of floats or bytes. */

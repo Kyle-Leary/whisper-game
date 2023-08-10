@@ -3,6 +3,9 @@
 #include "defines.h"
 #include "size.h"
 #include "util.h"
+#include "wjson.h"
+#include "wjson/src/defines.h"
+#include "wjson/src/util.h"
 #include <string.h>
 
 #define MAX_GLTF_SZ (MB(5))
@@ -31,7 +34,7 @@ static void parse_json_chunk(GLTFFile *file, char *json_str) {
   GET(images);
   GET(samplers);
   GET(accessors);
-  GET(buffer_views);
+  GET(bufferViews);
   GET(buffers);
   GET(skins);
   GET(animations);
@@ -102,19 +105,64 @@ GLTFFile *gltf_parse(const char *file_path) {
       memcpy(json_data, input, file->json_length);
       json_data[file->json_length] = '\0';
       parse_json_chunk(file, json_data);
+      input += file->json_length;
       // then, we're done!
 
     } break;
     case 'B': {
       CHECK_MAGIC("BIN\0")
       file->binary_length = header_len;
+      file->binary_data = (u8 *)malloc(file->binary_length);
       memcpy(file->binary_data, input, file->binary_length);
+      PRINT_PTR(file->binary_data)
+      input += file->binary_length;
 
     } break;
+    default: {
+      error("Invalid GLB section header. Found section magic starting "
+            "character %c.",
+            *input);
+    } break;
+    }
+  }
+
+  {
+    // then, read out all the buffer offsets and malloc THAT array.
+    file->num_buffers = file->buffers->data.length.array_len;
+    file->buffer_offsets = (u32 *)malloc(file->num_buffers * sizeof(u32));
+    file->buffer_offsets[0] = 0; // start at zero offset.
+    for (int i = 1; i < file->num_buffers; i++) {
+      // recursively sum the buffer offsets.
+      file->buffer_offsets[i] =
+          file->buffer_offsets[i - 1] +
+          (u32)wjson_number(
+              wjson_get(wjson_index(file->buffers, i), "byteLength"));
     }
   }
 
   return file;
 
 #undef CHECK_MAGIC
+}
+
+/* EXAMPLE BUFFERVIEW:
+ *{"buffer":0,"byteLength":288,"byteOffset":0,"target":34962},{"buffer":0,"byteLength":288,"byteOffset":288,"target":34962},{"buffer":0,"byteLength":192,"byteOffset":576,"target":34962},{"buffer":0,"byteLength":72,"byteOffset":768,"target":34963}
+ * */
+int gltf_bv_get_len(GLTFFile *file, int index) {
+  WJSONValue *bv = wjson_index(file->bufferViews, index);
+  int length = (int)wjson_number(wjson_get(bv, "byteLength"));
+  return length;
+}
+
+void gltf_bv_parse(GLTFFile *file, int index, void *dest, int dest_sz) {
+  // this function will return a malloced ptr. i want to pass in the stack
+  // alloced buffer, but there's no easy way to determine the sizeof the buffer
+  // without parsing.
+  WJSONValue *bv = wjson_index(file->bufferViews, index);
+  u32 buf_idx = wjson_number(wjson_get(bv, "buffer"));
+  u32 byte_len = wjson_number(wjson_get(bv, "byteLength"));
+  u32 byte_offset = wjson_number(wjson_get(bv, "byteOffset"));
+  void *data_ptr =
+      (file->binary_data + file->buffer_offsets[buf_idx] + byte_offset);
+  memcpy(dest, data_ptr, byte_len);
 }

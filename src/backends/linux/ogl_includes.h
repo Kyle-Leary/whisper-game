@@ -2,6 +2,7 @@
 
 // modern opengl includes specific to this backend.
 
+#include "backends/graphics_api.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -29,3 +30,7 @@ extern int loc_ui_text_color;
 
 extern GLuint basic_program;
 extern GLuint hud_program;
+
+// only one Material can be bound at a time.
+// generally, Materials are processed one mesh at a time.
+extern Material *curr_mat;

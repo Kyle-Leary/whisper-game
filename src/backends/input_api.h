@@ -28,6 +28,8 @@ typedef enum ActionType {
 
   ACT_HUD_INTERACT, // hud interaction action, like clicking on a button.
 
+  ACT_SCREENSHOT,
+
   ACT_COUNT, // NO, COUNT IS NOT AN ACTION!!!
 } ActionType;
 
