@@ -15,6 +15,7 @@ typedef struct Shader {
 Shader *make_shader(const char *vs_path, const char *fs_path);
 
 void shader_use(Shader *program);
+void shader_use_name(const char *name);
 
 void shader_set_1f(Shader *shader, const char *uniform_name, float f0);
 void shader_set_2f(Shader *shader, const char *uniform_name, float f0,

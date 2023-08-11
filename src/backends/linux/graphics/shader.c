@@ -2,15 +2,18 @@
 #include <stdlib.h>
 
 #include "shader.h"
+#include "size.h"
 #include "util.h"
 #include "whisper/hashmap.h"
 
-#define SOURCE_BUF_SZ 2048
+#define SOURCE_BUF_SZ KB(20)
 
 // if this is const and we change it, we run the risk of segfaulting, since the
 // compiler optimizes around the assumption that the string data will not
 // change. in other words: only things that are constant should be "const"!
 static char source_buffers[1][SOURCE_BUF_SZ] = {0};
+
+WHashMap shader_map = {0};
 
 Shader *make_shader(const char *vs_path, const char *fs_path) {
   Shader *returned_shader = (Shader *)malloc(sizeof(Shader));
@@ -120,6 +123,10 @@ void shader_use(Shader *program) {
 
   curr_program = program;
   glUseProgram(curr_program->id);
+}
+
+void shader_use_name(const char *name) {
+  shader_use(w_hm_get(shader_map, name).as_ptr);
 }
 
 void shader_set_1f(Shader *shader, const char *uniform_name, float f0) {

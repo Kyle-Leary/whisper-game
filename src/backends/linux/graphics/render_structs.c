@@ -131,8 +131,9 @@ void g_draw_render(GraphicsRender *gr) {
 
   glBindVertexArray(gr->internal->vao);
 
+  // default to the basic shader.
   if (curr_program == NULL)
-    shader_use(basic_program);
+    shader_use_name("basic");
 
   shader_set_matrix4fv(curr_program, "model", (const float *)gr->model);
   glDrawElements(GL_TRIANGLES, gr->internal->n_idx, GL_UNSIGNED_INT, 0);

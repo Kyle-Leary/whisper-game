@@ -36,6 +36,8 @@
 #include "helper_math.h"
 #include "objects/player.h"
 
+#include "general_lighting.h"
+#include "size.h"
 #include <malloc.h>
 #include <stdio.h>
 #include <string.h>
@@ -86,12 +88,6 @@ int main() {
 
   object_add((Object *)floor_build((vec3){0, -1, 0}, 50));
 
-  // parse then mesh the glb file, then render it in the normal drawing loop.
-  GraphicsRender *glb =
-      gltf_to_render_simple(gltf_parse(MODEL_PATH("final_boss.glb")));
-
-  glm_translate(glb->model, (vec3){5, -1, 5});
-
   Camera *cam = (Camera *)object_add(
       (Object *)camera_build((vec3){0}, &player->lerp_position));
 
@@ -106,40 +102,53 @@ int main() {
 
   start_time = clock();
 
-  g_light_data.ambient_light.color[0] = 1.0f;
-  g_light_data.ambient_light.color[1] = 0.5f;
-  g_light_data.ambient_light.color[2] = 0.5f;
-  g_light_data.ambient_light.color[3] = 1.0f;
-  g_light_data.ambient_light.intensity = 0.5f;
+  {   // setup light data with some defualts.
+    { // setup ambient light
+      g_light_data.ambient_light.color[0] = 1.0f;
+      g_light_data.ambient_light.color[1] = 0.5f;
+      g_light_data.ambient_light.color[2] = 0.5f;
+      g_light_data.ambient_light.color[3] = 1.0f;
+      g_light_data.ambient_light.intensity = 0.5f;
+    }
 
-  PointLight *pl;
+    {
+      PointLight pl;
 
-  pl->intensity = 1.0f;
-  pl->position[0] = 0.0f;
-  pl->position[1] = 0.0f;
-  pl->position[2] = 0.0f;
-  pl->color[0] = 0.1f;
-  pl->color[1] = 0.1f;
-  pl->color[2] = 0.9f;
-  pl->color[3] = 1.0f;
+      pl.intensity = 1.0f;
+      pl.position[0] = 0.0f;
+      pl.position[1] = 0.0f;
+      pl.position[2] = 0.0f;
+      pl.color[0] = 0.1f;
+      pl.color[1] = 0.1f;
+      pl.color[2] = 0.9f;
+      pl.color[3] = 1.0f;
 
-  g_add_point_light(pl);
+      w_ca_add_PointLight(&g_light_data.point_light_ca, &pl);
 
-  pl->position[0] = -3.0f;
-  pl->position[1] = -3.0f;
-  pl->position[2] = -3.0f;
+      pl.position[0] = -3.0f;
+      pl.position[1] = -3.0f;
+      pl.position[2] = -3.0f;
 
-  pl->color[0] = 0.9f;
-  pl->color[1] = 0.1f;
-  pl->color[2] = 0.1f;
-  pl->color[3] = 1.0f;
+      pl.color[0] = 0.9f;
+      pl.color[1] = 0.1f;
+      pl.color[2] = 0.1f;
+      pl.color[3] = 1.0f;
 
-  g_add_point_light(pl);
+      w_ca_add_PointLight(&g_light_data.point_light_ca, &pl);
+    }
+  }
 
   /// limit fps to match the main.h macro defined value.
   // Variables for controlling FPS
   clock_t last_time = clock();
   double fps_timer = 0.0;
+
+  char *cubemap_paths[6] = {TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png"),
+                            TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png"),
+                            TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png")};
+
+  GraphicsRender *skybox_render = glprim_skybox_cube();
+  TextureHandle skybox_tex = textures[g_load_cubemap(cubemap_paths)];
 
   // Loop until the user closes the window
   while (!l_should_close()) {
@@ -173,9 +182,14 @@ int main() {
     // after admin matrix stuff is over with, actually draw all the Renders.
 
     { // draw the 3d scene
+      // our top-level, default pipeline.
+      { // render skybox
+        g_use_pipeline(PC_SKYBOX);
+        g_use_cubemap(skybox_tex);
+        g_draw_render(skybox_render);
+      }
       g_use_pipeline(PC_BLANK_GOURAUD);
       g_use_texture(nepeta);
-      g_draw_render(glb);
       object_draw(); // handle all the individual draw routines for all the
                      // objects in the world.
     }

@@ -65,7 +65,49 @@ uint g_load_texture(const char *filepath) {
   return 0;
 }
 
+uint g_load_cubemap(char *faces[6]) {
+  uint textureID;
+  glGenTextures(1, &textureID);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+  stbi_set_flip_vertically_on_load(false);
+
+  for (GLuint i = 0; i < 6; i++) {
+    int width, height, channels;
+
+    unsigned char *image_data =
+        stbi_load(faces[i], &width, &height, &channels, 0);
+
+    if (!image_data) {
+      printf("Error loading the image at path \"%s\": %s\n", faces[i],
+             stbi_failure_reason());
+      return 0;
+    }
+
+    GLenum format = channels == 4 ? GL_RGBA : GL_RGB;
+
+    // load the face in by the offset.
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, width, height,
+                 0, format, GL_UNSIGNED_BYTE, image_data);
+
+    stbi_image_free(image_data);
+  }
+
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+  return textureID;
+}
+
 void g_use_texture(TextureHandle handle) {
   glBindTexture(GL_TEXTURE_2D, handle);
+  curr_bound_texture = handle;
+}
+
+void g_use_cubemap(TextureHandle handle) {
+  glBindTexture(GL_TEXTURE_CUBE_MAP, handle);
   curr_bound_texture = handle;
 }

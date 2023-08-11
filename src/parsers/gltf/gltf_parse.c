@@ -20,8 +20,6 @@ static void parse_json_chunk(GLTFFile *file, char *json_str) {
   {                                                                            \
     file->which = wjson_get(root, #which);                                     \
     if (!file->which) {                                                        \
-      printf("WARN: the parsed JSON chunk of the glb file doesn't have the "   \
-             "top-level parameter " #which ".\n");                             \
     }                                                                          \
   }
 
@@ -73,15 +71,11 @@ GLTFFile *gltf_parse(const char *file_path) {
 
   CHECK_MAGIC("glTF")
 
-  printf("past gltf magic\n");
-
   file->version = *(u32 *)(input);
   input += 4; // bump past the version number.
 
   file->gltf_length = *(u32 *)(input);
   input += 4; // bump past the full gltf length spec in bytes.
-
-  printf("past full gltf header\n");
 
   // SECTION HEADER - length, type then raw data output.
 
@@ -92,8 +86,6 @@ GLTFFile *gltf_parse(const char *file_path) {
     // parse a generic header, figure out the type and act accordingly later.
     u32 header_len = *(u32 *)(input);
     input += 4;
-
-    printf("parsing the %dth section header\n", i);
 
     // switch over the first letter of the magic, if it's J, try to parse JSON,
     // if it's B, try to parse BIN.
@@ -114,7 +106,6 @@ GLTFFile *gltf_parse(const char *file_path) {
       file->binary_length = header_len;
       file->binary_data = (u8 *)malloc(file->binary_length);
       memcpy(file->binary_data, input, file->binary_length);
-      PRINT_PTR(file->binary_data)
       input += file->binary_length;
 
     } break;

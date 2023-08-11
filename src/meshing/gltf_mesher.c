@@ -26,18 +26,12 @@ GraphicsRender *gltf_to_render_simple(GLTFFile *file) {
   WJSONValue *mesh = wjson_index(file->meshes, 0);
   WJSONValue *prims = wjson_get(mesh, "primitives");
 
-  PRINT_PTR(prims)
-
   // grab the first prim from the first mesh.
   WJSONValue *prim = wjson_index(prims, 0);
-
-  PRINT_PTR(prim)
 
   WJSONValue *attributes =
       wjson_get(prim, "attributes"); // all the vertex attributes of the
                                      // vertices in this primitive.
-
-  PRINT_PTR(attributes)
 
   // these attribute names will always be the same, and give us info on where
   // the actual data for this attribute of this prim is in the binary buffer.

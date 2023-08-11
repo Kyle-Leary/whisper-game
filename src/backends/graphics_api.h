@@ -3,6 +3,7 @@
 
 #include "cglm/types.h"
 #include "main.h"
+#include "whisper/contig_array.h"
 #include <stdbool.h>
 #include <sys/types.h>
 
@@ -14,9 +15,11 @@ extern TextureHandle textures[NUM_TEXTURES];
 // returns an index into the global textures array, after loading it into the
 // graphics backend.
 uint g_load_texture(const char *filepath);
+uint g_load_cubemap(char *faces[6]);
 // "activates" the texture, using it for further draw calls.
 // TODO: how to reason about texture slots?
 void g_use_texture(TextureHandle handle);
+void g_use_cubemap(TextureHandle handle);
 
 // abstract over shaders by allowing selection between multiple pipeline
 // configurations, all of which must be somehow set and filled through the
@@ -27,7 +30,10 @@ void g_use_texture(TextureHandle handle);
 typedef enum PipelineConfiguration {
   PC_BASIC,
   PC_HUD,
+  PC_SKYBOX,
   PC_BLANK_GOURAUD, // does a blank gouraud shader over the ambient coloring.
+  PC_PBR_GOURAUD,   // gouraud with PBR in the vs.
+  PC_SOLID,         // renders a single color from the uniforms.
   PC_COUNT,
 } PipelineConfiguration;
 
@@ -101,6 +107,13 @@ typedef struct AmbientLight {
   char pad1[12];
 } AmbientLight;
 
+// 12 bytes of padding at the end of the contig array, the W_CA_PointLight
+// structure will be stuck directly in the light data.
+DEFINE_CONTIG_ARRAY_TYPES(PointLight, POINT_LIGHT_SLOTS, , , char padding[12];)
+DEFINE_CONTIG_ARRAY_TYPES(DirectionalLight, DIRECTIONAL_LIGHT_SLOTS, , ,
+                          char padding[12];)
+DEFINE_CONTIG_ARRAY_TYPES(SpotLight, SPOT_LIGHT_SLOTS, , , char padding[12];)
+
 // the global structure that holds all the light data in the scene. one of these
 // should be active at a time, and it should generally be managed through helper
 // methods.
@@ -109,31 +122,19 @@ typedef struct LightData {
   // all structured at compile-time. that's the point of "slots" rather than
   // variable-sized data in a shader, it's just how cpu gpu communication works.
 
-  SpotLight spot_lights[SPOT_LIGHT_SLOTS];
-
-  // how many slots are currently active? we fill the slots from left to right,
-  // and make things as easy as possible on the GPU. the glsl shader is dumb, it
-  // can't know that much about the shape or context of this data.
-  int n_spot_lights;
-  char pad2[12];
-
-  PointLight point_lights[POINT_LIGHT_SLOTS];
-  int n_point_lights;
-  char pad3[12];
-
-  DirectionalLight directional_lights[DIRECTIONAL_LIGHT_SLOTS];
-  int n_directional_lights;
-  char pad4[12];
+  // these MUST BE IN THE RIGHT ORDER. BE VERY CAREFUL WITH THE LAYOUT OF THIS
+  // STRUCTURE, IT IS EXTREMELY DELIBERATE.
+  W_CA_SpotLight spot_light_ca;
+  W_CA_PointLight point_light_ca;
+  W_CA_DirectionalLight directional_light_ca;
 
   AmbientLight ambient_light;
 } LightData;
 
-extern LightData g_light_data;
+// in the shader, the structure is exactly the same so we don't need to worry
+// about drilling past the ContiguousArray stuff in the glsl code/structs.
 
-// we need to be able to remove the light later, so let the caller manage the
-// lightslot. worst comes to worst, we can just flush the light data.
-LightSlot g_add_point_light(PointLight *light); // copy into the newest slot
-void g_remove_point_light(LightSlot slot);
+extern LightData g_light_data;
 
 /* v_count - the amount of vertices (actual points) in the data. not the amount
  of floats or bytes. */
@@ -191,3 +192,13 @@ GraphicsRender *g_new_render(VertexData *data, const unsigned int *indices,
 void g_draw_render(GraphicsRender *r);
 
 void g_clean();
+
+// might as well make this an enum. no overhead, really.
+typedef enum DepthMode {
+  DM_OFF,
+  DM_ON,
+  DM_COUNT,
+} DepthMode;
+
+/* now, define general pipeline settings: */
+void g_set_depth_mode(DepthMode dm);

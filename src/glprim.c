@@ -54,6 +54,52 @@ GraphicsRender *glprim_cube(vec3 position) {
   return gr;
 }
 
+// all at 1.0, good for skyboxes and projection of cubemaps.
+static float skyboxCubePositions[] = {-1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,
+                                      1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,
+                                      -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
+                                      1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f};
+
+static float skyboxCubeNormals[] = {
+    1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+    1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+
+static float skyboxCubeUVs[] = {0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+                                1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f};
+
+static unsigned int skyboxCubeIndices[] = {
+    // Front face
+    0, 1, 2, // Triangle 1
+    2, 3, 0, // Triangle 2
+    // Right face
+    1, 5, 6, // Triangle 1
+    6, 2, 1, // Triangle 2
+    // Back face
+    7, 6, 5, // Triangle 1
+    5, 4, 7, // Triangle 2
+    // Left face
+    4, 0, 3, // Triangle 1
+    3, 7, 4, // Triangle 2
+    // Bottom face
+    4, 5, 1, // Triangle 1
+    1, 0, 4, // Triangle 2
+    // Top face
+    3, 2, 6, // Triangle 1
+    6, 7, 3  // Triangle 2
+};
+
+static unsigned int skyboxCubeNumVertices = 8;
+static unsigned int skyboxCubeNumIndices = 36;
+
+GraphicsRender *glprim_skybox_cube() {
+  GraphicsRender *gr = g_new_render(
+      (VertexData *)&(BasicVertexData){RC_BASIC, skyboxCubeNumVertices,
+                                       skyboxCubePositions, skyboxCubeNormals,
+                                       skyboxCubeUVs},
+      skyboxCubeIndices, skyboxCubeNumIndices);
+  return gr;
+}
+
 static float planePositions[] = {-0.5f, -0.5f, 0.0f, 0.5f,  -0.5f, 0.0f,
                                  0.5f,  0.5f,  0.0f, -0.5f, 0.5f,  0.0f};
 

@@ -18,8 +18,10 @@
 #include "glprim.h"
 #include "helper_math.h"
 #include "input_help.h"
+#include "meshing/gltf_mesher.h"
 #include "meshing/obj/obj_parse.h"
 #include "object_bases.h"
+#include "parsers/gltf/gltf_parse.h"
 #include "path.h"
 #include "pragma.h"
 #include "state.h"
@@ -55,7 +57,11 @@ Player *player_build() {
   col_data->radius = 1;
   p->colliders[0].data = col_data;
 
-  p->render = render_from_obj(MODEL_PATH("character.obj"));
+  // parse then mesh the glb file, then render it in the normal drawing loop.
+  GraphicsRender *glb =
+      gltf_to_render_simple(gltf_parse(MODEL_PATH("final_boss.glb")));
+
+  p->render = glb;
 
   p->forward_speed = 1.0F;
   return p;
@@ -172,7 +178,20 @@ void player_draw(void *p) {
   glm_lookat(player->lerp_position, player->ghost_step, (vec3){0, 1, 0},
              player->render->model);
   glm_mat4_inv(player->render->model, player->render->model);
-  g_draw_render(player->render);
+
+  { // draw cool outline
+    g_set_depth_mode(DM_OFF);
+    g_use_pipeline(PC_SOLID);
+    glm_scale(player->render->model, (vec3){1.1, 1.1, 1.1});
+    g_draw_render(player->render);
+    g_set_depth_mode(DM_ON);
+  }
+
+  { // draw player model with proper mats
+    g_use_pipeline(PC_PBR_GOURAUD);
+    glm_scale(player->render->model, (vec3){0.9, 0.9, 0.9});
+    g_draw_render(player->render);
+  }
 }
 
 void player_handle_collision(void *p, CollisionEvent *e) {}

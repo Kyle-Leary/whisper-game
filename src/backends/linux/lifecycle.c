@@ -4,9 +4,11 @@
 
 #include "backends/linux/graphics/shader.h"
 #include "global.h"
+#include "graphics/linux_graphics_globals.h"
 #include "main.h"
 #include "ogl_includes.h"
 #include "path.h"
+#include "whisper/hashmap.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -15,10 +17,6 @@
 
 // define the externs in ogl_includes.h
 GLFWwindow *window = NULL;
-
-Shader *basic_program = NULL;
-Shader *hud_program = NULL;
-Shader *gouraud_program = NULL;
 
 // dumb
 static void save_screenshot(GLFWwindow *window, const char *filename) {
@@ -120,17 +118,38 @@ int l_init() {
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &maxUniforms);
   printf("Max uniforms supported: %d.\n", maxUniforms);
 
+#define INSERT(name)                                                           \
+  w_hm_put_direct_value(shader_map, #name,                                     \
+                        (WHashMapValue){.as_ptr = name##_program})
+
   // the "default" shader for normal 3d scenes
-  basic_program = make_shader(SHADER_PATH("basic.vs"), SHADER_PATH("basic.fs"));
+  Shader *basic_program =
+      make_shader(SHADER_PATH("basic.vs"), SHADER_PATH("basic.fs"));
   shader_set_1i(basic_program, "main_slot", 0);
+  INSERT(basic);
 
   // the default for the hud rendering, eg text stuff. we don't really want to
   // render the hud in perspective.
-  hud_program = make_shader(SHADER_PATH("hud.vs"), SHADER_PATH("hud.fs"));
+  Shader *hud_program =
+      make_shader(SHADER_PATH("hud.vs"), SHADER_PATH("hud.fs"));
   shader_set_1i(hud_program, "ui_font_slot", 0);
+  INSERT(hud);
 
-  gouraud_program =
+  Shader *gouraud_program =
       make_shader(SHADER_PATH("gouraud.vs"), SHADER_PATH("gouraud.fs"));
+  INSERT(gouraud);
+
+  Shader *pbr_gouraud_program =
+      make_shader(SHADER_PATH("pbr_gouraud.vs"), SHADER_PATH("pbr_gouraud.fs"));
+  INSERT(pbr_gouraud);
+
+  Shader *solid_program =
+      make_shader(SHADER_PATH("solid.vs"), SHADER_PATH("solid.fs"));
+  INSERT(solid);
+
+  Shader *skybox_program =
+      make_shader(SHADER_PATH("skybox.vs"), SHADER_PATH("skybox.fs"));
+  INSERT(skybox);
 
   { // SET UP UBOS
     unsigned int blockIndex =
@@ -188,7 +207,7 @@ int l_update() {
     save_screenshot(window, "screen.png");
   }
 
-  shader_set_1f(basic_program, "u_time", u_time);
+  shader_set_1f(w_hm_get(shader_map, "basic").as_ptr, "u_time", u_time);
 
   u_time += delta_time;
   return 0;
