@@ -3,12 +3,16 @@
 #include "helper_math.h"
 #include "parsers/gltf/gltf_parse.h"
 #include "printers.h"
+#include "size.h"
 #include "util.h"
 #include "wjson.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+
+#define VERT_BUF_SZ KB(10)
 
 // pass in alloced arrays, and this will modify based on the GLTFFile*'s
 // internal state.
@@ -16,8 +20,8 @@ static WJSONValue *parse_basic_attrs(GLTFFile *file, float *positions,
                                      float *normals, float *uvs,
                                      unsigned int *indices, int *n_verts,
                                      int *n_idx) {
-  unsigned short
-      internal_indices[2048]; // will be transformed into the int* index buffer.
+  unsigned short internal_indices[VERT_BUF_SZ]; // will be transformed into the
+                                                // int* index buffer.
 
   // grab the first mesh.
   WJSONValue *mesh = wjson_index(file->meshes, 0);
@@ -57,27 +61,65 @@ Model *gltf_to_model(GLTFFile *file) {
   Model *model = malloc(sizeof(Model));
 
   int n_verts, n_idx;
-  float positions[2048], normals[2048], uvs[2048], weights[2048];
+  float positions[VERT_BUF_SZ], normals[VERT_BUF_SZ], uvs[VERT_BUF_SZ],
+      weights[VERT_BUF_SZ];
   // then, the model-specific data.
-  int joints[2048]; // these are actually ivec4s, not weird unsigned shorts like
-                    // the index data.
-  unsigned int indices[2048];
+  unsigned int indices[VERT_BUF_SZ];
 
   WJSONValue *attributes = parse_basic_attrs(file, positions, normals, uvs,
                                              indices, &n_verts, &n_idx);
 
-  // then, use the attributes table to parse the extra Model stuff, like weights
-  // and joints.
-  WJSONValue *v_wai = wjson_get(attributes, "WEIGHTS_0");
-  int weight_accessor_idx = (int)wjson_number(v_wai);
-  gltf_dump_float_accessor(file, weight_accessor_idx, weights, &n_verts);
+  { // weights
+    WJSONValue *v_wai = wjson_get(attributes, "WEIGHTS_0");
+    int weight_accessor_idx = (int)wjson_number(v_wai);
+    gltf_dump_float_accessor(file, weight_accessor_idx, weights, &n_verts);
+  }
 
-  int joint_accessor_idx = (int)wjson_number(wjson_get(attributes, "JOINTS_0"));
-  gltf_dump_int_accessor(file, joint_accessor_idx, joints, &n_verts);
+  int converted_joints[VERT_BUF_SZ];
+  { // joints
+    int joint_accessor_idx =
+        (int)wjson_number(wjson_get(attributes, "JOINTS_0"));
+
+    GLTF_ComponentType joint_ct =
+        gltf_get_accessor_ct(file, joint_accessor_idx);
+
+    // the joint attribute can either be a ushort vector or a ubyte vector, we
+    // need to check manually.
+    switch (joint_ct) {
+    case GLTF_UNSIGNED_BYTE: {
+      uint8_t joints[VERT_BUF_SZ];
+      gltf_dump_ubyte_accessor(file, joint_accessor_idx, joints, &n_verts);
+
+      int converted_joints[VERT_BUF_SZ];
+      for (int i = 0; i < n_verts * 4; i++) {
+        converted_joints[i] = (int)joints[i];
+      }
+
+    } break;
+    case GLTF_UNSIGNED_SHORT: {
+      unsigned short joints[VERT_BUF_SZ];
+      gltf_dump_ushort_accessor(file, joint_accessor_idx, joints, &n_verts);
+
+      int converted_joints[VERT_BUF_SZ];
+      for (int i = 0; i < n_verts * 4; i++) {
+        converted_joints[i] = (int)joints[i];
+      }
+
+    } break;
+    default: {
+      fprintf(stderr,
+              "ERROR: could not parse the JOINTS attribute of the GLB file, "
+              "found invalid componentType on the JOINTS accessor \"%d\".\n",
+              joint_ct);
+      exit(1);
+
+    } break;
+    }
+  }
 
   GraphicsRender *gr = g_new_render(
       (VertexData *)&(ModelVertexData){RC_MODEL, n_verts, positions, normals,
-                                       uvs, joints, weights},
+                                       uvs, converted_joints, weights},
       indices, n_idx);
 
   gr->pc = PC_MODEL;
@@ -119,6 +161,7 @@ Model *gltf_to_model(GLTFFile *file) {
     model->num_animations = file->animations->data.length.array_len;
 
     gltf_animations_parse(file, model);
+    gltf_materials_parse(file, model);
 
     model->render = gr;
   }
@@ -135,8 +178,8 @@ GraphicsRender *gltf_to_render_simple(GLTFFile *file) {
 
   int n_verts, n_idx;
 
-  unsigned int indices[2048];
-  float positions[2048], normals[2048], uvs[2048];
+  unsigned int indices[VERT_BUF_SZ];
+  float positions[VERT_BUF_SZ], normals[VERT_BUF_SZ], uvs[VERT_BUF_SZ];
 
   WJSONValue *attributes = parse_basic_attrs(file, positions, normals, uvs,
                                              indices, &n_verts, &n_idx);

@@ -79,15 +79,20 @@ int main() {
 
   Player *player = (Player *)object_add((Object *)player_build());
   player->position[0] = 5;
-  player->position[1] = -1; // player will be pushed above the floor
-                            // automatically by the physics subsystem.
+  player->position[1] = -1;
+
+  Character *chr = (Character *)object_add((Object *)character_build(
+      gltf_to_model(gltf_parse(MODEL_PATH("suzanne.glb")))));
+  chr->position[0] = -4;
+  chr->position[1] = -1;
+
   object_add((Object *)cube_build((vec3){9, -1, 0}));
   object_add((Object *)cube_build((vec3){0, -1, 9}));
   object_add((Object *)cube_build((vec3){0, -1, -9}));
   object_add((Object *)cube_build((vec3){-9, -1, -9}));
   object_add((Object *)cube_build((vec3){7, -1, -9}));
 
-  object_add((Object *)sphere_build((vec3){2, -1, -2}, 1, 10));
+  // object_add((Object *)sphere_build((vec3){2, -1, -2}, 1, 10));
 
   object_add((Object *)floor_build((vec3){0, -1, 0}, 50));
 
@@ -116,23 +121,12 @@ int main() {
       pl.position[0] = 0.0f;
       pl.position[1] = 0.0f;
       pl.position[2] = 0.0f;
-      pl.color[0] = 0.9f;
+      pl.color[0] = 0.5f;
       pl.color[1] = 0.1f;
-      pl.color[2] = 0.0f;
+      pl.color[2] = 0.5f;
       pl.color[3] = 1.0f;
 
       w_ca_add_PointLight(&g_light_data.point_light_ca, &pl);
-
-      // pl.position[0] = -3.0f;
-      // pl.position[1] = -3.0f;
-      // pl.position[2] = -3.0f;
-      //
-      // pl.color[0] = 0.9f;
-      // pl.color[1] = 0.1f;
-      // pl.color[2] = 0.1f;
-      // pl.color[3] = 1.0f;
-      //
-      // w_ca_add_PointLight(&g_light_data.point_light_ca, &pl);
     }
   }
 

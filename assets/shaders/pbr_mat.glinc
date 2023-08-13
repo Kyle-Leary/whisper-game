@@ -1,0 +1,15 @@
+// one material is rendered on one primitive at a time.
+layout(std140) uniform MaterialBlock {
+    vec4 albedo;
+    float metallic;
+    float roughness;
+    vec3 emissive_factor;
+    int double_sided;
+};
+
+// hardcode the slot numbers for now? i don't really see why i shouldn't.
+#define BASE_COLOR_TEXTURE_SLOT 0
+#define METALLIC_ROUGHNESS_TEXTURE_SLOT 1
+#define NORMAL_TEXTURE_SLOT 2
+#define OCCLUSION_TEXTURE_SLOT 3
+#define EMISSIVE_TEXTURE_SLOT 4

@@ -70,29 +70,64 @@ static uint32_t murmur_hash3_32(const void *key, int len) {
 static void tick_channel(Channel *c, Node *nodes, float a, float b) {
   Node *target_ref = &(nodes[c->target.node_index]);
 
-  // implement generic STEP interpolation as a testing ground.
-  int step_index = -1;
-  for (int i = 0; i < c->sampler->num_frames; i++) {
-    if (c->sampler->input[i] > b) {
-      step_index = i;
-      break;
+  switch (c->sampler->interp) {
+  case IP_STEP: {
+    // implement generic STEP interpolation as a testing ground.
+    int step_index = -1;
+    for (int i = 0; i < c->sampler->num_frames; i++) {
+      if (c->sampler->input[i] > b) {
+        step_index = i;
+        break;
+      }
     }
+    if (step_index == -1) // then default to the first index?
+      step_index = 0;
+
+    // get a ref to the beginning of the keyframe value data, and take that as
+    // the step value base ptr. we're going to update the property on the target
+    // with this value.
+    int target_value_type_sz;
+    int target_value_num_elms;
+    void *target_value_ptr = return_prop_base_ptr(
+        nodes, &c->target, &target_value_type_sz, &target_value_num_elms);
+    void *keyframe_value =
+        &(c->sampler->output[(step_index * (target_value_num_elms))]);
+
+    // right now, we're copying the data into the pointer each frame, even in a
+    // STEP.
+    memcpy(target_value_ptr, keyframe_value,
+           target_value_type_sz * target_value_num_elms);
+  } break;
+  case IP_LINEAR: {
+    // LINEAR is also just step interpolation for now.
+    int step_index = -1;
+    for (int i = 0; i < c->sampler->num_frames; i++) {
+      if (c->sampler->input[i] > b) {
+        step_index = i;
+        break;
+      }
+    }
+    if (step_index == -1) // then default to the first index?
+      step_index = 0;
+
+    // get a ref to the beginning of the keyframe value data, and take that as
+    // the step value base ptr. we're going to update the property on the target
+    // with this value.
+    int target_value_type_sz;
+    int target_value_num_elms;
+    void *target_value_ptr = return_prop_base_ptr(
+        nodes, &c->target, &target_value_type_sz, &target_value_num_elms);
+    void *keyframe_value =
+        &(c->sampler->output[(step_index * (target_value_num_elms))]);
+
+    // right now, we're copying the data into the pointer each frame, even in a
+    // STEP.
+    memcpy(target_value_ptr, keyframe_value,
+           target_value_type_sz * target_value_num_elms);
+  } break;
+  default: {
+  } break;
   }
-  if (step_index == -1) // then default to the first index?
-    step_index = 0;
-
-  // get a ref to the beginning of the keyframe value data, and take that as the
-  // step value base ptr. we're going to update the property on the target with
-  // this value.
-  int target_value_sz;
-  void *target_value_ptr =
-      return_prop_base_ptr(nodes, &c->target, &target_value_sz);
-  void *keyframe_value =
-      &(c->sampler->output[(step_index * (target_value_sz / sizeof(float)))]);
-
-  // right now, we're copying the data into the pointer each frame, even in a
-  // STEP.
-  memcpy(target_value_ptr, keyframe_value, target_value_sz);
 }
 
 static void animation_update(Animator *animator, AnimEntry *entry) {

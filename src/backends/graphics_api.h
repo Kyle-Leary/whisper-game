@@ -54,31 +54,53 @@ typedef enum RenderConfiguration {
   RC_COUNT,
 } RenderConfiguration;
 
-// a general Material structure, materials can be selected at any time and
-// affect the rendering process in a platform-specific way.
-typedef struct Material {
+// PBR material structure, this is similarly slotted directly into the block UBO
+// data.
+typedef struct MaterialData {
   // goes by the PBR spec generally laid out by the glb format.
   vec4 albedo;
   float metallic;
+  char padding1[12];
   float roughness;
-  TextureHandle base_color_texture;
-  TextureHandle metallic_roughness_texture;
-  TextureHandle normal_texture;
-  TextureHandle occlusion_texture;
-  TextureHandle emissive_texture;
+  char padding2[12];
   vec3 emissive_factor;
+  char padding8[4];
   bool double_sided;
-} Material;
+  char padding9[12];
+} MaterialData;
+
+// have a wrapper structure that can double as both the raw UBO data and
+// something more expressive, without having to pointer-chase to pull the
+// structure back together.
+typedef struct ModelMaterial {
+  MaterialData inner;
+
+  bool double_sided;
+} ModelMaterial;
 
 // all renders from now on will use the mat Material.
 // all shaders are implicitly PBR shaders?
-void g_use_material(Material *mat);
+void g_use_material(MaterialData *mat);
+
+typedef enum TextureType {
+  // these enum variant values double as the slots that the textures are
+  // inserted into.
+  TEX_BASE_COLOR = 0,
+  TEX_METALLIC_ROUGHNESS = 1,
+  TEX_NORMAL = 2,
+  TEX_OCCLUSION = 3,
+  TEX_EMISSIVENESS = 4,
+  TEX_COUNT,
+} TextureType;
+
+void g_use_pbr_texture(TextureType type, TextureHandle tex);
 
 // a maximum of 128 bones. this should be enough for our simpler animations.
 #define BONE_LIMIT 128
 
 // the data that will be sent directly to the GPU.
 typedef struct BoneData {
+  mat4 ibms[BONE_LIMIT];
   mat4 bones[BONE_LIMIT];
   // similarly, fill up the bones contiguously and dictate the maximum to the
   // gpu.
@@ -88,7 +110,7 @@ typedef struct BoneData {
 
 // will be copied into the right place, on linux this copies into the ubo for
 // rendering.
-void g_use_bones(mat4 *bones, int num_bones);
+void g_use_bones(mat4 *bones, mat4 *ibms, int num_bones);
 
 /* define light structures that will be passed directly into a PBR-type shader.
  */
@@ -281,6 +303,10 @@ typedef struct Model {
                  // it's not extremely productive to organize nodes as a tree.
                  // just make them an array, especially since we'll always know
                  // the length at parse-time.
+
+  // parse out a list of materials into the Model.
+  ModelMaterial *materials;
+  int num_materials;
 
   // a render contains just the constant vertex buffers bound to the vao, it's
   // nothing specific to rendering.

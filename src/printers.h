@@ -12,6 +12,7 @@ void print_many_uint(unsigned int *uints, int num_uints, int indent_level);
 void print_many_vec2(float *vec2s, int num_vec2s, int indent_level);
 void print_many_vec3(float *vec3s, int num_vec3s, int indent_level);
 void print_many_vec4(float *vec4s, int num_vec4s, int indent_level);
+void print_mat4(mat4 m, int indent_level);
 
 void print_model(const Model *model, int indent_offset);
 void print_graphics_render(const GraphicsRender *gr, int indent_offset);

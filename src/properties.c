@@ -15,21 +15,25 @@ Properties prop_from_string(const char *prop_string) {
   }
 }
 
-void *return_prop_base_ptr(Node *nodes, Target *target, int *prop_sz) {
+void *return_prop_base_ptr(Node *nodes, Target *target, int *prop_type_sz,
+                           int *num_prop) {
   Node *target_node = &(nodes[target->node_index]);
   Properties target_prop = prop_from_string(target->property_name);
 
   switch (target_prop) {
   case P_TRANSLATION: {
-    *prop_sz = sizeof(float) * 3;
+    *prop_type_sz = sizeof(float);
+    *num_prop = 3;
     return &(target_node->translation);
   } break;
   case P_ROTATION: {
-    *prop_sz = sizeof(float) * 4;
+    *prop_type_sz = sizeof(float);
+    *num_prop = 4;
     return &(target_node->rotation);
   } break;
   case P_SCALE: {
-    *prop_sz = sizeof(float) * 3;
+    *prop_type_sz = sizeof(float);
+    *num_prop = 3;
     return &(target_node->scale);
   } break;
   default: {

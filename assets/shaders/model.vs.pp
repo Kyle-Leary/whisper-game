@@ -8,6 +8,7 @@ layout (location = 2) in vec2 aTexCoord;
 layout (location = 3) in ivec4 aJoints;
 layout (location = 4) in vec4 aWeights;
 
+out vec3 lightColor;
 out vec2 oTexCoord;
 
 uniform mat4 model;
@@ -77,29 +78,67 @@ layout(std140) uniform ViewProjection {
 layout(std140) uniform BoneData {
     // cheap out and only use half of the slots. our max block size isn't really that big, and the bone indices are usually represented as u8s anyway.
     mat4 bones[128];
+    mat4 inverse_binds[128];
     int num_bones;
 };
+
+// one material is rendered on one primitive at a time.
+layout(std140) uniform MaterialBlock {
+    vec4 albedo;
+    float metallic;
+    float roughness;
+    vec3 emissive_factor;
+    int double_sided;
+};
+
+// hardcode the slot numbers for now? i don't really see why i shouldn't.
+#define BASE_COLOR_TEXTURE_SLOT 0
+#define METALLIC_ROUGHNESS_TEXTURE_SLOT 1
+#define NORMAL_TEXTURE_SLOT 2
+#define OCCLUSION_TEXTURE_SLOT 3
+#define EMISSIVE_TEXTURE_SLOT 4
 
 void main() {
 	mat4 skin = mat4(0.0);
 
-	// sum over the four weights and joints provided for this vertex.
 	for (int i = 0; i < 4; i++) {
-		float weight = aWeights[i];
-		int bone_index = aJoints[i];
+	    float weight = aWeights[i];
+	    int bone_index = aJoints[i];
 
-		// take a weighted sum of all the joints and their local transforms into the skinning matrix.
-		skin += weight * bones[bone_index];
+	    mat4 bone_transform = bones[bone_index]; // current bone transformation
+	    mat4 inverse_bind_matrix = inverse_binds[bone_index]; // inverse bind matrix for this bone
+
+	    mat4 transformation = bone_transform * inverse_bind_matrix;
+	    skin += weight * transformation;
 	}
 
-	// wtf why doesn't *= work??
-	gl_Position = (vec4(aPos, 1.0));
+	gl_Position = skin * vec4(aPos, 1.0); // Apply the combined skinning transformation
 	gl_Position = model * gl_Position;
 	gl_Position = view * gl_Position;
 	gl_Position = projection * gl_Position;
 
-	// then, take the model from the base pose to the bone pose.
-	// gl_Position *= skin;
+	// setup the gouraud light color that will be passed to the fs.
+	lightColor = vec3(1, 1, 1);
+
+	// ambient
+	lightColor *= vec3(ambient_light.color.xyz);
+	lightColor *= ambient_light.intensity;
+
+	vec3 vert_pos = gl_Position.xyz;
+
+	for (int i = 0; i < n_point_lights; i++) {
+		lightColor *= apply_point_light(vert_pos, i);
+	}
+
+	for (int i = 0; i < n_spot_lights; i++) {
+		lightColor *= apply_spot_light(vert_pos, i);
+	}
+
+	for (int i = 0; i < n_directional_lights; i++) {
+		lightColor *= apply_directional_light(vert_pos, i);
+	}
+
+	// lightColor *= albedo.xyz;
 
 	oTexCoord = aTexCoord;
 }

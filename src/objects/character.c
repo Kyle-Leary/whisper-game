@@ -1,11 +1,12 @@
 #include "character.h"
 
-#include "cglm/types.h"
-#include "cglm/vec3.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
+#include "cglm/affine-pre.h"
 #include "cglm/mat4.h"
+#include "cglm/types.h"
+#include "cglm/vec3.h"
 #include "core/area_server.h"
 #include "event_types.h"
 #include "global.h"
@@ -21,55 +22,49 @@
 
 #define CAST Character *character = (Character *)p
 
-Character *character_build(ivec2 position, TextureHandle handle) {
+Character *character_build(Model *model) {
   Character *p = (Character *)malloc(sizeof(Character));
-  memcpy(p->position, position, sizeof(float) * 2);
-  p->num_colliders = 1;
-  p->colliders = (Collider *)malloc(
-      sizeof(Collider) * p->num_colliders); // space for one collider.
-  p->colliders[0].type = CL_PILLAR;
+  memcpy(p->position, (vec3){0}, sizeof(float) * 3);
   p->type = OBJ_CHARACTER;
-  vec3 d;
-  area_get_vec3_from_position(p->position, d);
-  p->render = glprim_upright_plane(d);
-  p->handle = handle;
+
+  { // setup phys information.
+    memcpy(p->lerp_position, p->position,
+           sizeof(float) * 3); // copy the literal from the stack.
+    p->num_colliders = 1;
+    p->colliders = (Collider *)calloc(sizeof(Collider), 1);
+    p->colliders[0].type = CL_SPHERE;
+
+    SphereColliderData *col_data =
+        (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
+    col_data->radius = 1;
+    p->colliders[0].data = col_data;
+
+    p->position_lerp_speed = 0.1F;
+
+    p->mass = 1.0F;
+    p->linear_damping = 0.5F;
+  }
+
+  p->model = model;
+
   return p;
 }
 
 void character_init(void *p) {}
 
-void character_update(void *p) {
-  CAST;
-  glm_mat4_identity(character->render->model);
-
-  vec3 player_pos;
-  area_get_player_vec3(player_pos);
-
-  // vec3 eye = {-character->position[0], 0, -character->position[2]};
-  // vec3 up = {0, 1, 0}; // Assuming up direction is positive y-axis
-  //
-  // glm_lookat(eye, player_pos, up,
-  //            character->render
-  //                ->r_model); // load the lookat matrix into the passed mat.
-
-  vec3 d;
-  area_get_vec3_from_position(character->position, d);
-  glm_translate(character->render->model, d);
-  glm_scale(character->render->model, (vec3){0.5F, 2, 0.5F});
-}
+void character_update(void *p) {}
 
 void character_draw(void *p) {
   CAST;
-  g_use_texture(character->handle);
-  g_draw_render(character->render);
+
+  glm_mat4_identity(character->model->render->model);
+  glm_translate(character->model->render->model, character->lerp_position);
+
+  g_draw_model(character->model);
 }
 
 InteractionResponse character_handle_interact(void *p, InteractionEvent e) {
   CAST;
-
-  printf("Current character position: (%d, %d)\n", character->position[0],
-         character->position[1]);
-  printf("Desired position: (%d, %d)\n", e.x_pos, e.y_pos);
 
   if (e.x_pos != character->position[0] ||
       e.y_pos !=

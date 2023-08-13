@@ -10,11 +10,9 @@ extern WHashMap shader_map;
 
 extern Shader *curr_program;
 
-// only one Material can be bound at a time.
-// generally, Materials are processed one mesh at a time.
-extern Material *curr_mat;
-
 // store bone_data ubo block in slot 2.
 #define BONE_BLOCK 2
+#define MATERIAL_BLOCK 3
 
 extern GLuint bone_data_ubo;
+extern GLuint material_data_ubo;

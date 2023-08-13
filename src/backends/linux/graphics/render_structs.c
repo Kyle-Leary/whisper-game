@@ -1,8 +1,12 @@
 #include "backends/graphics_api.h"
 #include "backends/linux/graphics/shader.h"
+#include "cglm/affine.h"
+#include "cglm/mat4.h"
+#include "cglm/quat.h"
 #include "global.h"
 #include "linux_graphics_globals.h"
 #include "main.h"
+#include "printers.h"
 #include "util.h"
 #include "vao.h"
 #include <string.h>
@@ -206,15 +210,27 @@ void g_draw_model(Model *m) {
     int num_bones = skin->num_joints;
 
     for (int i = 0; i < num_bones; i++) {
+      mat4 bone_tf;
+      glm_mat4_identity(bone_tf);
+
+      int joint_node_index = skin->joints[i];
       // copy the ith joint into the ith transform slot, setting up the BoneData
       // transforms to be sent over to the GPU.
-      memcpy(&tfs[i], &(skin->joints[i]), sizeof(float) * 16);
+      Node *bone_node = &(m->nodes[joint_node_index]);
+
+      // generate the transform cpu-side for now from the bone Node* structure.
+      glm_translate(bone_tf, bone_node->translation);
+      glm_scale(bone_tf, bone_node->scale);
+      glm_quat_rotate(bone_tf, bone_node->rotation, bone_tf);
+
+      // then copy the transform into the slot.
+      memcpy(&tfs[i], bone_tf, sizeof(float) * 16);
     }
 
-    g_use_bones(tfs, num_bones);
+    g_use_bones(tfs, skin->ibms, num_bones);
   }
 
-  {} // TODO: mats
+  {} // TODO: materials
 
   // then, draw the render.
   g_draw_render(m->render);

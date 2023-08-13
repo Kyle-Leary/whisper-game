@@ -14,4 +14,5 @@ Properties prop_from_string(const char *prop_string);
 
 // return the base ptr of the data "pointed" to by the Target structure in the
 // glb hierarchy.
-void *return_prop_base_ptr(Node *nodes, Target *target, int *prop_sz);
+void *return_prop_base_ptr(Node *nodes, Target *target, int *prop_type_sz,
+                           int *num_prop);

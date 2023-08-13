@@ -81,6 +81,7 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
 static GLuint light_data_ubo = 0;
 static GLuint matrix_data_ubo = 0;
 GLuint bone_data_ubo = 0;
+GLuint material_data_ubo = 0;
 
 int l_init() {
   // Initialize GLFW
@@ -185,7 +186,7 @@ int l_init() {
   // model renderer
   Shader *model_program =
       make_shader(SHADER_PATH("model.vs"), SHADER_PATH("model.fs"));
-  shader_set_1i(basic_program, "tex_sampler",
+  shader_set_1i(model_program, "tex_sampler",
                 0); // the character texture should be stored in the 0th slot
                     // by default.
   INSERT(model);
@@ -221,6 +222,7 @@ int l_init() {
     // only the model program is using the BONE_BLOCK uniform.
     BIND_PROGRAMS(model_program->id);
     ID_TO_BLOCK("BoneData", BONE_BLOCK, model_program->id);
+    ID_TO_BLOCK("MaterialBlock", MATERIAL_BLOCK, model_program->id);
 
     GLuint buf[3];
     glGenBuffers(3, buf);
@@ -246,6 +248,12 @@ int l_init() {
     glBufferData(GL_UNIFORM_BUFFER, sizeof(BoneData), NULL, GL_DYNAMIC_DRAW);
     glBindBufferRange(GL_UNIFORM_BUFFER, BONE_BLOCK, bone_data_ubo, 0,
                       sizeof(BoneData));
+
+    glBindBuffer(GL_UNIFORM_BUFFER, material_data_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(MaterialData), NULL,
+                 GL_DYNAMIC_DRAW);
+    glBindBufferRange(GL_UNIFORM_BUFFER, MATERIAL_BLOCK, material_data_ubo, 0,
+                      sizeof(MaterialData));
   }
 
   // init the pipeline with sensible default settings.

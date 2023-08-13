@@ -6,6 +6,7 @@
 #include "../physics.h"
 #include "backends/input_api.h"
 #include "cglm/affine-pre.h"
+#include "cglm/affine.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
@@ -62,7 +63,7 @@ Player *player_build() {
   p->colliders[0].data = col_data;
 
   // parse then mesh the glb file, then render it in the normal drawing loop.
-  p->model = gltf_to_model(gltf_parse(MODEL_PATH("upward_anim.glb")));
+  p->model = gltf_to_model(gltf_parse(MODEL_PATH("suzanne.glb")));
 
   // just for now, link the first root node and assume that's the one with
   // influence over the player's position.
@@ -73,7 +74,7 @@ Player *player_build() {
   p->animator.target = p->model;
   anim_insert(&p->animator);
 
-  anim_play(&(p->animator), "updown", true);
+  anim_play(&(p->animator), "bend", true);
 
   p->forward_speed = 1.0F;
 
@@ -188,21 +189,14 @@ void player_draw(void *p) {
   CAST;
   player->ghost_step[1] = player->lerp_position[1]; // make the lookahead flat,
                                                     // or else it looks weird.
-  // glm_lookat(player->lerp_position, player->ghost_step, (vec3){0, 1, 0},
-  //            player->model->render->model);
-  // glm_mat4_inv(player->model->render->model, player->model->render->model);
 
   glm_mat4_identity(player->model->render->model);
   glm_translate(player->model->render->model, player->lerp_position);
   glm_translate(player->model->render->model,
                 player->animation_root->translation);
-
-  // { // draw cool outline
-  //   g_set_depth_mode(DM_OFF);
-  //   player->model->render->pc = PC_SOLID;
-  //   g_draw_render(player->model->render);
-  //   g_set_depth_mode(DM_ON);
-  // }
+  glm_lookat(player->lerp_position, player->ghost_step, (vec3){0, 1, 0},
+             player->model->render->model);
+  glm_mat4_inv(player->model->render->model, player->model->render->model);
 
   { // draw player model with proper mats
     g_use_pipeline(PC_MODEL);

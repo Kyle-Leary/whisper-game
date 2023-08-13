@@ -186,6 +186,7 @@ void gltf_bv_parse(GLTFFile *file, int index, void *dest, int dest_sz) {
 
 DEFINE_DUMP_TYPE(float, float)
 DEFINE_DUMP_TYPE(ushort, unsigned short)
+DEFINE_DUMP_TYPE(ubyte, uint8_t)
 DEFINE_DUMP_TYPE(int, int)
 
 #undef DEFINE_DUMP_TYPE
@@ -233,6 +234,9 @@ void gltf_node_parse(GLTFFile *file, Model *model, NodeIndex n_idx) {
           malloc(sizeof(float) * 16 *
                  skin->num_joints); // each IBM is just a normal transform
                                     // matrix, and is sized as such.
+      int ibm_acc_idx = wjson_number(wjson_get(v_skin, "inverseBindMatrices"));
+      int dumb;
+      gltf_dump_float_accessor(file, ibm_acc_idx, (float *)skin->ibms, &dumb);
 
       target_node->data.skin = skin;
       break;
@@ -367,6 +371,24 @@ void gltf_channels_parse(GLTFFile *file, WJSONValue *v_channels,
   }
 }
 
+// parse gltffile into the list of ModelMaterials internal to the Model.
+void gltf_materials_parse(GLTFFile *file, Model *model) {
+  WJSONValue *v_materials = file->materials;
+
+  int num_mats = v_materials->data.length.array_len;
+
+  model->num_materials = num_mats;
+  model->materials = malloc(sizeof(ModelMaterial) * model->num_materials);
+
+  for (int i = 0; i < num_mats; i++) {
+    ModelMaterial *curr_mat = &(model->materials[i]);
+    WJSONValue *v_material = wjson_index(v_materials, i);
+
+    curr_mat->double_sided =
+        (wjson_get(v_material, "doubleSided")->data.value.boolean);
+  }
+}
+
 // parse all of the animations from the GLTFFile* to the Model*.
 void gltf_animations_parse(GLTFFile *file, Model *model) {
   WJSONValue *v_animations = file->animations;
@@ -415,4 +437,11 @@ void gltf_animations_parse(GLTFFile *file, Model *model) {
                           curr_anim->channels, curr_anim->num_channels);
     }
   }
+}
+
+// componentType is specifically a property of an accessor.
+GLTF_ComponentType gltf_get_accessor_ct(GLTFFile *file, int accessor_index) {
+  WJSONValue *accessors = file->accessors;
+  return wjson_number(
+      wjson_get(wjson_index(accessors, accessor_index), "componentType"));
 }
