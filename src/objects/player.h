@@ -5,6 +5,7 @@
 
 #include "../object.h"
 #include "../physics.h"
+#include "animation/animator.h"
 #include "backends/graphics_api.h"
 #include "cglm/types.h"
 #include "defines.h"
@@ -13,7 +14,10 @@
 typedef struct Player {
   PHYS_OBJECT_FIELDS
 
-  GraphicsRender *render;
+  Model *model;
+  Animator animator;
+  Node *animation_root; // a direct link to the Node in the Model hierarchy that
+                        // has direct influence over the player's trs vectors.
 
   vec3 ghost_step; // used internally for calculating the "next" lookat position
                    // for the player model.

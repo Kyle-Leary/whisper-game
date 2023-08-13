@@ -49,8 +49,6 @@ Shader *make_shader(const char *vs_path, const char *fs_path) {
     return 0;
   }
 
-  printf("Compiled vs\n");
-
   // Load and compile the fragment shader
   GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
   read_file_data(fs_path, source_buffers[0], SOURCE_BUF_SZ - 1);
@@ -62,8 +60,6 @@ Shader *make_shader(const char *vs_path, const char *fs_path) {
     printf("Fragment shader compilation failed: %s\n", infoLog);
     return 0;
   }
-
-  printf("Compiled fs\n");
 
   // Create a shader program
   GLint shaderProgram = glCreateProgram();

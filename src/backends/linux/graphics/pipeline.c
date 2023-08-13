@@ -33,17 +33,16 @@ void g_use_pipeline(PipelineConfiguration config) {
   if (curr_pc != config) {
     leave_stage(curr_pc);
     curr_pc = config;
+  } else {
+    // attempted to do a redundant shader configuration, just ignore it.
+    return;
   }
 
   switch (config) {
   case PC_BASIC: {
     glEnable(GL_DEPTH_TEST); // we might be switching from the HUD state, so
                              // reset the depth test.
-
-    shader_set_matrix4fv(w_hm_get(shader_map, "basic").as_ptr, "view",
-                         (const float *)m_view);
-    shader_set_matrix4fv(w_hm_get(shader_map, "basic").as_ptr, "projection",
-                         (const float *)m_projection);
+    shader_use(GETSH("basic"));
   } break;
   case PC_HUD: {              // prepare for hud drawing.
     glDisable(GL_DEPTH_TEST); // dont embed and overlap the ui with other
@@ -51,45 +50,39 @@ void g_use_pipeline(PipelineConfiguration config) {
 
     shader_set_matrix4fv(w_hm_get(shader_map, "hud").as_ptr, "model",
                          (const float *)m_ui_model);
-    shader_set_matrix4fv(w_hm_get(shader_map, "hud").as_ptr, "projection",
-                         (const float *)m_ui_projection);
+    // shader_set_matrix4fv(w_hm_get(shader_map, "hud").as_ptr, "projection",
+    //                      (const float *)m_ui_projection);
 
     // shader_set_3f(w_hm_get(shader_map, "hud").as_ptr, "ui_text_color", 0.5F,
     //               0.5F, 0.5F);
   } break;
   case PC_BLANK_GOURAUD: {
     glEnable(GL_DEPTH_TEST);
+    shader_use(GETSH("gouraud"));
 
-    shader_set_matrix4fv(w_hm_get(shader_map, "gouraud").as_ptr, "view",
-                         (const float *)m_view);
-    shader_set_matrix4fv(w_hm_get(shader_map, "gouraud").as_ptr, "projection",
-                         (const float *)m_projection);
   } break;
   case PC_PBR_GOURAUD: {
     glEnable(GL_DEPTH_TEST);
+    shader_use(GETSH("pbr_gouraud"));
 
-    shader_set_matrix4fv(w_hm_get(shader_map, "pbr_gouraud").as_ptr, "view",
-                         (const float *)m_view);
-    shader_set_matrix4fv(w_hm_get(shader_map, "pbr_gouraud").as_ptr,
-                         "projection", (const float *)m_projection);
   } break;
   case PC_SOLID: {
     Shader *ptr = GETSH("solid");
 
-    shader_set_matrix4fv(ptr, "view", (const float *)m_view);
-    shader_set_matrix4fv(ptr, "projection", (const float *)m_projection);
     // we can set a "default" color here.
     shader_set_3f(ptr, "u_render_color", 0, 1, 0);
   } break;
   case PC_SKYBOX: {
     Shader *ptr = GETSH("skybox");
 
-    shader_set_matrix4fv(ptr, "view", (const float *)m_view);
-    shader_set_matrix4fv(ptr, "projection", (const float *)m_projection);
-
     shader_set_1i(ptr, "u_cube_tex", 0);
 
     glDepthFunc(GL_LEQUAL);
+  } break;
+  case PC_MODEL: {
+    Shader *ptr = GETSH("model");
+
+    shader_use(ptr);
   } break;
   default: {
   } break;

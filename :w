@@ -62,18 +62,12 @@ Player *player_build() {
   p->colliders[0].data = col_data;
 
   // parse then mesh the glb file, then render it in the normal drawing loop.
-  p->model = gltf_to_model(gltf_parse(MODEL_PATH("upward_anim.glb")));
-
-  // just for now, link the first root node and assume that's the one with
-  // influence over the player's position.
-  p->animation_root = &(p->model->nodes[p->model->roots[0]]);
+  p->model = gltf_to_model(gltf_parse(MODEL_PATH("wiggle.glb")));
 
   // link it to the model pointer internally.
   // the object system is what holds the renderer together with the animations.
   p->animator.target = p->model;
   anim_insert(&p->animator);
-
-  anim_play(&(p->animator), "updown", true);
 
   p->forward_speed = 1.0F;
 
@@ -194,8 +188,6 @@ void player_draw(void *p) {
 
   glm_mat4_identity(player->model->render->model);
   glm_translate(player->model->render->model, player->lerp_position);
-  glm_translate(player->model->render->model,
-                player->animation_root->translation);
 
   // { // draw cool outline
   //   g_set_depth_mode(DM_OFF);

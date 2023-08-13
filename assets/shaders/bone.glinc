@@ -1,0 +1,5 @@
+layout(std140) uniform BoneData {
+    // cheap out and only use half of the slots. our max block size isn't really that big, and the bone indices are usually represented as u8s anyway.
+    mat4 bones[128];
+    int num_bones;
+};

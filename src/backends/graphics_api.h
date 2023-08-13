@@ -1,10 +1,12 @@
 #pragma once
 // g_ is the api namespace for the graphics api.
 
+#include "animation/anim_struct.h"
 #include "cglm/types.h"
 #include "main.h"
 #include "whisper/contig_array.h"
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 // a handle to a texture, an id can always be rep'd as a uint, likely.
@@ -30,10 +32,14 @@ void g_use_cubemap(TextureHandle handle);
 typedef enum PipelineConfiguration {
   PC_BASIC,
   PC_HUD,
+
   PC_SKYBOX,
+
   PC_BLANK_GOURAUD, // does a blank gouraud shader over the ambient coloring.
   PC_PBR_GOURAUD,   // gouraud with PBR in the vs.
   PC_SOLID,         // renders a single color from the uniforms.
+
+  PC_MODEL, // renders a model with pbr lightdata and bones.
   PC_COUNT,
 } PipelineConfiguration;
 
@@ -42,6 +48,9 @@ typedef enum PipelineConfiguration {
 typedef enum RenderConfiguration {
   RC_BASIC,
   RC_HUD,
+  RC_MODEL, // rigged model. it's a superset of the RC_BASIC, but with ivec4
+            // joint indices and vec4 weights. we pass in JOINT_ and WEIGHT_
+            // through the attributes, and pass in the bone data through a UBO.
   RC_COUNT,
 } RenderConfiguration;
 
@@ -64,6 +73,22 @@ typedef struct Material {
 // all renders from now on will use the mat Material.
 // all shaders are implicitly PBR shaders?
 void g_use_material(Material *mat);
+
+// a maximum of 128 bones. this should be enough for our simpler animations.
+#define BONE_LIMIT 128
+
+// the data that will be sent directly to the GPU.
+typedef struct BoneData {
+  mat4 bones[BONE_LIMIT];
+  // similarly, fill up the bones contiguously and dictate the maximum to the
+  // gpu.
+  int num_bones;
+  char padding[12];
+} BoneData;
+
+// will be copied into the right place, on linux this copies into the ubo for
+// rendering.
+void g_use_bones(mat4 *bones, int num_bones);
 
 /* define light structures that will be passed directly into a PBR-type shader.
  */
@@ -148,17 +173,23 @@ typedef struct VertexData {
   VERTEX_DATA_FIELDS
 } VertexData;
 
+#define BASIC_VERTEX_DATA_FIELDS                                               \
+  VERTEX_DATA_FIELDS                                                           \
+  float *position;                                                             \
+  float *normal;                                                               \
+  float *uv;
+
 // extensions of the VertexData structure
 typedef struct BasicVertexData {
-  VERTEX_DATA_FIELDS
-
-  // these are seperate pointers to the different allocated segments of data
-  // that point to position, normal, uv etc. these are NOT NOT NOT!!!
-  // interleaved arrays.
-  float *position;
-  float *normal;
-  float *uv;
+  BASIC_VERTEX_DATA_FIELDS
 } BasicVertexData;
+
+typedef struct ModelVertexData {
+  BASIC_VERTEX_DATA_FIELDS
+
+  int *joint; // four joint indices per vertex in a basic model.
+  float *weight;
+} ModelVertexData;
 
 typedef struct HUDVertexData {
   VERTEX_DATA_FIELDS
@@ -175,21 +206,106 @@ typedef struct Render Render;
 typedef struct GraphicsRender {
   // the stuff that's common with all the graphics apis.
   mat4 model;
-  RenderConfiguration conf;
+
+  RenderConfiguration conf; // the basic vertex type that the render is using
+
+  PipelineConfiguration
+      pc; // the pipeline configuration/shader that the render is using.
+          // sticking this on the GraphicsRender isn't too much slower and makes
+          // things considerably simpler.
 
   Render *internal; // the opaque parts.
 } GraphicsRender;
 
+typedef enum NodeType {
+  NT_INVALID = 0,
+  NT_ARMATURE,
+  NT_BONE,
+  NT_MESH,
+  NT_COUNT,
+} NodeType;
+
+// assume a model of animation and scene hierarchy not unlike a glb file.
+typedef struct Node Node;
+
+// negatives are invalid values? idk
+typedef int16_t NodeIndex;
+
+// a skin has "joints" which is a list of Node indices in the global glb node
+// array.
+typedef struct Skin {
+  // all the inverse bind matrices for every single bone in the armature
+  // referencing this Skin.
+  mat4 *ibms;
+  int *joints;
+  // one joint index and ibm for each joint in the skin.
+  int num_joints;
+} Skin;
+
+// list of indices to other nodes, as opposed to lists of pointers.
+// we're just saying fuck it and coupling the structure with the glb file, makes
+// things way easier.
+typedef struct Node {
+  NodeType type;
+  NodeIndex parent;
+  NodeIndex *children;
+  int num_children;
+  // we need to pass direct pointers to these props one-by-one from the
+  // animation system, so it's better to have them as seperate vectors rather
+  // than pre-composing them into a matrix and having that be their primary
+  // internal representation.
+  vec3 translation;
+  vec4 rotation;
+  vec3 scale;
+  union {
+    Skin *skin; // for the armature type.
+  } data;
+} Node;
+
+#define INVALID_NODE -1
+
+// assuming a typical glb with one scene in it.
+typedef struct Model {
+  Animation *animations;
+  int num_animations;
+
+  // a glb scene can have multiple top-level nodes in it.
+  NodeIndex *roots;
+  int num_roots;
+
+  // at render-time, traverse the node tree and grab all of the bone data for
+  // use in the tree. the Node structures contain all the necessary local bone
+  // transformations.
+  Node *nodes;
+  int num_nodes; // in a glb, we need to index into arrays to get anywhere, so
+                 // it's not extremely productive to organize nodes as a tree.
+                 // just make them an array, especially since we'll always know
+                 // the length at parse-time.
+
+  // a render contains just the constant vertex buffers bound to the vao, it's
+  // nothing specific to rendering.
+  GraphicsRender *render;
+
+} Model;
+
 void g_init();
+
+// the default config associated with a render configuration. not platform
+// specific. with this, we won't have to think about setting the right pc every
+// single time.
+PipelineConfiguration g_default_pc(RenderConfiguration conf);
 
 /* pass the g_new_render function one of the *VertexData structure type
  * pointers. it will be resolved and matched based on the configuration. */
 GraphicsRender *g_new_render(VertexData *data, const unsigned int *indices,
                              unsigned int i_count);
+
 /* draw a render, under the context of the specified pipeline settings. when
  * passed NULL, the behavior should be simply doing nothing and printing some
  * sort of error. */
 void g_draw_render(GraphicsRender *r);
+
+void g_draw_model(Model *m);
 
 void g_clean();
 

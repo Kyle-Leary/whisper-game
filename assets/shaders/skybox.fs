@@ -11,5 +11,5 @@ void main()
 {
 	// just copy in the texture from the main slot, this is all the skybox does.
 	// the texcoord is just the interpolated position here.
-	color = texture(u_cube_tex, TexCoord); 
+	color = texture(u_cube_tex, TexCoord) + vec4(0.1, 0.1, 0.1, 0.5); 
 }

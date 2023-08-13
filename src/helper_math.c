@@ -7,20 +7,6 @@
 
 #include <string.h>
 
-void print_vec2(vec2 v) { printf("%f %f\n", v[0], v[1]); }
-void print_vec3(vec3 v) { printf("%f %f %f\n", v[0], v[1], v[2]); }
-
-void print_mat4(mat4 m) {
-  // batching IO!!!
-  // note: this is not actually IO batching. C will do IO batching like this and
-  // only flush buffers either when they're full or there's a newline. (maybe
-  // this is still effective syscall batching though? doesn't matter since it's
-  // a debug function)
-  printf("%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n", m[0][0],
-         m[0][1], m[0][2], m[0][3], m[1][0], m[1][1], m[1][2], m[1][3], m[2][0],
-         m[2][1], m[2][2], m[2][3], m[3][0], m[3][1], m[3][2], m[3][3]);
-}
-
 Basis get_basis(mat4 m) {
   Basis b;
   memcpy(&b.right, &(vec3){m[0][0], m[1][0], m[2][0]}, sizeof(vec3));

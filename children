@@ -1,0 +1,14 @@
+[35m[Ksrc/backends/linux/graphics/render_structs.c[m[K[36m[K:[m[K[32m[K161[m[K[36m[K:[m[K  if ([01;31m[Knode-[m[K>type == NT_ARMATURE) {
+[35m[Ksrc/backends/linux/graphics/render_structs.c[m[K[36m[K:[m[K[32m[K166[m[K[36m[K:[m[K    if ([01;31m[Knode-[m[K>children == NULL || [01;31m[Knode-[m[K>num_children == 0) {
+[35m[Ksrc/backends/linux/graphics/render_structs.c[m[K[36m[K:[m[K[32m[K170[m[K[36m[K:[m[K    for (int i = 0; i < [01;31m[Knode-[m[K>num_children; i++) {
+[35m[Ksrc/backends/linux/graphics/render_structs.c[m[K[36m[K:[m[K[32m[K171[m[K[36m[K:[m[K      PRINT_PTR([01;31m[Knode-[m[K>children)
+[35m[Ksrc/backends/linux/graphics/render_structs.c[m[K[36m[K:[m[K[32m[K172[m[K[36m[K:[m[K      arm_idx = arm_search(m, [01;31m[Knode-[m[K>children[i]);
+[35m[Ksrc/parsers/gltf/gltf_parse.c[m[K[36m[K:[m[K[32m[K199[m[K[36m[K:[m[K      target_[01;31m[Knode-[m[K>type = NT_ARMATURE;
+[35m[Ksrc/parsers/gltf/gltf_parse.c[m[K[36m[K:[m[K[32m[K224[m[K[36m[K:[m[K      target_[01;31m[Knode-[m[K>data.skin = skin;
+[35m[Ksrc/parsers/gltf/gltf_parse.c[m[K[36m[K:[m[K[32m[K230[m[K[36m[K:[m[K    target_[01;31m[Knode-[m[K>type = NT_BONE;
+[35m[Ksrc/parsers/gltf/gltf_parse.c[m[K[36m[K:[m[K[32m[K237[m[K[36m[K:[m[K    target_[01;31m[Knode-[m[K>num_children = children->data.length.array_len;
+[35m[Ksrc/parsers/gltf/gltf_parse.c[m[K[36m[K:[m[K[32m[K240[m[K[36m[K:[m[K    target_[01;31m[Knode-[m[K>children =
+[35m[Ksrc/parsers/gltf/gltf_parse.c[m[K[36m[K:[m[K[32m[K241[m[K[36m[K:[m[K        malloc(sizeof(NodeIndex) * target_[01;31m[Knode-[m[K>num_children);
+[35m[Ksrc/parsers/gltf/gltf_parse.c[m[K[36m[K:[m[K[32m[K243[m[K[36m[K:[m[K    for (int j = 0; j < target_[01;31m[Knode-[m[K>num_children; j++) {
+[35m[Ksrc/parsers/gltf/gltf_parse.c[m[K[36m[K:[m[K[32m[K247[m[K[36m[K:[m[K      target_[01;31m[Knode-[m[K>children[j] = child_node_index;
+[35m[Ksrc/parsers/gltf/gltf_parse.c[m[K[36m[K:[m[K[32m[K253[m[K[36m[K:[m[K    PRINT_PTR(target_[01;31m[Knode-[m[K>children)

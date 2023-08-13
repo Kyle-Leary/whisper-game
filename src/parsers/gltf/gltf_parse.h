@@ -1,7 +1,9 @@
 #pragma once
 
+#include "backends/graphics_api.h"
 #include "defines.h"
 #include "wjson.h"
+#include <wchar.h>
 
 // types for the accessor buffers.
 typedef enum {
@@ -55,6 +57,8 @@ typedef struct GLTFFile {
 
 GLTFFile *gltf_parse(const char *file_path);
 
+void gltf_file_free(GLTFFile *file);
+
 int gltf_bv_get_len(GLTFFile *file, int index);
 void gltf_bv_parse(GLTFFile *file, int index, void *dest,
                    int dest_sz); // write the data into dest ptr
@@ -62,3 +66,17 @@ void gltf_bv_parse(GLTFFile *file, int index, void *dest,
                                  // the specified index into the bufferView
                                  // toplevel array. determine the proper size of
                                  // the dest ptr with gltf_bv_get_len.
+
+// all of these functions additonally return the size of the buffer created.
+#define DEFINE_DUMP_TYPE_HEADER(name, type_name)                               \
+  int gltf_dump_##name##_accessor(GLTFFile *file, int accessor_idx,            \
+                                  type_name *buffer, int *n_elms);
+
+DEFINE_DUMP_TYPE_HEADER(float, float)
+DEFINE_DUMP_TYPE_HEADER(ushort, unsigned short)
+DEFINE_DUMP_TYPE_HEADER(int, int)
+
+#undef DEFINE_DUMP_TYPE_HEADER
+
+void gltf_node_parse(GLTFFile *file, Model *model, NodeIndex n_idx);
+void gltf_animations_parse(GLTFFile *file, Model *model);

@@ -3,7 +3,9 @@
 #include "global.h"
 #include "linux_graphics_globals.h"
 #include "main.h"
+#include "util.h"
 #include "vao.h"
+#include <string.h>
 #include <sys/types.h>
 
 #include "../ogl_includes.h"
@@ -29,7 +31,7 @@ typedef struct Render {
 
 // not static, we need to make vbos in the vao vertexdata-type-specific
 // configuration function.
-uint make_vbo(const float *data, unsigned int count,
+uint make_vbo(const void *data, unsigned int count,
               unsigned int sizeof_vtx) { // the size of the vertex is required
                                          // to calculate the buffer data size.
 
@@ -113,6 +115,12 @@ GraphicsRender *g_new_render(VertexData *data, const unsigned int *indices,
                     // can be easily modified through the cglm api,
                     // no matter what backend you target.
 
+    // use whatever default configuration works for this, the caller can change
+    // this if they want. i don't think there's a point in actually having a
+    // setter method for something like this, they can just change the value
+    // directly.
+    gr->pc = g_default_pc(gr->conf);
+
     return gr;
   }
 }
@@ -131,12 +139,85 @@ void g_draw_render(GraphicsRender *gr) {
 
   glBindVertexArray(gr->internal->vao);
 
-  // default to the basic shader.
-  if (curr_program == NULL)
-    shader_use_name("basic");
+  // use the attached pipeline for the render, ideally the backend will handle
+  // this caching and optimization on its own, so that we won't have
+  // redundancies in graphics calls for binding and etc.
+  g_use_pipeline(gr->pc);
 
+  // after a pipeline switch, bind the model to the current shader every single
+  // model will have a shader matrix, no matter what. the view and projection
+  // are handled in a UBO elsewhere, ideally set in a loop every frame.
   shader_set_matrix4fv(curr_program, "model", (const float *)gr->model);
   glDrawElements(GL_TRIANGLES, gr->internal->n_idx, GL_UNSIGNED_INT, 0);
+}
+
+// search, ideally from the root of the model recursively for the first Armature
+// node type we find. in this Node design, an "Armature"-type node is just one
+// that happens to have a "skin" field in the node description.
+static NodeIndex arm_search(Model *m, NodeIndex idx) {
+  NodeIndex arm_idx = INVALID_NODE;
+  Node *node = &(m->nodes[idx]);
+
+  if (node->type == NT_ARMATURE) {
+    // base case, we've reached the bottom.
+    arm_idx = idx;
+    return arm_idx;
+  } else {
+    if (node->children == NULL || node->num_children == 0) {
+      return INVALID_NODE;
+    }
+    // iter through all the children of this node, and check for armatures.
+    for (int i = 0; i < node->num_children; i++) {
+      arm_idx = arm_search(m, node->children[i]);
+      if (arm_idx != INVALID_NODE) {
+        return arm_idx;
+      }
+    }
+  }
+
+  // didn't find the armature.
+  return INVALID_NODE;
+}
+
+// go through and update the bone data, find the right materials and update
+// those, THEN render the internal graphics render after binding the right
+// model rendering shader.
+void g_draw_model(Model *m) {
+  { // update bone data based on the Model's new bone positions.
+    NodeIndex arm = INVALID_NODE;
+    { // hacky, just try to find the first armature in the node hierarchy.
+      for (int i = 0; i < m->num_roots; i++) {
+        arm = arm_search(m, m->roots[i]);
+        if (arm != INVALID_NODE) {
+          break;
+        }
+      }
+      if (arm == INVALID_NODE) {
+        fprintf(stderr, "ERROR: Could not find an armature in the GLB model on "
+                        "trying to g_draw_model().\n");
+        exit(1);
+      }
+    }
+
+    Skin *skin = m->nodes[arm].data.skin;
+
+    mat4 tfs[BONE_LIMIT];
+
+    int num_bones = skin->num_joints;
+
+    for (int i = 0; i < num_bones; i++) {
+      // copy the ith joint into the ith transform slot, setting up the BoneData
+      // transforms to be sent over to the GPU.
+      memcpy(&tfs[i], &(skin->joints[i]), sizeof(float) * 16);
+    }
+
+    g_use_bones(tfs, num_bones);
+  }
+
+  {} // TODO: mats
+
+  // then, draw the render.
+  g_draw_render(m->render);
 }
 
 // maybe setup and use shaders/uniforms here instead of the lifecycle? it really

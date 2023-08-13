@@ -1,11 +1,11 @@
 #include "sphere.h"
 
-#include "cglm/types.h"
-#include "cglm/vec3.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
 #include "cglm/mat4.h"
+#include "cglm/types.h"
+#include "cglm/vec3.h"
 #include "global.h"
 #include "glprim.h"
 
@@ -51,7 +51,9 @@ void sphere_draw(void *p) {
   CAST;
   glm_mat4_identity(sphere->render->model);
   glm_translate(sphere->render->model, sphere->lerp_position);
+  g_use_pipeline(PC_SOLID);
   g_draw_render(sphere->render);
+  g_use_pipeline(PC_BLANK_GOURAUD);
 }
 
 void sphere_handle_collision(void *p, CollisionEvent *e) {}

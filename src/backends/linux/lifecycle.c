@@ -8,6 +8,7 @@
 #include "main.h"
 #include "ogl_includes.h"
 #include "path.h"
+#include "util.h"
 #include "whisper/hashmap.h"
 #include <stdio.h>
 #include <string.h>
@@ -62,6 +63,7 @@ static void error_callback(int error, const char *description) {
   fprintf(stderr, "Error: %s\n", description);
 }
 
+#ifdef DEBUG
 void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
                                 GLenum severity, GLsizei length,
                                 const GLchar *message, const void *userParam) {
@@ -70,8 +72,15 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
           (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity,
           message);
 }
+#endif /* ifdef DEBUG */
+
+// which ubo block slots should these structures occupy?
+#define LIGHT_BLOCK 0
+#define MATRIX_BLOCK 1
 
 static GLuint light_data_ubo = 0;
+static GLuint matrix_data_ubo = 0;
+GLuint bone_data_ubo = 0;
 
 int l_init() {
   // Initialize GLFW
@@ -110,13 +119,35 @@ int l_init() {
     return -1;
   }
 
+#ifdef DEBUG
   glEnable(GL_DEBUG_OUTPUT); // use the newer debug output, instead of
   // manually handling the error stack from the gpu.
   glDebugMessageCallback(MessageCallback, 0);
 
-  GLint maxUniforms;
-  glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &maxUniforms);
-  printf("Max uniforms supported: %d.\n", maxUniforms);
+  { // print out some limits.
+    GLint maxUniforms;
+    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &maxUniforms);
+    printf("Max uniforms supported: %d.\n", maxUniforms);
+
+    GLint max_size;
+    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &max_size);
+    printf("Max ubo block size supported: %d.\n", max_size);
+
+    GLint max_attributes;
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_attributes);
+    printf("Max vertex attribs supported: %d.\n", max_attributes);
+
+    GLint max_vertex_uniform_blocks;
+    GLint max_fragment_uniform_blocks;
+    GLint max_geometry_uniform_blocks;
+    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &max_vertex_uniform_blocks);
+    glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &max_fragment_uniform_blocks);
+    glGetIntegerv(GL_MAX_GEOMETRY_UNIFORM_BLOCKS, &max_geometry_uniform_blocks);
+    printf("Max Vertex Uniform Blocks: %d\n", max_vertex_uniform_blocks);
+    printf("Max Fragment Uniform Blocks: %d\n", max_fragment_uniform_blocks);
+    printf("Max Geometry Uniform Blocks: %d\n", max_geometry_uniform_blocks);
+  }
+#endif /* ifdef DEBUG */
 
 #define INSERT(name)                                                           \
   w_hm_put_direct_value(shader_map, #name,                                     \
@@ -151,21 +182,70 @@ int l_init() {
       make_shader(SHADER_PATH("skybox.vs"), SHADER_PATH("skybox.fs"));
   INSERT(skybox);
 
+  // model renderer
+  Shader *model_program =
+      make_shader(SHADER_PATH("model.vs"), SHADER_PATH("model.fs"));
+  shader_set_1i(basic_program, "tex_sampler",
+                0); // the character texture should be stored in the 0th slot
+                    // by default.
+  INSERT(model);
+
   { // SET UP UBOS
-    unsigned int blockIndex =
-        glGetUniformBlockIndex(gouraud_program->id, "LightData");
+#define APPLY_BINDINGS(BIND_FUNC, PROGRAM)                                     \
+  printf("applying to " #PROGRAM "\n");                                        \
+  BIND_FUNC("LightData", LIGHT_BLOCK, PROGRAM);                                \
+  BIND_FUNC("ViewProjection", MATRIX_BLOCK, PROGRAM);
 
-    glUniformBlockBinding(gouraud_program->id, blockIndex, 0);
+#define BIND_PROGRAMS(PROGRAM)                                                 \
+  { APPLY_BINDINGS(ID_TO_BLOCK, PROGRAM); }
 
-    glGenBuffers(1, &light_data_ubo);
+#define ID_TO_BLOCK(block_name_literal, block_target_index, shader_id)         \
+  {                                                                            \
+    unsigned int block_index =                                                 \
+        glGetUniformBlockIndex(shader_id, block_name_literal);                 \
+    printf("found block index %d\n", block_index);                             \
+    glUniformBlockBinding(shader_id, block_index, block_target_index);         \
+  }
+
+    printf("apply ubo start: \n");
+
+    // BIND_ binds to all the default block locations.
+    // if you want to use the block data, you need to bind the shader's internal
+    // block with the global UBO slot.
+    BIND_PROGRAMS(gouraud_program->id);
+    BIND_PROGRAMS(pbr_gouraud_program->id);
+    BIND_PROGRAMS(basic_program->id);
+    BIND_PROGRAMS(solid_program->id);
+    BIND_PROGRAMS(skybox_program->id);
+
+    // only the model program is using the BONE_BLOCK uniform.
+    BIND_PROGRAMS(model_program->id);
+    ID_TO_BLOCK("BoneData", BONE_BLOCK, model_program->id);
+
+    GLuint buf[3];
+    glGenBuffers(3, buf);
+    light_data_ubo = buf[0];
+    matrix_data_ubo = buf[1];
+    bone_data_ubo = buf[2];
+
     glBindBuffer(GL_UNIFORM_BUFFER, light_data_ubo);
     // we're going to change the ubo frequently with subdata calls, so make this
     // dynamic.
     glBufferData(GL_UNIFORM_BUFFER, sizeof(g_light_data), NULL,
                  GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, light_data_ubo, 0,
+    glBindBufferRange(GL_UNIFORM_BUFFER, LIGHT_BLOCK, light_data_ubo, 0,
                       sizeof(g_light_data));
+
+    // space for two matrices. this doesn't require padding like the light data.
+    glBindBuffer(GL_UNIFORM_BUFFER, matrix_data_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(float) * 32, NULL, GL_DYNAMIC_DRAW);
+    glBindBufferRange(GL_UNIFORM_BUFFER, MATRIX_BLOCK, matrix_data_ubo, 0,
+                      sizeof(float) * 32);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, bone_data_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(BoneData), NULL, GL_DYNAMIC_DRAW);
+    glBindBufferRange(GL_UNIFORM_BUFFER, BONE_BLOCK, bone_data_ubo, 0,
+                      sizeof(BoneData));
   }
 
   // init the pipeline with sensible default settings.
@@ -185,11 +265,25 @@ int l_init() {
 int l_should_close() { return glfwWindowShouldClose(window); }
 
 int l_begin_draw() {
-  { // write the light data to the active shader through a UBO.
-    // Step 4: Bind the UBO to the same binding point
-    glBindBuffer(GL_UNIFORM_BUFFER, light_data_ubo);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(g_light_data), &g_light_data);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+  { // update UBOs.
+    // these will just change per frame usually, so update them in a loop
+    // instead of making a whole new graphics api function just to change them.
+    { // light
+      glBindBuffer(GL_UNIFORM_BUFFER, light_data_ubo);
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(g_light_data),
+                      &g_light_data);
+    }
+
+    { // matrix
+      glBindBuffer(GL_UNIFORM_BUFFER, matrix_data_ubo);
+      // view, then the projection.
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float) * 16, m_view);
+      glBufferSubData(GL_UNIFORM_BUFFER, sizeof(float) * 16, sizeof(float) * 16,
+                      m_projection);
+    }
+
+    // we're not updating bone ubo in a loop, just update that before we draw a
+    // model, calling the specified graphics api function.
   }
 
   glClearColor(0.1F, 0.1F, 0.3F, 1.0F);

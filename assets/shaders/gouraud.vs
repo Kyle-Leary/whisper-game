@@ -9,13 +9,10 @@ layout (location = 2) in vec2 aTexCoord;
 out vec3 lightColor;
 out vec2 fsTexCoord;
 
-// define the basic light structures we'll need.
-#include "light.glinc"
-
-// just use one texture here.
 uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+#include "mats.glinc"
+
+#include "light.glinc"
 
 // all light discoloration is calculated on vertices and then interpolated by the rasterizer using the w coordinate.
 // this is passed to the frag shader, who actually renders the coordinates.
@@ -32,22 +29,16 @@ void main() {
 	vec4 vert_full_pos = projection * view * model * (vec4(aPos, 1.0));
 	vec3 vert_pos = vert_full_pos.xyz;
 
-	// point_lights
 	for (int i = 0; i < n_point_lights; i++) {
-		vec3 light_from = point_lights[i].position;
-		vec4 pt_light_color = point_lights[i].color;
-		float light_intensity = point_lights[i].intensity;
-		float dist_from_light = distance(light_from, vert_pos);
-		light_intensity /= dist_from_light / 20;
-		pt_light_color *= light_intensity;
-
-		lightColor *= pt_light_color.xyz;
+		lightColor *= apply_point_light(vert_pos, i);
 	}
 
 	for (int i = 0; i < n_spot_lights; i++) {
+		lightColor *= apply_spot_light(vert_pos, i);
 	}
 
 	for (int i = 0; i < n_directional_lights; i++) {
+		lightColor *= apply_directional_light(vert_pos, i);
 	}
 
 	gl_Position = vert_full_pos;

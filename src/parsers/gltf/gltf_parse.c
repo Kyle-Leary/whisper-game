@@ -1,25 +1,38 @@
 #include "gltf_parse.h"
 
+#include "animation/anim_struct.h"
+#include "backends/graphics_api.h"
+#include "cglm/vec3.h"
 #include "defines.h"
+#include "printers.h"
 #include "size.h"
 #include "util.h"
 #include "wjson.h"
 #include "wjson/src/defines.h"
 #include "wjson/src/util.h"
+#include <stdint.h>
 #include <string.h>
 
 #define MAX_GLTF_SZ (MB(5))
 
 // TODO: this is all assuming a little endian system.
 
+static WJSONValue v_blank_array;
+
 // parse the json chunk from the string directly into the file structure.
 static void parse_json_chunk(GLTFFile *file, char *json_str) {
   WJSONValue *root = wjson_parse_string(json_str);
+
+  // default to a safe blank array for all of the fields. i think all top-level
+  // values in a glb JSON chunk are arrays?
+  v_blank_array.data.value.array = NULL;
+  v_blank_array.data.length.array_len = 0;
 
 #define GET(which)                                                             \
   {                                                                            \
     file->which = wjson_get(root, #which);                                     \
     if (!file->which) {                                                        \
+      file->which = &v_blank_array;                                            \
     }                                                                          \
   }
 
@@ -136,6 +149,8 @@ GLTFFile *gltf_parse(const char *file_path) {
 #undef CHECK_MAGIC
 }
 
+void gltf_file_free(GLTFFile *file) { free(file); }
+
 /* EXAMPLE BUFFERVIEW:
  *{"buffer":0,"byteLength":288,"byteOffset":0,"target":34962},{"buffer":0,"byteLength":288,"byteOffset":288,"target":34962},{"buffer":0,"byteLength":192,"byteOffset":576,"target":34962},{"buffer":0,"byteLength":72,"byteOffset":768,"target":34963}
  * */
@@ -146,9 +161,6 @@ int gltf_bv_get_len(GLTFFile *file, int index) {
 }
 
 void gltf_bv_parse(GLTFFile *file, int index, void *dest, int dest_sz) {
-  // this function will return a malloced ptr. i want to pass in the stack
-  // alloced buffer, but there's no easy way to determine the sizeof the buffer
-  // without parsing.
   WJSONValue *bv = wjson_index(file->bufferViews, index);
   u32 buf_idx = wjson_number(wjson_get(bv, "buffer"));
   u32 byte_len = wjson_number(wjson_get(bv, "byteLength"));
@@ -156,4 +168,251 @@ void gltf_bv_parse(GLTFFile *file, int index, void *dest, int dest_sz) {
   void *data_ptr =
       (file->binary_data + file->buffer_offsets[buf_idx] + byte_offset);
   memcpy(dest, data_ptr, byte_len);
+}
+
+// dumping the data out of an accessor is just a matter of copying the buffer
+// data into the array of the right type, so we can act generically over any
+// accessor and have the caller specify the type.
+#define DEFINE_DUMP_TYPE(name, type_name)                                      \
+  int gltf_dump_##name##_accessor(GLTFFile *file, int accessor_idx,            \
+                                  type_name *buffer, int *n_elms) {            \
+    WJSONValue *accessor = wjson_index(file->accessors, accessor_idx);         \
+    *n_elms = wjson_number(wjson_get(accessor, "count"));                      \
+    uint bv_idx = (uint)wjson_number(wjson_get(accessor, "bufferView"));       \
+    int bv_len = gltf_bv_get_len(file, bv_idx);                                \
+    gltf_bv_parse(file, bv_idx, buffer, bv_len);                               \
+    return bv_len;                                                             \
+  }
+
+DEFINE_DUMP_TYPE(float, float)
+DEFINE_DUMP_TYPE(ushort, unsigned short)
+DEFINE_DUMP_TYPE(int, int)
+
+#undef DEFINE_DUMP_TYPE
+
+void gltf_node_parse(GLTFFile *file, Model *model, NodeIndex n_idx) {
+  WJSONValue *v_nodes = file->nodes;
+
+  NodeIndex target_node_index = n_idx;
+  Node *target_node = &(model->nodes[target_node_index]);
+
+  WJSONValue *v_node = wjson_index(v_nodes, target_node_index);
+
+  do { // setup the type of the node. this is a do..while(0) so that we can
+       // execute it once and break; out of the block whenever we'd like.
+
+    // we're determining the type based on what properties the node has. if
+    // it has a skin, it's an Armature.
+    WJSONValue *v_skin_idx = wjson_get(v_node, "skin");
+
+    if (v_skin_idx) { // then parse an armature type out of the node.
+      int skin_idx = wjson_number(
+          v_skin_idx); // we get an index into the glb top-level skins array.
+
+      target_node->type = NT_ARMATURE;
+      Skin *skin = malloc(sizeof(Skin));
+      // now, parse the skin. break these up into seperate parts later, this
+      // function sucks
+
+      // get the skin json object that the armature node was referencing.
+      WJSONValue *v_skin = wjson_index(file->skins, skin_idx);
+
+      // the list of joints, joints are just special cases of Nodes.
+      WJSONValue *v_joints = wjson_get(v_skin, "joints");
+
+      skin->num_joints = v_joints->data.length.array_len;
+      skin->joints =
+          malloc(sizeof(int) * skin->num_joints); // joints is an array of ints.
+      for (int j = 0; j < skin->num_joints; j++) {
+        // copy into the array.
+        skin->joints[j] = (int)wjson_number(wjson_index(v_joints, j));
+      }
+
+      // then, parse out the ibms from the accessor.
+      skin->ibms =
+          malloc(sizeof(float) * 16 *
+                 skin->num_joints); // each IBM is just a normal transform
+                                    // matrix, and is sized as such.
+
+      target_node->data.skin = skin;
+      break;
+    }
+
+    // by default? i'm not sure. not everything can be determined in this
+    // way, which is a big problem actually.
+    target_node->type = NT_BONE;
+  } while (0);
+
+  WJSONValue *children = wjson_get(v_node, "children");
+  if (!children) {
+    // no "children" attribute on the node, this is a leaf.
+    target_node->num_children = 0;
+    target_node->children = NULL;
+  } else { // then, setup the children of the node.
+    target_node->num_children = children->data.length.array_len;
+    // oh god freeing the Model struct is going to be a fucking nightmare.
+    // what is this pointer chasing bullshit
+    target_node->children =
+        malloc(sizeof(NodeIndex) * target_node->num_children);
+
+    for (int j = 0; j < target_node->num_children; j++) {
+      NodeIndex child_node_index =
+          (NodeIndex)wjson_number(wjson_index(children, j));
+
+      target_node->children[j] = child_node_index;
+
+      // have the parent iterator manually set the parent on the
+      // child. i can't think of an easier way to do this.
+      model->nodes[child_node_index].parent = target_node_index;
+    }
+    PRINT_PTR(target_node->children)
+  }
+
+  { // now, init the basic properties of the node, i guess depending on the type
+    // of the node?
+
+    // try to parse the optional prop fields, and fall back on generic ones if
+    // not found.
+    WJSONValue *v_translation = wjson_get(v_node, "translation");
+    if (v_translation) {
+      for (int i = 0; i < 3; i++) {
+        target_node->translation[i] =
+            wjson_number(wjson_index(v_translation, i));
+      }
+    } else {
+      glm_vec3_zero(target_node->translation);
+    }
+
+    WJSONValue *v_rotation = wjson_get(v_node, "rotation");
+    if (v_rotation) {
+      for (int i = 0; i < 4; i++) {
+        target_node->rotation[i] = wjson_number(wjson_index(v_rotation, i));
+      }
+    } else {
+      glm_vec4_zero(target_node->rotation);
+    }
+
+    WJSONValue *v_scale = wjson_get(v_node, "scale");
+    if (v_scale) {
+      for (int i = 0; i < 3; i++) {
+        target_node->scale[i] = wjson_number(wjson_index(v_scale, i));
+      }
+    } else {
+      glm_vec3_zero(target_node->scale);
+    }
+  }
+}
+
+// TODO: i hate this strncmp bullshit and the compiler absolutely tears it up.
+// make this better.
+InterpolationType gltf_interpolation_type_parse(const char *interp_name) {
+  if (strncmp(interp_name, "LINEAR", 6) == 0) {
+    return IP_LINEAR;
+  } else if (strncmp(interp_name, "STEP", 4) == 0) {
+    return IP_STEP;
+  } else {
+    return IP_INVALID;
+  }
+}
+
+void gltf_samplers_parse(GLTFFile *file, WJSONValue *v_samplers,
+                         Sampler *samplers, int num_samplers) {
+  float buffer[5096];
+
+  for (int i = 0; i < num_samplers; i++) {
+    WJSONValue *v_sampler = wjson_index(v_samplers, i);
+    Sampler *sampler = &(samplers[i]);
+    sampler->interp = gltf_interpolation_type_parse(
+        wjson_string(wjson_get(v_sampler, "interpolation")));
+
+    int input_accessor_idx = wjson_number(wjson_get(v_sampler, "input"));
+    int input_sz = gltf_dump_float_accessor(file, input_accessor_idx, buffer,
+                                            &sampler->num_frames);
+    sampler->input = malloc(input_sz);
+    memcpy(sampler->input, buffer, input_sz);
+
+    int dumb;
+    int output_accessor_idx = wjson_number(wjson_get(v_sampler, "output"));
+    int output_sz =
+        gltf_dump_float_accessor(file, output_accessor_idx, buffer, &dumb);
+    sampler->output = malloc(output_sz);
+    memcpy(sampler->output, buffer, output_sz);
+  }
+}
+
+// literally link the samplers to the channels with a pointer for ease of
+// access.
+void gltf_channels_parse(GLTFFile *file, WJSONValue *v_channels,
+                         Sampler *samplers, Channel *channels,
+                         int num_channels) {
+  for (int i = 0; i < num_channels; i++) {
+    WJSONValue *v_channel = wjson_index(v_channels, i);
+
+    Channel *channel = &(channels[i]);
+    int sampler_index = wjson_number(wjson_get(v_channel, "sampler"));
+    channel->sampler = &(samplers[sampler_index]); // linked
+
+    // just parse the node and property directly, we won't handle the property
+    // system stuff directly in the parsing.
+    WJSONValue *v_target = wjson_get(v_channel, "target");
+    WJSONValue *v_prop_name = wjson_get(v_target, "path");
+    int prop_name_len = v_prop_name->data.length.str_len;
+    char *prop_name = wjson_string(v_prop_name);
+    channel->target.property_name = malloc(prop_name_len);
+    memcpy(channel->target.property_name, prop_name, prop_name_len);
+    channel->target.node_index = wjson_number(wjson_get(v_target, "node"));
+
+    channel->channel_end_time =
+        channel->sampler->input[channel->sampler->num_frames - 1];
+  }
+}
+
+// parse all of the animations from the GLTFFile* to the Model*.
+void gltf_animations_parse(GLTFFile *file, Model *model) {
+  WJSONValue *v_animations = file->animations;
+  int num_anims = v_animations->data.length.array_len;
+
+  model->num_animations = num_anims;
+  model->animations = malloc(sizeof(Animation) * model->num_animations);
+
+  for (int i = 0; i < num_anims; i++) {
+    Animation *curr_anim = &(model->animations[i]);
+
+    WJSONValue *v_animation = wjson_index(v_animations, i);
+
+    WJSONValue *v_channels = wjson_get(v_animation, "channels");
+    WJSONValue *v_samplers = wjson_get(v_animation, "samplers");
+    WJSONValue *v_name = wjson_get(v_animation, "name"); // optional
+
+    { // handle the optional name.
+      if (!v_name) {
+        fprintf(stderr, "ERROR: animations without names in the GLB file are "
+                        "currently unsupported.\n");
+        exit(1);
+      } else {
+        curr_anim->name = wjson_string(v_name);
+      }
+    }
+
+    { // samplers
+      curr_anim->num_samplers = v_samplers->data.length.array_len;
+      curr_anim->samplers = malloc(sizeof(Sampler) * curr_anim->num_samplers);
+      gltf_samplers_parse(file, v_samplers, curr_anim->samplers,
+                          curr_anim->num_samplers);
+
+      for (int i = 0; i < 30; i++) {
+        printf("%f ", curr_anim->samplers[0].output[i]);
+        if (i % 3 == 0) {
+          printf("\n");
+        }
+      }
+    }
+
+    { // channels
+      curr_anim->num_channels = v_channels->data.length.array_len;
+      curr_anim->channels = malloc(sizeof(Channel) * curr_anim->num_channels);
+      gltf_channels_parse(file, v_channels, curr_anim->samplers,
+                          curr_anim->channels, curr_anim->num_channels);
+    }
+  }
 }

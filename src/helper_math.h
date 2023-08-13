@@ -34,11 +34,6 @@ typedef struct AABB {
   vec2 wh;
 } AABB;
 
-// math printers
-void print_vec2(vec2 v);
-void print_vec3(vec3 v);
-void print_mat4(mat4 m);
-
 bool is_point_inside(AABB aabb, vec2 v);
 
 // interpolation/animation helpers.

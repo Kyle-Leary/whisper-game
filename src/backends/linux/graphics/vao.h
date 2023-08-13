@@ -4,6 +4,7 @@
 
 // this is backend-implemenation specific.
 #define SIZEOF_BASIC_VTX (sizeof(float) * 8)
+#define SIZEOF_MODEL_VTX (sizeof(float) * 16)
 #define SIZEOF_HUD_VTX (sizeof(float) * 4)
 
 // a blank function that runs through the full configuration of a VAO for the

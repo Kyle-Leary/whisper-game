@@ -1,3 +1,4 @@
+#include "animation/animator.h"
 #include "backends/audio_api.h"
 #include "backends/graphics_api.h"
 #include "backends/input_api.h"
@@ -38,6 +39,7 @@
 
 #include "general_lighting.h"
 #include "size.h"
+#include "util.h"
 #include <malloc.h>
 #include <stdio.h>
 #include <string.h>
@@ -69,6 +71,7 @@ int main() {
   battle_init();
   physics_init();
   object_init();
+  anim_init();
 
   // initialize to a specific area. we can always assume that we're in an
   // "area", no matter what.
@@ -95,11 +98,6 @@ int main() {
       (AABB){0, 0, 0.05f, 0.05f},
       textures[g_load_texture(TEXTURE_PATH("mouse_cursor.png"))]));
 
-  // setup textures
-  TextureHandle nepeta = textures[g_load_texture(TEXTURE_PATH("nepeta.jpg"))];
-  TextureHandle character =
-      textures[g_load_texture(TEXTURE_PATH("character.png"))];
-
   start_time = clock();
 
   {   // setup light data with some defualts.
@@ -118,23 +116,23 @@ int main() {
       pl.position[0] = 0.0f;
       pl.position[1] = 0.0f;
       pl.position[2] = 0.0f;
-      pl.color[0] = 0.1f;
-      pl.color[1] = 0.1f;
-      pl.color[2] = 0.9f;
-      pl.color[3] = 1.0f;
-
-      w_ca_add_PointLight(&g_light_data.point_light_ca, &pl);
-
-      pl.position[0] = -3.0f;
-      pl.position[1] = -3.0f;
-      pl.position[2] = -3.0f;
-
       pl.color[0] = 0.9f;
       pl.color[1] = 0.1f;
-      pl.color[2] = 0.1f;
+      pl.color[2] = 0.0f;
       pl.color[3] = 1.0f;
 
       w_ca_add_PointLight(&g_light_data.point_light_ca, &pl);
+
+      // pl.position[0] = -3.0f;
+      // pl.position[1] = -3.0f;
+      // pl.position[2] = -3.0f;
+      //
+      // pl.color[0] = 0.9f;
+      // pl.color[1] = 0.1f;
+      // pl.color[2] = 0.1f;
+      // pl.color[3] = 1.0f;
+      //
+      // w_ca_add_PointLight(&g_light_data.point_light_ca, &pl);
     }
   }
 
@@ -147,8 +145,14 @@ int main() {
                             TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png"),
                             TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png")};
 
-  GraphicsRender *skybox_render = glprim_skybox_cube();
+  // setup textures
+  TextureHandle nepeta = textures[g_load_texture(TEXTURE_PATH("nepeta.jpg"))];
+  TextureHandle character =
+      textures[g_load_texture(TEXTURE_PATH("character.png"))];
   TextureHandle skybox_tex = textures[g_load_cubemap(cubemap_paths)];
+
+  GraphicsRender *skybox_render = glprim_skybox_cube();
+  skybox_render->pc = PC_SKYBOX;
 
   // Loop until the user closes the window
   while (!l_should_close()) {
@@ -174,6 +178,7 @@ int main() {
     physics_update();
     battle_update();
     object_update();
+    anim_update();
 
     hud_update();
 
@@ -184,11 +189,9 @@ int main() {
     { // draw the 3d scene
       // our top-level, default pipeline.
       { // render skybox
-        g_use_pipeline(PC_SKYBOX);
         g_use_cubemap(skybox_tex);
         g_draw_render(skybox_render);
       }
-      g_use_pipeline(PC_BLANK_GOURAUD);
       g_use_texture(nepeta);
       object_draw(); // handle all the individual draw routines for all the
                      // objects in the world.
@@ -211,6 +214,7 @@ int main() {
   physics_clean();
   object_clean();
   hud_clean();
+  anim_clean();
 
   // LAST, clean up the main function in the backend.
   if (!l_clean()) {

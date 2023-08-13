@@ -8,8 +8,9 @@ out vec3 vertexNormal;
 out vec2 TexCoord;
 
 uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+#include "mats.glinc"
+
+#include "light.glinc"
 
 uniform float u_time; // just overall useful to have a time parameter here. i don't think
 // that we can just grab this directly through glsl?

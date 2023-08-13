@@ -1,18 +1,16 @@
 #version 330 core
 
-// a shader that renders a solid color.
-
-// uses the typical layout.
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoord;
+// extra attribute data for the per-vertex model data
+// this is a direct index into the BoneData transforms.
+layout (location = 3) in ivec4 aJoints;
+layout (location = 4) in vec4 aWeights;
 
-// nothing out. the fs doesn't compute anything.
+out vec2 oTexCoord;
+
 uniform mat4 model;
-layout(std140) uniform ViewProjection {
-    mat4 view;
-    mat4 projection;
-};
 
 #define POINT_LIGHT_SLOTS 5
 #define SPOT_LIGHT_SLOTS 5
@@ -72,7 +70,36 @@ vec3 apply_spot_light(vec3 vert_pos, int light_index) {
 vec3 apply_directional_light(vec3 vert_pos, int light_index) {
 	return vec3(1);
 }
+layout(std140) uniform ViewProjection {
+    mat4 view;
+    mat4 projection;
+};
+layout(std140) uniform BoneData {
+    // cheap out and only use half of the slots. our max block size isn't really that big, and the bone indices are usually represented as u8s anyway.
+    mat4 bones[128];
+    int num_bones;
+};
 
 void main() {
-	gl_Position = projection * view * model * (vec4(aPos, 1.0));
+	mat4 skin = mat4(0.0);
+
+	// sum over the four weights and joints provided for this vertex.
+	for (int i = 0; i < 4; i++) {
+		float weight = aWeights[i];
+		int bone_index = aJoints[i];
+
+		// take a weighted sum of all the joints and their local transforms into the skinning matrix.
+		skin += weight * bones[bone_index];
+	}
+
+	// wtf why doesn't *= work??
+	gl_Position = (vec4(aPos, 1.0));
+	gl_Position = model * gl_Position;
+	gl_Position = view * gl_Position;
+	gl_Position = projection * gl_Position;
+
+	// then, take the model from the base pose to the bone pose.
+	// gl_Position *= skin;
+
+	oTexCoord = aTexCoord;
 }
