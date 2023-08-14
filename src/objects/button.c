@@ -1,12 +1,12 @@
 #include "button.h"
 
-#include "cglm/types.h"
-#include "cglm/vec3.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
 #include "backends/input_api.h"
 #include "cglm/mat4.h"
+#include "cglm/types.h"
+#include "cglm/vec3.h"
 #include "global.h"
 #include "glprim.h"
 #include "helper_math.h"
@@ -61,14 +61,10 @@ void button_update(void *p) {
   }
 }
 
-void button_draw_hud(void *p) { // draw under the proper hud context, with the
-                                // right shaders bound and everything.
-  CAST;
-  fn_lut[OBJ_TEXTURE].draw_hud(button->texture);
-}
-
 void button_clean(void *p) {
   Button *button = (Button *)p;
   fn_lut[OBJ_TEXTURE].clean(button->texture);
   free(button);
 }
+
+void button_draw(void *p) {}

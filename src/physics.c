@@ -1,12 +1,17 @@
 #include "physics.h"
+#include "backends/graphics_api.h"
+#include "cglm/affine.h"
+#include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/vec3.h"
 #include "global.h"
+#include "glprim.h"
 #include "helper_math.h"
 #include "object.h"
 #include "object_bases.h"
 #include "object_lut.h"
 #include "physics/collider.h"
+#include "physics/collider_types.h"
 
 #include <bits/time.h>
 #include <string.h>
@@ -74,6 +79,90 @@ static void position_lerp(PhysicsObject *po) {
             po->lerp_position);
 }
 
+// define a hashtable over a bunch of pointers, the pointers to the collision
+// objects. we want to map each collision object to one GraphicsRender*, for the
+// purposes of reusing the same graphical representation VAOs.
+#define DEBUG_SHAPE_HASHTABLE_LEN 2048
+
+static GraphicsRender *shape_renders[DEBUG_SHAPE_HASHTABLE_LEN] = {0};
+
+static unsigned int pointer_hash(void *key) {
+  // this is good enough for now? i guess?
+  return (unsigned long)key % DEBUG_SHAPE_HASHTABLE_LEN;
+}
+
+// debug draw ONE physics object.
+static void physics_debug_shape_generate(PhysicsObject *po) {
+  for (int i = 0; i < po->num_colliders; i++) {
+    Collider *base_collider = &(po->colliders[i]);
+    int hashed = pointer_hash(base_collider);
+
+    // first, check if the collider already has one associated with it.
+    GraphicsRender *collider_render = shape_renders[hashed];
+
+    if (collider_render) {
+      // maintain the render, drawing it happens in another function called
+      // directly by the drawing loop in main().
+      { // position the render
+        glm_mat4_identity(collider_render->model);
+        glm_translate(collider_render->model, po->position);
+      }
+
+      switch (base_collider->type) {
+      case CL_FLOOR: {
+        // floor stretches infinitely far.
+        glm_scale(collider_render->model, (vec3){50, 50, 50});
+      } break;
+      case CL_SPHERE: {
+      } break;
+      case CL_PILLAR: {
+      } break;
+      default: {
+      } break;
+      }
+
+      continue;
+    }
+    // else, create the render THEN insert it into the array.
+
+    GraphicsRender *gr = NULL;
+
+    switch (base_collider->type) {
+    case CL_FLOOR: {
+      FloorColliderData *data = (FloorColliderData *)base_collider->data;
+      gr = glprim_floor_plane(po->position);
+    } break;
+    case CL_SPHERE: {
+      SphereColliderData *data = (SphereColliderData *)base_collider->data;
+      gr = glprim_sphere(po->position, data->radius, 8);
+    } break;
+    case CL_PILLAR: {
+    } break;
+    default: {
+    } break;
+    }
+
+    if (gr) {
+      gr->pc = PC_WIREFRAME;
+      shape_renders[hashed] = gr;
+    }
+  }
+}
+
+// draw all of the shapes.
+void physics_debug_draw() {
+  // lazy
+  for (int i = 0; i < DEBUG_SHAPE_HASHTABLE_LEN; i++) {
+    GraphicsRender *collider_render = shape_renders[i];
+
+    if (collider_render) {
+      glm_scale(collider_render->model, (vec3){1.1, 1.1, 1.1});
+      g_draw_render(collider_render);
+      glm_scale(collider_render->model, (vec3){0.9, 0.9, 0.9});
+    }
+  }
+}
+
 void physics_update() { // for now, this just runs
                         // through collision, and emits
   // messages to the proper gameobjects.
@@ -97,6 +186,8 @@ void physics_update() { // for now, this just runs
     // physobject.
     for (int i = 0; i < n_phys_objects; i++) {
       PhysicsObject *base_obj = phys_objects[i];
+
+      physics_debug_shape_generate(base_obj);
 
       apply_etc_forces(base_obj);
 

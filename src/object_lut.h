@@ -19,10 +19,7 @@ typedef void (*InitFn)(void *); // when it's added to the objects array.
                                 // different from construction.
 typedef void (*UpdateFn)(void *);
 typedef void (*DrawFn)(void *);
-typedef void (*DrawHUDFn)(
-    void *); // just make it a different thing. don't do some complicated "ohh
-             // pass a structure to the function and it'll handle-" no. just a
-             // different event handler for a fundementally different event.
+
 typedef void (*CleanFn)(void *); // when it's removed from the objects array.
                                  // different from destruction.
 typedef void (*CollisionHandler)(void *, CollisionEvent *);
@@ -37,7 +34,6 @@ typedef struct ObjectFnPointers {
   InitFn init;
   UpdateFn update;
   DrawFn draw;
-  DrawHUDFn draw_hud;
   CleanFn clean;
   CollisionHandler col_handler;
   InteractionHandler

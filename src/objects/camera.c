@@ -52,7 +52,7 @@ void camera_update(void *p) {
     glm_mat4_identity(offset_m);
     glm_translate(offset_m, camera->position);
 
-    glm_lookat((vec3){0}, *camera->target, (vec3){0, 0.9, 0.01}, m_view);
+    glm_lookat(camera->position, *camera->target, (vec3){0, 0.9, 0.01}, m_view);
   }
 }
 

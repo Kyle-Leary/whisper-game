@@ -14,6 +14,10 @@ typedef uint TextureHandle;
 
 extern TextureHandle textures[NUM_TEXTURES];
 
+#define FONT_TEX_SLOT 7
+
+void g_set_font(TextureHandle handle);
+
 // returns an index into the global textures array, after loading it into the
 // graphics backend.
 uint g_load_texture(const char *filepath);
@@ -30,8 +34,15 @@ void g_use_cubemap(TextureHandle handle);
 // and a shader compilation. on the n64, this might result in some gl calls and
 // rdp configurations.
 typedef enum PipelineConfiguration {
+  PC_INVALID = 0,
+
   PC_BASIC,
+
+  // define some flat HUD rendering styles.
   PC_HUD,
+  PC_HUD_TEXT, // draws from the special font texture slot.
+
+  PC_WIREFRAME,
 
   PC_SKYBOX,
 

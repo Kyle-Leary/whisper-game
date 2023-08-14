@@ -22,6 +22,7 @@ static int action_map[NUM_KEYS] = {
     [GLFW_MOUSE_BUTTON_LEFT] = ACT_HUD_INTERACT,
     [GLFW_MOUSE_BUTTON_RIGHT] = ACT_IS_SWINGING,
     [GLFW_KEY_T] = ACT_SCREENSHOT,
+    [GLFW_KEY_Y] = ACT_TOGGLE_DEBUG_DRAW,
 }; // the surjective mapping from "key-like" inputs to
    // ActionTypes. hacky as shit.
 

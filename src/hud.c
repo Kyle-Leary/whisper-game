@@ -1,7 +1,9 @@
 #include "hud.h"
 #include "backends/graphics_api.h"
+#include "backends/input_api.h"
 #include "cglm/types.h"
 #include "global.h"
+#include "glprim.h"
 #include "helper_math.h"
 #include "main.h"
 #include "meshing/font.h"
@@ -21,9 +23,15 @@ TextureHandle talk_texture_idx;
 static Button *run_btn = NULL;
 static Button *talk_btn = NULL;
 
+Texture *mouse_cursor;
+
 void hud_init() {
   run_texture_idx = g_load_texture(TEXTURE_PATH("run_btn.png"));
   talk_texture_idx = g_load_texture(TEXTURE_PATH("talk_btn.png"));
+
+  mouse_cursor = (Texture *)object_add((Object *)texture_build(
+      (AABB){0, 0, 0.05f, 0.05f},
+      textures[g_load_texture(TEXTURE_PATH("mouse_cursor.png"))]));
 
   // we'll define the boundaries and sizes of a simple monospace font, then just
   // use the currently bound texture for font drawing, and trust that it's the
@@ -32,23 +40,16 @@ void hud_init() {
   // stride - the number of characters per row (or column) in the font.
   // 16 x 9 font characters means each letter fits in a 16x16 px square, or on a
   // 512 double-size texture, a 32x32px square.
-  ui_font =
-      FontInit(256, 256, 16, 9,
-               0xFFFFFFFF); // make sure the tex size ends up as a power of two.
+  ui_font = font_init(
+      256, 256, 16, 9, 0xFFFFFFFF,
+      g_load_texture(TEXTURE_PATH(
+          "ui_font.png"))); // make sure the tex size ends up as a power of two.
   // 16 * 9 = 96 cells, which is the num of printable ascii characters.
-
-  glm_mat4_identity(m_ui_model);
-  glm_mat4_identity(m_ui_projection);
 
   float aspect = WIN_W / WIN_H; // Aspect ratio.
   float fov = glm_rad(185.0f);  // Field of view in radians (45 degrees here).
   float nearPlane = 0.1f;       // Near clipping plane.
   float farPlane = 500.0f;      // Far clipping plane.
-
-  // 0 - 1, 0 - 1 orthographic projection to screenspace for the UI. have the UI
-  // coordinates not scale with the screensize, so that we can resize the
-  // window?
-  glm_ortho(0, 1, 0, 1, -5.0f, 5.0f, m_ui_projection);
 
   hud_background = (Texture *)object_add((Object *)texture_build(
       (AABB){0.0F, 0.0F, 1.0F, 1.0F},
@@ -98,6 +99,10 @@ void hud_react_to_change(GameState new_state) {
 }
 
 void hud_update() {
+  // update the mouse cursor texture position to match the actual position, no
+  // matter what game mode we're in.
+  memcpy(mouse_cursor->aabb.xy, i_state.pointer, sizeof(float) * 2);
+
   switch (game_state) {
   case GS_WALKING:
     break;
@@ -108,15 +113,6 @@ void hud_update() {
   default:
     break;
   }
-}
-
-void hud_draw() { // then, draw the UI.
-
-  g_use_pipeline(PC_HUD);
-
-  // we don't bind the global hud vao, the objects have their own vaos.
-  object_draw_hud(); // call all the hud drawing lifecycle methods on each
-                     // object in the world.
 }
 
 void hud_clean() {}

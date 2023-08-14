@@ -18,6 +18,7 @@ void physics_init();
 // how we actually move objects in the world.
 void physics_apply_force(PhysicsObject *po, vec3 force);
 // the ticking function for this physics engine.
+void physics_debug_draw();
 void physics_update();
 void physics_clean();
 

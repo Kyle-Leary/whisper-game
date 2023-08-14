@@ -3,6 +3,7 @@
 #include "backends/lifecycle_api.h"
 
 #include "backends/linux/graphics/shader.h"
+#include "cglm/mat4.h"
 #include "global.h"
 #include "graphics/linux_graphics_globals.h"
 #include "main.h"
@@ -160,12 +161,29 @@ int l_init() {
   shader_set_1i(basic_program, "main_slot", 0);
   INSERT(basic);
 
-  // the default for the hud rendering, eg text stuff. we don't really want to
-  // render the hud in perspective.
+  // 0 - 1, 0 - 1 orthographic projection to screenspace for the UI. have the UI
+  // coordinates not scale with the screensize, so that we can resize the
+  // window?
+  glm_ortho(0, 1, 0, 1, -5.0f, 5.0f, m_ui_projection);
+
+  // for now, i think we can just get away with initting the projection for the
+  // UI once in the start, and immediately binding the projection data to each
+  // UI shader.
+
+  // flat rendering program for the hud.
   Shader *hud_program =
       make_shader(SHADER_PATH("hud.vs"), SHADER_PATH("hud.fs"));
-  shader_set_1i(hud_program, "ui_font_slot", 0);
+  shader_set_1i(hud_program, "tex_sampler", 0);
+  shader_set_matrix4fv(hud_program, "projection", (float *)m_ui_projection);
   INSERT(hud);
+
+  Shader *hud_text_program =
+      make_shader(SHADER_PATH("hud_text.vs"), SHADER_PATH("hud_text.fs"));
+  shader_set_1i(hud_text_program, "text_font_slot", FONT_TEX_SLOT);
+  shader_set_matrix4fv(hud_text_program, "projection",
+                       (float *)m_ui_projection);
+  shader_set_3f(hud_text_program, "text_base_color", 0.1, 0.5, 0.5);
+  INSERT(hud_text);
 
   Shader *gouraud_program =
       make_shader(SHADER_PATH("gouraud.vs"), SHADER_PATH("gouraud.fs"));

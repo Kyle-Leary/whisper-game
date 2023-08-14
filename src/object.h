@@ -21,7 +21,6 @@ void object_init();
 void object_update();
 void object_draw();
 void object_interact(InteractionEvent e, InteractionResponse *responses);
-void object_draw_hud();
 void object_clean();
 
 #endif // !OBJECT_H

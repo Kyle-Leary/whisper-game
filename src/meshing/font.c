@@ -94,8 +94,9 @@ GraphicsRender *font_mesh_string(Font *font, const char *str, float x,
       indices, num_indices);
 }
 
-Font *FontInit(float TexW, float TexH, unsigned char RowStride,
-               unsigned char ColStride, u32 Color) {
+Font *font_init(float TexW, float TexH, unsigned char RowStride,
+                unsigned char ColStride, u32 Color,
+                TextureHandle texture_handle) {
   Font *font = malloc(sizeof(Font));
 
   font->TexW = TexW;
@@ -105,6 +106,7 @@ Font *FontInit(float TexW, float TexH, unsigned char RowStride,
   font->CharW = (float)TexW / RowStride;
   font->CharH = (float)TexH / ColStride;
   font->Color = Color;
+  font->tex_handle = texture_handle;
 
   unsigned short i;
 

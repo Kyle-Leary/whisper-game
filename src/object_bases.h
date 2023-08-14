@@ -22,6 +22,8 @@ typedef enum ObjectType {
   OBJ_PLAYER = PHYS_OBJ_MASK,
   OBJ_CAMERA,
 
+  OBJ_DETECTOR,
+
   // prims
   OBJ_CUBE,
   OBJ_SPHERE,
@@ -58,6 +60,7 @@ typedef struct Object {
   vec3 velocity;                                                               \
   vec3 acceleration;                                                           \
   int immovable;                                                               \
+  int intangible;                                                              \
   float mass;                                                                  \
   float linear_damping;                                                        \
   Collider *colliders;                                                         \

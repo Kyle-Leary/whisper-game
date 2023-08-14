@@ -45,10 +45,11 @@ void vao_hud_config(void *data) {
   HUDVertexData *hud = (HUDVertexData *)data;
 
   make_vbo(hud->position, hud->v_count, sizeof(float) * 2);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, SIZEOF_HUD_VTX, (void *)0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void *)0);
   glEnableVertexAttribArray(0);
+
   make_vbo(hud->uv, hud->v_count, sizeof(float) * 2);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, SIZEOF_HUD_VTX, (void *)0);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void *)0);
   glEnableVertexAttribArray(1);
 }
 

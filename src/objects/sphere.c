@@ -30,14 +30,14 @@ Sphere *sphere_build(vec3 position, float radius, unsigned int segments) {
   p->colliders = (Collider *)malloc(sizeof(Collider) * p->num_colliders);
   p->colliders[0].type = CL_SPHERE;
 
-  p->position_lerp_speed = 0.9F;
-  p->mass = 0.1;
-  p->linear_damping = 0.5;
-
   SphereColliderData *col_data =
       (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
   col_data->radius = radius;
   p->colliders[0].data = col_data;
+
+  p->position_lerp_speed = 0.9F;
+  p->mass = 0.1;
+  p->linear_damping = 0.5;
 
   p->render = glprim_sphere(p->position, radius, segments);
   return p;
@@ -51,9 +51,7 @@ void sphere_draw(void *p) {
   CAST;
   glm_mat4_identity(sphere->render->model);
   glm_translate(sphere->render->model, sphere->lerp_position);
-  g_use_pipeline(PC_SOLID);
   g_draw_render(sphere->render);
-  g_use_pipeline(PC_BLANK_GOURAUD);
 }
 
 void sphere_handle_collision(void *p, CollisionEvent *e) {}

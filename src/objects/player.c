@@ -199,14 +199,10 @@ void player_draw(void *p) {
   glm_mat4_inv(player->model->render->model, player->model->render->model);
 
   { // draw player model with proper mats
-    g_use_pipeline(PC_MODEL);
-
     // store the bones? maybe have the GraphicsRender in the associated model?
     g_draw_model(player->model); // draw the model after the caller binds the
                                  // right pipeline configuration on their side.
   }
-
-  g_use_pipeline(PC_BLANK_GOURAUD);
 }
 
 void player_handle_collision(void *p, CollisionEvent *e) {}

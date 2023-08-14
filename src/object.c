@@ -91,15 +91,6 @@ void object_draw() {
   }
 }
 
-void object_draw_hud() {
-  for (int i = 0; i < NUM_OBJECTS; i++) {
-    Object *o = object_state.objects[i];
-    if (o != NULL) {
-      fn_lut[o->type].draw_hud((void *)o);
-    }
-  }
-}
-
 // allocate and pass in a responses array of at least size NUM_OBJECTS.
 void object_interact(InteractionEvent e, InteractionResponse *responses) {
   for (int i = 0; i < NUM_OBJECTS; i++) {

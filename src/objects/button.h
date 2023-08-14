@@ -3,10 +3,10 @@
 
 #include "../object_lut.h"
 
-#include "cglm/types.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
+#include "cglm/types.h"
 #include "helper_math.h"
 #include "objects/texture.h"
 
@@ -27,7 +27,7 @@ void button_destroy(Button *b);
 
 void button_init(void *b);
 void button_update(void *b);
-void button_draw_hud(void *b);
+void button_draw(void *b);
 void button_clean(void *b);
 
 #endif // !BUTTON_H

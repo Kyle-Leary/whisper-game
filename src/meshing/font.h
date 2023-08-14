@@ -21,6 +21,7 @@ typedef struct {
   unsigned int TexId;
   float TexUV[ASCI_TOTAL_CHAR][4];
   void *TexAddr;
+  TextureHandle tex_handle;
 } Font;
 
 // this doesn't need to be stateful. just expose methods for other stateful
@@ -29,7 +30,9 @@ GraphicsRender *
 font_mesh_string(Font *font, const char *str, float x,
                  float y); // mesh the string from the font pointer and the
                            // string passed to it, create a static renderable.
-Font *FontInit(float TexW, float TexH, unsigned char RowStride,
-               unsigned char ColStride, u32 Color);
+
+Font *font_init(float TexW, float TexH, unsigned char RowStride,
+                unsigned char ColStride, u32 Color,
+                TextureHandle texture_handle);
 
 #endif

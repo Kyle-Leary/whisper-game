@@ -4,6 +4,8 @@
 #include "helper_math.h"
 #include "hud.h"
 #include "main.h"
+#include "printers.h"
+#include "util.h"
 #include <string.h>
 
 static float cubePositions[] = {-0.5f, -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,
@@ -129,6 +131,33 @@ GraphicsRender *glprim_upright_plane(vec3 position) {
   return gr;
 }
 
+static float floor_plane_positions[] = {-1.0f, 0.0f, -1.0f, 1.0f,  0.0f, -1.0f,
+                                        1.0f,  0.0f, 1.0f,  -1.0f, 0.0f, 1.0f};
+
+static float floor_plane_normals[] = {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+                                      0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f};
+
+// UVs stay the same as your previous example
+static float floor_plane_uvs[] = {0.0f, 0.0f, 1.0f, 0.0f,
+                                  1.0f, 1.0f, 0.0f, 1.0f};
+
+// Indices stay the same as well
+static unsigned int floor_plane_indices[] = {
+    // Front face
+    0, 1, 2, // Triangle 1
+    2, 3, 0, // Triangle 2
+};
+
+GraphicsRender *glprim_floor_plane(vec3 position) {
+  GraphicsRender *gr = g_new_render(
+      (VertexData *)&(BasicVertexData){RC_BASIC, planeNumVertices,
+                                       floor_plane_positions,
+                                       floor_plane_normals, floor_plane_uvs},
+      floor_plane_indices, planeNumIndices);
+  glm_translate(gr->model, position); // translates it for the caller.
+  return gr;
+}
+
 // Function to create a renderable rectangle from an AABB
 GraphicsRender *glprim_ui_rect(AABB aabb) {
   // Define the 4 corner points of the rectangle
@@ -152,9 +181,7 @@ GraphicsRender *glprim_ui_rect(AABB aabb) {
       p1[0], p1[1], p2[0], p2[1], p3[0], p3[1], p4[0], p4[1],
   };
 
-  float rectUVs[4 * 2] = {
-      uv1[0], uv1[1], uv2[0], uv2[1], uv3[0], uv3[1], uv4[0], uv4[1],
-  };
+  float rectUVs[4 * 2] = {0, 0, 1, 0, 1, 1, 0, 1};
 
   // Define the vertex indices for the rectangle
   unsigned int indices[3 * 2] = {

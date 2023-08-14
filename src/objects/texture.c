@@ -23,9 +23,11 @@
 Texture *texture_build(AABB aabb, TextureHandle handle) {
   Texture *p = (Texture *)malloc(sizeof(Texture));
   memcpy(&p->aabb, &aabb, sizeof(float) * 4);
-  p->ui_render = glprim_ui_rect(p->aabb);
+  p->render = glprim_ui_rect(p->aabb);
   p->type = OBJ_TEXTURE;
   p->handle = handle;
+
+  p->render->pc = PC_HUD;
 
 #ifdef DEBUG
   printf("Made Texture object.\n");
@@ -38,14 +40,14 @@ void texture_init(void *p) {}
 
 void texture_update(void *p) { CAST; }
 
-void texture_draw_hud(void *p) { // draw under the proper hud context, with the
-                                 // right shaders bound and everything.
+void texture_draw(void *p) { // draw under the proper hud context, with the
+                             // right shaders bound and everything.
   CAST;
   g_use_texture(texture->handle);
-  glm_mat4_identity(texture->ui_render->model);
-  glm_translate(texture->ui_render->model,
+  glm_mat4_identity(texture->render->model);
+  glm_translate(texture->render->model,
                 (vec3){texture->aabb.xy[0], texture->aabb.xy[1], 0});
-  g_draw_render(texture->ui_render);
+  g_draw_render(texture->render);
 }
 
 void texture_clean(void *p) {

@@ -18,6 +18,10 @@ static void leave_stage(PipelineConfiguration config) {
   case PC_HUD: {
     glEnable(GL_DEPTH_TEST);
   } break;
+  case PC_WIREFRAME: {
+    // re-enable the FILL mode, don't do wireframe.
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  } break;
   case PC_SKYBOX: {
     // do more weird depth testing stuff in the skybox. this time, properly
     // change the depth functions rather than just turning the depth buffer off
@@ -39,6 +43,10 @@ void g_use_pipeline(PipelineConfiguration config) {
   }
 
   switch (config) {
+  case PC_INVALID: {
+    fprintf(stderr, "ERROR: invalid pipeline configuration.\n");
+    exit(1);
+  } break;
   case PC_BASIC: {
     glEnable(GL_DEPTH_TEST); // we might be switching from the HUD state, so
                              // reset the depth test.
@@ -48,13 +56,22 @@ void g_use_pipeline(PipelineConfiguration config) {
     glDisable(GL_DEPTH_TEST); // dont embed and overlap the ui with other
                               // scene stuff in the 3d shader.
 
-    shader_set_matrix4fv(w_hm_get(shader_map, "hud").as_ptr, "model",
-                         (const float *)m_ui_model);
-    // shader_set_matrix4fv(w_hm_get(shader_map, "hud").as_ptr, "projection",
-    //                      (const float *)m_ui_projection);
+    Shader *sh = w_hm_get(shader_map, "hud").as_ptr;
+    shader_use(sh);
+  } break;
+  case PC_HUD_TEXT: {         // prepare for hud drawing.
+    glDisable(GL_DEPTH_TEST); // dont embed and overlap the ui with other
+                              // scene stuff in the 3d shader.
+    Shader *sh = w_hm_get(shader_map, "hud_text").as_ptr;
+    shader_use(sh);
+  } break;
+  case PC_WIREFRAME: {
+    // wireframe is mostly just handled through the settings, not the shader.
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    Shader *ptr = GETSH("solid");
+    shader_use(ptr);
 
-    // shader_set_3f(w_hm_get(shader_map, "hud").as_ptr, "ui_text_color", 0.5F,
-    //               0.5F, 0.5F);
+    shader_set_3f(ptr, "u_render_color", 1, 1, 0);
   } break;
   case PC_BLANK_GOURAUD: {
     glEnable(GL_DEPTH_TEST);

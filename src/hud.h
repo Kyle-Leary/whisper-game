@@ -4,7 +4,6 @@
 
 void hud_init();
 void hud_update();
-void hud_draw();
 void hud_clean();
 
 // react to a state change.
