@@ -19,6 +19,12 @@ typedef enum ActionType {
   ACT_LEFT,
   ACT_RIGHT,
 
+  ACT_CAMERA_CW,  // swing cw around the player
+  ACT_CAMERA_CCW, // swing ccw around the player
+
+  ACT_CAMERA_RAISE,
+  ACT_CAMERA_LOWER,
+
   ACT_WORLD_INTERACT,
 
   ACT_IS_SWINGING, // eg, the mouse is held down to init a swing on computer.

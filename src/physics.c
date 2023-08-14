@@ -143,6 +143,7 @@ static void physics_debug_shape_generate(PhysicsObject *po) {
     }
 
     if (gr) {
+      // each physics debug shape renders in wireframe by default.
       gr->pc = PC_WIREFRAME;
       shape_renders[hashed] = gr;
     }
@@ -194,6 +195,7 @@ void physics_update() { // for now, this just runs
       for (int j = 0; j < n_phys_objects; j++) {
         if (i == j) // an object should not/need not collide with itself.
           continue;
+
         PhysicsObject *target_obj = phys_objects[j];
 
         // both i and j objects are valid collision objects, and different

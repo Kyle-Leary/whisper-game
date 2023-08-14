@@ -3,9 +3,11 @@
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
+#include "backends/input_api.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
+#include "cglm/util.h"
 #include "cglm/vec3.h"
 #include "global.h"
 #include "glprim.h"
@@ -13,6 +15,7 @@
 #include "helper_math.h"
 #include "input_help.h"
 
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +31,12 @@ Camera *camera_build(vec3 position, vec3 *target) {
       sizeof(Collider) * p->num_colliders); // space for one collider.
   p->colliders[0].type = CL_PILLAR;
   p->target = target;
+  p->rotation = 0;
+  p->rotation_speed = 0.01;
+
+  p->height = 5;
+  p->rising_speed = 0.05;
+
   p->type = OBJ_CAMERA;
   return p;
 }
@@ -37,13 +46,27 @@ void camera_init(void *p) {}
 void camera_update(void *p) {
   CAST;
 
+  if (i_state.act_held[ACT_CAMERA_CW]) {
+    camera->rotation += camera->rotation_speed;
+  } else if (i_state.act_held[ACT_CAMERA_CCW]) {
+    camera->rotation -= camera->rotation_speed;
+  }
+
+  if (i_state.act_held[ACT_CAMERA_RAISE]) {
+    camera->height += camera->rising_speed;
+  } else if (i_state.act_held[ACT_CAMERA_LOWER]) {
+    camera->height -= camera->rising_speed;
+  }
+
+  camera->height = glm_clamp(camera->height, 1, 6);
+
   { // calc the camera position from the target
     // TODO: lerping and rotation with the mouse?
     vec3 offset;
-    glm_vec3_one(offset);
-    glm_vec3_scale(
-        offset, 5,
-        offset); // offset by {5, 5, 5} vector from the target for now.
+    memcpy(offset,
+           (vec3){5 * sin(camera->rotation), camera->height,
+                  5 * cos(camera->rotation)},
+           sizeof(float) * 3);
     glm_vec3_add(*camera->target, offset, camera->position);
   }
 

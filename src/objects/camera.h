@@ -3,10 +3,10 @@
 
 #include "../object_lut.h"
 
-#include "cglm/types.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
+#include "cglm/types.h"
 
 typedef struct Camera {
   PHYS_OBJECT_FIELDS
@@ -16,6 +16,12 @@ typedef struct Camera {
                 // will be freed AFTER the camera attached to it is freed. (or
                 // else it'll have a garbage target with random data)
   float speed;
+
+  float rotation;       // in radians, around the player.
+  float rotation_speed; // how fast does the camera swing around the player?
+
+  float height; // how far above the player is the camera?
+  float rising_speed;
 } Camera;
 
 Camera *camera_build(vec3 position, vec3 *target);
