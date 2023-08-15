@@ -8,14 +8,14 @@
 #include "backends/graphics_api.h"
 #include "cglm/types.h"
 #include "helper_math.h"
+#include "object_bases.h"
 #include "objects/texture.h"
 
 // should this take in anything?
 typedef void (*ButtonCallback)();
 
 typedef struct Button {
-  ObjectType type;
-  Collider *colliders;
+  OBJECT_FIELDS
 
   ButtonCallback callback;
   Texture *texture;

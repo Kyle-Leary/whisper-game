@@ -86,27 +86,7 @@ void player_init(void *p) {}
 // Update player's mats and movement
 static void update_player_mats_movement(Player *player) {}
 
-static void player_handle_interactions(Player *player) {
-  Position p;
-
-  // compare the interaction point with the new testing position.
-  if (i_state.act_just_pressed[ACT_WORLD_INTERACT]) {
-    InteractionResponse responses[NUM_OBJECTS] = {0};
-    area_interact((InteractionEvent){IT_EXAMINE, p[0], p[1]}, responses);
-
-    for (int i = 0; i < NUM_OBJECTS; i++) {
-      InteractionResponse r = responses[i];
-      switch (r.type) {
-      case IRT_ENCOUNTER:
-        // then accept the encounter, and start it up in the state machine.
-        state_change(GS_ENCOUNTER);
-        break;
-      default:
-        break;
-      }
-    }
-  }
-}
+static void player_handle_interactions(Player *player) { Position p; }
 
 // The main function
 static void player_handle_walking_state(Player *player) {

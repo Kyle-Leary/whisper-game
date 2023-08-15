@@ -43,10 +43,10 @@ void texture_update(void *p) { CAST; }
 void texture_draw(void *p) { // draw under the proper hud context, with the
                              // right shaders bound and everything.
   CAST;
-  g_use_texture(texture->handle);
   glm_mat4_identity(texture->render->model);
   glm_translate(texture->render->model,
                 (vec3){texture->aabb.xy[0], texture->aabb.xy[1], 0});
+  g_use_texture(texture->handle, 0);
   g_draw_render(texture->render);
 }
 

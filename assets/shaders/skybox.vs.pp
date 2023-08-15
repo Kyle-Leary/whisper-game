@@ -1,18 +1,10 @@
 #version 330 core
-
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
-layout (location = 2) in vec2 aTexCoord;
 
-// in the skybox shader, the position is the texcoord.
-out vec3 TexCoord;
-
-uniform mat4 model;
 layout(std140) uniform ViewProjection {
     mat4 view;
     mat4 projection;
 };
-
 #define POINT_LIGHT_SLOTS 5
 #define SPOT_LIGHT_SLOTS 5
 #define DIRECTIONAL_LIGHT_SLOTS 5
@@ -72,9 +64,11 @@ vec3 apply_directional_light(vec3 vert_pos, int light_index) {
 	return vec3(1);
 }
 
+out vec3 TexCoord;
+
 void main() {
-	vec4 pos = projection * view * model * (vec4(aPos, 1.0));
-	gl_Position = vec4(pos.x, pos.y, pos.w, pos.w);
-	// 3d texcoords in the vs??? only for cubemaps??
-	TexCoord = vec3(pos.x, pos.y, -pos.z);
+    TexCoord = aPos;
+
+    mat4 rotView = mat4(mat3(view)); 
+    gl_Position = projection * rotView * vec4(aPos, 1.0);
 }

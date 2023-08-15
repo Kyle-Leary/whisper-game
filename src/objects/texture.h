@@ -8,10 +8,10 @@
 #include "backends/graphics_api.h"
 #include "cglm/types.h"
 #include "helper_math.h"
+#include "object_bases.h"
 
 typedef struct Texture {
-  ObjectType type;
-  Collider *colliders;
+  OBJECT_FIELDS
 
   AABB aabb;
   GraphicsRender *render; // Render is generic enough that it'll work for either

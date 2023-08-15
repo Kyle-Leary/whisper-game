@@ -8,11 +8,14 @@
 #include "main.h"
 #include "meshing/font.h"
 #include "object.h"
+#include "object_bases.h"
 #include "objects/button.h"
 #include "objects/label.h"
 #include "objects/texture.h"
 #include "path.h"
 #include "state.h"
+#include <GL/gl.h>
+#include <stdint.h>
 
 Button *b;
 
@@ -29,9 +32,11 @@ void hud_init() {
   run_texture_idx = g_load_texture(TEXTURE_PATH("run_btn.png"));
   talk_texture_idx = g_load_texture(TEXTURE_PATH("talk_btn.png"));
 
-  mouse_cursor = (Texture *)object_add((Object *)texture_build(
-      (AABB){0, 0, 0.05f, 0.05f},
-      textures[g_load_texture(TEXTURE_PATH("mouse_cursor.png"))]));
+  mouse_cursor = (Texture *)object_add(
+      (Object *)texture_build(
+          (AABB){0, 0, 0.05f, 0.05f},
+          textures[g_load_texture(TEXTURE_PATH("mouse_cursor.png"))]),
+      OT_HUD);
 
   // we'll define the boundaries and sizes of a simple monospace font, then just
   // use the currently bound texture for font drawing, and trust that it's the
@@ -46,14 +51,11 @@ void hud_init() {
           "ui_font.png"))); // make sure the tex size ends up as a power of two.
   // 16 * 9 = 96 cells, which is the num of printable ascii characters.
 
-  float aspect = WIN_W / WIN_H; // Aspect ratio.
-  float fov = glm_rad(185.0f);  // Field of view in radians (45 degrees here).
-  float nearPlane = 0.1f;       // Near clipping plane.
-  float farPlane = 500.0f;      // Far clipping plane.
-
-  hud_background = (Texture *)object_add((Object *)texture_build(
-      (AABB){0.0F, 0.0F, 1.0F, 1.0F},
-      textures[g_load_texture(TEXTURE_PATH("hud_overlay.png"))]));
+  hud_background = (Texture *)object_add(
+      (Object *)texture_build(
+          (AABB){0.0F, 0.0F, 1.0F, 1.0F},
+          textures[g_load_texture(TEXTURE_PATH("hud_overlay.png"))]),
+      OT_HUD);
 }
 
 // only remove objects by ptr if they're non-null, the object function shouldn't
@@ -88,13 +90,27 @@ void hud_react_to_change(GameState new_state) {
     printf("hud reaction\n");
     talk_btn = (Button *)object_add(
         (Object *)button_build((AABB){0.2F, 0.0F, 0.1F, 0.1F}, "talk",
-                               talk_callback, textures[talk_texture_idx]));
+                               talk_callback, textures[talk_texture_idx]),
+        OT_HUD);
     run_btn = (Button *)object_add(
         (Object *)button_build((AABB){0.7F, 0.0F, 0.1F, 0.1F}, "run",
-                               run_callback, textures[run_texture_idx]));
+                               run_callback, textures[run_texture_idx]),
+        OT_HUD);
     break;
   default:
     break;
+  }
+}
+
+#define MAX_MOUSEPICKING_OBJECTS 3
+
+// handle mouse raycasting and clicking.
+static void mouse_picking_loop() {
+  // if we're clicking, send out a raycast and inform all the objects we've hit.
+  if (i_state.act_just_pressed[ACT_HUD_INTERACT]) {
+    uint16_t indices[MAX_MOUSEPICKING_OBJECTS];
+
+    // raycast_check(indices, MAX_MOUSEPICKING_OBJECTS, a, direction);
   }
 }
 

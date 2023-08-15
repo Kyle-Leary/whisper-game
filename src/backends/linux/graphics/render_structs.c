@@ -148,10 +148,17 @@ void g_draw_render(GraphicsRender *gr) {
   // redundancies in graphics calls for binding and etc.
   g_use_pipeline(gr->pc);
 
-  // after a pipeline switch, bind the model to the current shader every single
-  // model will have a shader matrix, no matter what. the view and projection
-  // are handled in a UBO elsewhere, ideally set in a loop every frame.
-  shader_set_matrix4fv(curr_program, "model", (const float *)gr->model);
+  // bind the model from the gr->model here, and handle the cases where it does
+  // and doesn't have a model. i can't think of a better place to do this, even
+  // though it's fairly hidden away and cryptic.
+  switch (gr->pc) {
+  case PC_SKYBOX: {
+    // the skybox doesn't have a model.
+  } break;
+  default: {
+    shader_set_matrix4fv(curr_program, "model", (const float *)gr->model);
+  } break;
+  }
   glDrawElements(GL_TRIANGLES, gr->internal->n_idx, GL_UNSIGNED_INT, 0);
 }
 

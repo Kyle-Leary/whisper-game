@@ -90,7 +90,6 @@ Model *gltf_to_model(GLTFFile *file) {
       uint8_t joints[VERT_BUF_SZ];
       gltf_dump_ubyte_accessor(file, joint_accessor_idx, joints, &n_verts);
 
-      int converted_joints[VERT_BUF_SZ];
       for (int i = 0; i < n_verts * 4; i++) {
         converted_joints[i] = (int)joints[i];
       }
@@ -100,7 +99,6 @@ Model *gltf_to_model(GLTFFile *file) {
       unsigned short joints[VERT_BUF_SZ];
       gltf_dump_ushort_accessor(file, joint_accessor_idx, joints, &n_verts);
 
-      int converted_joints[VERT_BUF_SZ];
       for (int i = 0; i < n_verts * 4; i++) {
         converted_joints[i] = (int)joints[i];
       }

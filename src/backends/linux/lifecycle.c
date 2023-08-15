@@ -242,11 +242,12 @@ int l_init() {
     ID_TO_BLOCK("BoneData", BONE_BLOCK, model_program->id);
     ID_TO_BLOCK("MaterialBlock", MATERIAL_BLOCK, model_program->id);
 
-    GLuint buf[3];
-    glGenBuffers(3, buf);
+    GLuint buf[4];
+    glGenBuffers(4, buf);
     light_data_ubo = buf[0];
     matrix_data_ubo = buf[1];
     bone_data_ubo = buf[2];
+    material_data_ubo = buf[3];
 
     glBindBuffer(GL_UNIFORM_BUFFER, light_data_ubo);
     // we're going to change the ubo frequently with subdata calls, so make this

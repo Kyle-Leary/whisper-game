@@ -102,12 +102,14 @@ uint g_load_cubemap(char *faces[6]) {
   return textureID;
 }
 
-void g_use_texture(TextureHandle handle) {
+void g_use_texture(TextureHandle handle, int slot) {
+  glActiveTexture(GL_TEXTURE0 + slot);
   glBindTexture(GL_TEXTURE_2D, handle);
   curr_bound_texture = handle;
 }
 
-void g_use_cubemap(TextureHandle handle) {
+void g_use_cubemap(TextureHandle handle, int slot) {
+  glActiveTexture(GL_TEXTURE0 + slot);
   glBindTexture(GL_TEXTURE_CUBE_MAP, handle);
   curr_bound_texture = handle;
 }

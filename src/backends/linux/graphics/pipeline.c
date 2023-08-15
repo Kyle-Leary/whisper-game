@@ -27,6 +27,7 @@ static void leave_stage(PipelineConfiguration config) {
     // change the depth functions rather than just turning the depth buffer off
     // in rendering.
     glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
   } break;
   default: {
   } break;
@@ -48,9 +49,8 @@ void g_use_pipeline(PipelineConfiguration config) {
     exit(1);
   } break;
   case PC_BASIC: {
-    glEnable(GL_DEPTH_TEST); // we might be switching from the HUD state, so
-                             // reset the depth test.
-    shader_use(GETSH("basic"));
+    Shader *ptr = GETSH("basic");
+    shader_use(ptr);
   } break;
   case PC_HUD: {              // prepare for hud drawing.
     glDisable(GL_DEPTH_TEST); // dont embed and overlap the ui with other
@@ -71,15 +71,13 @@ void g_use_pipeline(PipelineConfiguration config) {
     Shader *ptr = GETSH("solid");
     shader_use(ptr);
 
-    shader_set_3f(ptr, "u_render_color", 1, 1, 0);
+    shader_set_3f(ptr, "u_render_color", 1, 0, 0);
   } break;
   case PC_BLANK_GOURAUD: {
-    glEnable(GL_DEPTH_TEST);
     shader_use(GETSH("gouraud"));
 
   } break;
   case PC_PBR_GOURAUD: {
-    glEnable(GL_DEPTH_TEST);
     shader_use(GETSH("pbr_gouraud"));
 
   } break;
@@ -91,9 +89,9 @@ void g_use_pipeline(PipelineConfiguration config) {
   } break;
   case PC_SKYBOX: {
     Shader *ptr = GETSH("skybox");
-
     shader_set_1i(ptr, "u_cube_tex", 0);
 
+    glDisable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
   } break;
   case PC_MODEL: {

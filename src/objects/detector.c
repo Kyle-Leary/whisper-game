@@ -6,11 +6,13 @@
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/vec3.h"
+#include "event_types.h"
 #include "global.h"
 #include "glprim.h"
 
 #include "helper_math.h"
 #include "input_help.h"
+#include "object_lut.h"
 #include "physics/collider_types.h"
 
 #include <stdbool.h>
@@ -18,11 +20,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-// really basic Detector entity type.
-
 #define CAST Detector *detector = (Detector *)p
 
-Detector *detector_build(vec3 position, Collider *col) {
+Detector *detector_build(vec3 position, Collider *col,
+                         CollisionHandler handler) {
   Detector *p = (Detector *)calloc(sizeof(Detector), 1);
   p->type = OBJ_DETECTOR;
 
@@ -41,7 +42,9 @@ Detector *detector_build(vec3 position, Collider *col) {
   p->intangible = true;
   p->immovable = true;
 
-  // no explicit render. the physics subsystem should be able to handle its own
+  p->handler = handler;
+
+  // no explicit render. the physics subsystem can handle its own
   // physics debug renders.
   return p;
 }
@@ -50,7 +53,10 @@ void detector_init(void *p) {}
 
 void detector_update(void *p) { CAST; }
 
-void detector_handle_collision(void *p, CollisionEvent *e) {}
+void detector_handle_collision(void *p, CollisionEvent *e) {
+  CAST;
+  detector->handler(p, e);
+}
 
 void detector_clean(void *p) {
   Detector *detector = (Detector *)p;

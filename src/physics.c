@@ -206,7 +206,9 @@ void physics_update() { // for now, this just runs
         memcpy(e->normalized_force, (vec3){0, 0, 0}, sizeof(vec3));
         e->magnitude = 0.00F; // empty force, doesn't move anything.
 
-        e->id = i; // use the entity id as the id for collisions.
+        // the entity ID is different from j, since these are only the physics
+        // objects.
+        e->id = base_obj->id; // use the entity id as the id for collisions.
 
         { /* generate the forces in the collision event from i -> j through a
              double iterator over both the collision arrays. */

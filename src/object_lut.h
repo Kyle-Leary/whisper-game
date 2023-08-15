@@ -43,4 +43,6 @@ typedef struct ObjectFnPointers {
 
 extern ObjectFnPointers fn_lut[OBJ_COUNT];
 
+void none_col(void *v, CollisionEvent *e);
+
 #endif // !OBJECT_LUT_H

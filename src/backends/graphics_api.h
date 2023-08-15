@@ -14,7 +14,11 @@ typedef uint TextureHandle;
 
 extern TextureHandle textures[NUM_TEXTURES];
 
+// certain higher special texture slots for subsystems that need their own
+// texture and don't change it that often, so it makes sense to batch all calls
+// to that texture and keep it loaded.
 #define FONT_TEX_SLOT 7
+#define SKYBOX_TEX_SLOT 8
 
 void g_set_font(TextureHandle handle);
 
@@ -24,8 +28,8 @@ uint g_load_texture(const char *filepath);
 uint g_load_cubemap(char *faces[6]);
 // "activates" the texture, using it for further draw calls.
 // TODO: how to reason about texture slots?
-void g_use_texture(TextureHandle handle);
-void g_use_cubemap(TextureHandle handle);
+void g_use_texture(TextureHandle handle, int slot);
+void g_use_cubemap(TextureHandle handle, int slot);
 
 // abstract over shaders by allowing selection between multiple pipeline
 // configurations, all of which must be somehow set and filled through the

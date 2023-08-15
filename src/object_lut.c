@@ -9,7 +9,6 @@
 #include "objects/detector.h"
 #include "objects/floor.h"
 #include "objects/label.h"
-#include "objects/obj_area.h"
 #include "objects/player.h"
 #include "objects/render.h"
 #include "objects/sphere.h"
@@ -38,7 +37,7 @@ ObjectFnPointers fn_lut[OBJ_COUNT] = {
                    none_int},
     [OBJ_BUTTON] = {button_init, button_update, none, button_clean, none_col,
                     none_int},
-    [OBJ_TEXTURE] = {texture_init, texture_update, none, texture_clean,
+    [OBJ_TEXTURE] = {texture_init, texture_update, texture_draw, texture_clean,
                      none_col, none_int},
 
     [OBJ_PLAYER] = {player_init, player_update, player_draw, player_clean,
@@ -55,7 +54,4 @@ ObjectFnPointers fn_lut[OBJ_COUNT] = {
                    floor_handle_collision, none_int},
     [OBJ_CHARACTER] = {character_init, character_update, character_draw,
                        character_clean, none_col, character_handle_interact},
-
-    [OBJ_AREAOBJ] = {areaObj_init, areaObj_update, areaObj_draw, areaObj_clean,
-                     none_col, none_int},
 };

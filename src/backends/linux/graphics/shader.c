@@ -18,7 +18,7 @@ WHashMap shader_map = {0};
 Shader *make_shader(const char *vs_path, const char *fs_path) {
   Shader *returned_shader = (Shader *)malloc(sizeof(Shader));
   for (int i = 0; i < HASHMAP_SIZE; i++) {
-    // the sentinel value of 0 doesn't really work for shader loc ints. set it
+    // the sentinel value of 0 doesn't work for shader loc ints. set it
     // manually and use -1 instead.
     returned_shader->locs[i].as_int = -1;
   }
