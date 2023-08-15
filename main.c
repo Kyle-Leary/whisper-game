@@ -90,6 +90,9 @@ int main() {
 
     TextureHandle skybox_tex = textures[g_load_cubemap(cubemap_paths)];
     skybox_render->pc = PC_SKYBOX;
+    // this also means that you can effectively change the whole skybox without
+    // much CPU overhead by simply changing the cubemap texture bound to
+    // SKYBOX_TEX_SLOT.
     g_use_cubemap(
         skybox_tex,
         SKYBOX_TEX_SLOT); // the cubemap and texture_2d textures are in the same

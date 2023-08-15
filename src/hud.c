@@ -13,6 +13,7 @@
 #include "objects/label.h"
 #include "objects/texture.h"
 #include "path.h"
+#include "physics/raycast.h"
 #include "state.h"
 #include <GL/gl.h>
 #include <stdint.h>
@@ -99,18 +100,6 @@ void hud_react_to_change(GameState new_state) {
     break;
   default:
     break;
-  }
-}
-
-#define MAX_MOUSEPICKING_OBJECTS 3
-
-// handle mouse raycasting and clicking.
-static void mouse_picking_loop() {
-  // if we're clicking, send out a raycast and inform all the objects we've hit.
-  if (i_state.act_just_pressed[ACT_HUD_INTERACT]) {
-    uint16_t indices[MAX_MOUSEPICKING_OBJECTS];
-
-    // raycast_check(indices, MAX_MOUSEPICKING_OBJECTS, a, direction);
   }
 }
 

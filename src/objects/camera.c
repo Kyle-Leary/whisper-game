@@ -14,6 +14,7 @@
 
 #include "helper_math.h"
 #include "input_help.h"
+#include "physics/raycast.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -43,8 +44,28 @@ Camera *camera_build(vec3 position, vec3 *target) {
 
 void camera_init(void *p) {}
 
+#define MAX_MOUSEPICKING_OBJECTS 3
+
+// handle mouse raycasting and clicking.
+static void mouse_picking_loop(Camera *camera) {
+  // if we're clicking, send out a raycast and inform all the objects we've hit.
+  if (i_state.act_just_pressed[ACT_HUD_INTERACT]) {
+    uint16_t indices[MAX_MOUSEPICKING_OBJECTS];
+
+    int num_found = raycast_intersect(indices, MAX_MOUSEPICKING_OBJECTS,
+                                      camera->lerp_position, (vec3){0, -1, 0});
+
+    for (int i = 0; i < num_found; i++) {
+      uint16_t id = indices[i];
+      printf("intersected with oid %d in the raycast.\n", id);
+    }
+  }
+}
+
 void camera_update(void *p) {
   CAST;
+
+  mouse_picking_loop(camera);
 
   if (i_state.act_held[ACT_CAMERA_CW]) {
     camera->rotation += camera->rotation_speed;
