@@ -9,12 +9,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-static TextureHandle curr_bound_texture = 0;
+// use 0 sentinel for unused textures.
+TextureHandle textures[NUM_TEXTURES] = {0};
 
-TextureHandle textures[NUM_TEXTURES] = {
-    0}; // zero init so we can compare to zero to check if the texture's been
-        // set. never use the blank 0 texture handle, it's invalid just like
-        // NULL.
+// just for keeping the same texture bound in the g_load_texture() function.
+static TextureHandle curr_bound_texture = 0;
 
 // returns an index into the global textures array.
 uint g_load_texture(const char *filepath) {

@@ -6,6 +6,7 @@
 #include "main.h"
 #include "printers.h"
 #include "util.h"
+#include <stdbool.h>
 #include <string.h>
 
 static float cubePositions[] = {-0.5f, -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,
@@ -158,17 +159,30 @@ GraphicsRender *glprim_floor_plane(vec3 position) {
   return gr;
 }
 
-// Function to create a renderable rectangle from an AABB
-GraphicsRender *glprim_ui_rect(AABB aabb) {
-  // Define the 4 corner points of the rectangle
-  vec2 p1 = {aabb.xy[0], aabb.xy[1]};              // Bottom-left corner
-  vec2 p2 = {aabb.xy[0] + aabb.wh[0], aabb.xy[1]}; // Bottom-right corner
-  vec2 p3 = {aabb.xy[0] + aabb.wh[0],
-             aabb.xy[1] + aabb.wh[1]};             // Top-right corner
-  vec2 p4 = {aabb.xy[0], aabb.xy[1] + aabb.wh[1]}; // Top-left corner
+GraphicsRender *glprim_ui_rect(AABB aabb, bool centered) {
+  float half_w = aabb.wh[0] / 2;
+  float half_h = aabb.wh[1] / 2;
 
-  // Define the UV coordinates for the rectangle (assuming it covers the entire
-  // texture)
+  float x_min, x_max, y_min, y_max;
+
+  if (centered) {
+    x_min = -half_w;
+    x_max = half_w;
+    y_min = -half_h;
+    y_max = half_h;
+  } else {
+    x_min = 0;
+    x_max = aabb.wh[0];
+    y_min = 0;
+    y_max = aabb.wh[1];
+  }
+
+  vec2 p1 = {x_min, y_min}; // Bottom-left corner
+  vec2 p2 = {x_max, y_min}; // Bottom-right corner
+  vec2 p3 = {x_max, y_max}; // Top-right corner
+  vec2 p4 = {x_min, y_max}; // Top-left corner
+
+  // the texture by default covers the whole rect.
   vec2 uv1 = {0.0f, 0.0f};
   vec2 uv2 = {1.0f, 0.0f};
   vec2 uv3 = {1.0f, 1.0f};

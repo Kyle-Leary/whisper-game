@@ -19,9 +19,9 @@ extern mat4 m_projection;
 extern mat4 m_ui_model;
 extern mat4 m_ui_projection;
 
-extern Font *ui_font;
-
 extern float delta_time;
+extern float u_time; // a sum of all the time passed, usually used for shader
+                     // stuff like sin(u_time) * mag for waves.
 
 // basic movement.
 extern float rot_dx;

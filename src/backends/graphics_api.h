@@ -22,6 +22,8 @@ extern TextureHandle textures[NUM_TEXTURES];
 
 void g_set_font(TextureHandle handle);
 
+void g_set_font_color(vec3 color);
+
 // returns an index into the global textures array, after loading it into the
 // graphics backend.
 uint g_load_texture(const char *filepath);
@@ -44,7 +46,11 @@ typedef enum PipelineConfiguration {
 
   // define some flat HUD rendering styles.
   PC_HUD,
+
+  // define HUD text rendering modes, each with different effects that can be
+  // applied to text.
   PC_HUD_TEXT, // draws from the special font texture slot.
+  PC_HUD_TEXT_WAVY,
 
   PC_WIREFRAME,
 

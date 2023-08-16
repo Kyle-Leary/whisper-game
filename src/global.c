@@ -12,6 +12,7 @@ mat4 m_ui_projection = {0};
 Font *ui_font = NULL;
 
 float delta_time = 0.016F;
+float u_time = 0;
 
 float rot_dx = 0;
 float forward_dx = 0;

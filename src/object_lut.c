@@ -33,10 +33,10 @@ ObjectFnPointers fn_lut[OBJ_COUNT] = {
     // function. minimize icache misses by deferring behavior to different
     // functions, rather than inlining in a huge switch.
     [OBJ_RENDER] = {none, none, render_draw, render_clean, none_col, none_int},
-    [OBJ_LABEL] = {label_init, label_update, none, label_clean, none_col,
+    [OBJ_LABEL] = {label_init, label_update, label_draw, label_clean, none_col,
                    none_int},
-    [OBJ_BUTTON] = {button_init, button_update, none, button_clean, none_col,
-                    none_int},
+    [OBJ_BUTTON] = {button_init, button_update, button_draw, button_clean,
+                    none_col, none_int},
     [OBJ_TEXTURE] = {texture_init, texture_update, texture_draw, texture_clean,
                      none_col, none_int},
 

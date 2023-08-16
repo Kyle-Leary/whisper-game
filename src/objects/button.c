@@ -14,7 +14,9 @@
 #include "main.h"
 #include "meshing/font.h"
 #include "object_lut.h"
+#include "objects/label.h"
 #include "objects/texture.h"
+#include "util.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -25,12 +27,20 @@
 #define CAST Button *button = (Button *)p
 
 // the button has a Texture and Label subobject.
-Button *button_build(AABB aabb, const char *text, ButtonCallback callback,
-                     TextureHandle h) {
+Button *button_build(Font *font, AABB aabb, const char *text,
+                     ButtonCallback callback, TextureHandle h) {
   Button *p = (Button *)malloc(sizeof(Button));
   p->type = OBJ_BUTTON;
 
   p->texture = texture_build(aabb, h);
+
+  // we need to position the text at the center, since that's what the label
+  // font meshing function assumes we want.
+  vec2 text_center;
+  text_center[0] = aabb.xy[0] + (aabb.wh[0] / 2);
+  text_center[1] = aabb.xy[1] + (aabb.wh[1] / 2);
+
+  p->label = label_build(font, text_center, text, (vec3){0.5, 0.5, 0.5});
 
   // just pass NULL if you're not using a callback.
   p->callback = callback;
@@ -67,4 +77,14 @@ void button_clean(void *p) {
   free(button);
 }
 
-void button_draw(void *p) {}
+void button_draw(void *p) {
+  CAST;
+
+  { // draw the texture background of the button.
+    texture_draw(button->texture);
+  }
+
+  { // draw the text itself.
+    label_draw(button->label);
+  }
+}

@@ -14,6 +14,7 @@
 #include "input_help.h"
 #include "meshing/font.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +24,7 @@
 Texture *texture_build(AABB aabb, TextureHandle handle) {
   Texture *p = (Texture *)malloc(sizeof(Texture));
   memcpy(&p->aabb, &aabb, sizeof(float) * 4);
-  p->render = glprim_ui_rect(p->aabb);
+  p->render = glprim_ui_rect(p->aabb, false);
   p->type = OBJ_TEXTURE;
   p->handle = handle;
 

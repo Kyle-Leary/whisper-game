@@ -1,3 +1,4 @@
+#include "main.h"
 #include "animation/animator.h"
 #include "areas/areas.h"
 #include "backends/audio_api.h"
@@ -5,31 +6,24 @@
 #include "backends/input_api.h"
 #include "backends/lifecycle_api.h"
 #include "cglm/affine-pre.h"
+#include "cglm/cglm.h"
 #include "cglm/mat4.h"
+#include "cglm/types.h"
 #include "cglm/util.h"
 #include "core/area_server.h"
 #include "core/battle.h"
 #include "event_types.h"
+#include "general_lighting.h"
 #include "global.h"
-
-#include "cglm/cglm.h"
-#include "cglm/types.h"
-
 #include "glprim.h"
+#include "helper_math.h"
 #include "hud.h"
-#include "main.h"
+#include "meshing/font.h"
 #include "meshing/gltf_mesher.h"
 #include "object.h"
+#include "objects/player.h"
 #include "path.h"
 #include "physics.h"
-
-#include "backends/input_api.h"
-#include "meshing/font.h"
-
-#include "helper_math.h"
-#include "objects/player.h"
-
-#include "general_lighting.h"
 #include "physics/collider_types.h"
 #include "printers.h"
 #include "size.h"
@@ -115,6 +109,8 @@ int main() {
     }
 
     fps_timer = 0;
+
+    u_time += delta_time;
 
     i_update(); // clear the temporary input state
     l_update(); // potentially poll for events?

@@ -8,5 +8,5 @@ uniform sampler2D text_font_slot;
 uniform vec3 text_base_color;
 
 void main() {
-    color = vec4(text_base_color, 1.0) * texture(text_font_slot, TexCoords);
+    color = (vec4(text_base_color, 1.0) * 2) * (texture(text_font_slot, TexCoords) + vec4(0.5, 0.5, 0.5, 0));
 }

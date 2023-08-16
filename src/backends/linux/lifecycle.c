@@ -185,6 +185,14 @@ int l_init() {
   shader_set_3f(hud_text_program, "text_base_color", 0.1, 0.5, 0.5);
   INSERT(hud_text);
 
+  Shader *hud_text_wavy_program = make_shader(SHADER_PATH("hud_text_wavy.vs"),
+                                              SHADER_PATH("hud_text_wavy.fs"));
+  shader_set_1i(hud_text_wavy_program, "text_font_slot", FONT_TEX_SLOT);
+  shader_set_matrix4fv(hud_text_wavy_program, "projection",
+                       (float *)m_ui_projection);
+  shader_set_3f(hud_text_wavy_program, "text_base_color", 0.1, 0.5, 0.5);
+  INSERT(hud_text_wavy);
+
   Shader *gouraud_program =
       make_shader(SHADER_PATH("gouraud.vs"), SHADER_PATH("gouraud.fs"));
   INSERT(gouraud);
@@ -319,8 +327,6 @@ int l_begin_draw() {
   return 0;
 }
 
-float u_time = 0.016;
-
 int l_update() {
   glfwPollEvents(); // call this before the input update, this signals the
                     // callbacks.
@@ -328,9 +334,6 @@ int l_update() {
     save_screenshot(window, "screen.png");
   }
 
-  shader_set_1f(w_hm_get(shader_map, "basic").as_ptr, "u_time", u_time);
-
-  u_time += delta_time;
   return 0;
 }
 

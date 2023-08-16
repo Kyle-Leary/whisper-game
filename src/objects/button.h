@@ -9,6 +9,7 @@
 #include "cglm/types.h"
 #include "helper_math.h"
 #include "object_bases.h"
+#include "objects/label.h"
 #include "objects/texture.h"
 
 // should this take in anything?
@@ -17,12 +18,16 @@ typedef void (*ButtonCallback)();
 typedef struct Button {
   OBJECT_FIELDS
 
+  // call this when clicked.
   ButtonCallback callback;
+
+  // subobjects
   Texture *texture;
+  Label *label;
 } Button;
 
-Button *button_build(AABB aabb, const char *text, ButtonCallback callback,
-                     TextureHandle h);
+Button *button_build(Font *font, AABB aabb, const char *text,
+                     ButtonCallback callback, TextureHandle h);
 void button_destroy(Button *b);
 
 void button_init(void *b);
