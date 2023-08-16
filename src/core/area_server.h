@@ -7,12 +7,17 @@
 #include <stdbool.h>
 
 typedef struct AreaEntry {
-  AreaFn generator; // a function to construct the area.
+  // each game area/level has its own arbitrary lifecycle methods.
+  AreaFn generator;
+  AreaUpdateFn updater;
+  AreaCleanFn cleaner;
 } AreaEntry;
 
 typedef struct AreaState {
+  AreaID curr;
 } AreaState;
 
 extern AreaState area_state;
 
 void area_switch(AreaID id);
+void area_update();

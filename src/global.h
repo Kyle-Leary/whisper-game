@@ -23,6 +23,8 @@ extern float delta_time;
 extern float u_time; // a sum of all the time passed, usually used for shader
                      // stuff like sin(u_time) * mag for waves.
 
+extern Font *simple_font;
+
 // basic movement.
 extern float rot_dx;
 extern float forward_dx;

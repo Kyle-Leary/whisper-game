@@ -5,6 +5,7 @@
 
 #include "../object.h"
 #include "../physics.h"
+#include "animation/animator.h"
 #include "backends/graphics_api.h"
 #include "cglm/types.h"
 #include "core/area_server.h"
@@ -13,6 +14,7 @@ typedef struct Character {
   PHYS_OBJECT_FIELDS
 
   float speed;
+  Animator animator;
   Model *model;
 } Character;
 

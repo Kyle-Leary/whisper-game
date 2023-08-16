@@ -2,6 +2,7 @@
 
 #include "../object.h"
 #include "../physics.h"
+#include "animation/animator.h"
 #include "backends/graphics_api.h"
 #include "cglm/affine-pre.h"
 #include "cglm/mat4.h"
@@ -43,6 +44,12 @@ Character *character_build(Model *model) {
 
     p->mass = 1.0F;
     p->linear_damping = 0.5F;
+  }
+
+  { // characters can animate their own models.
+    memset(&(p->animator), 0, sizeof(Animator));
+    p->animator.target = p->model;
+    anim_insert(&p->animator);
   }
 
   p->model = model;

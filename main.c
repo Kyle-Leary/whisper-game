@@ -35,6 +35,8 @@
 #include <string.h>
 #include <time.h>
 
+Font *simple_font = NULL;
+
 int main() {
   // call the lifecycle init and give them control before ANYTHING else.
   l_init();
@@ -47,6 +49,17 @@ int main() {
   glm_perspective(glm_rad(75.0f), WIN_W / WIN_H, 0.1f, 100.0f, m_projection);
   glm_mat4_identity(m_view);
   glm_mat4_identity(m_model);
+
+  { // setup fonts
+    // stride - the number of characters per row (or column) in the font.
+    // 16 x 9 font characters means each letter fits in a 16x16 px square, or on
+    // a 512 double-size texture, a 32x32px square.
+    simple_font = font_init(16, 16,
+                            textures[g_load_texture(TEXTURE_PATH(
+                                "ui_font.png"))]); // make sure the tex size
+                                                   // ends up as a power of two.
+    // 16 * 9 = 96 cells, which is the num of printable ascii characters.
+  }
 
   // api init
   i_init();
@@ -111,6 +124,8 @@ int main() {
     fps_timer = 0;
 
     u_time += delta_time;
+
+    area_update();
 
     i_update(); // clear the temporary input state
     l_update(); // potentially poll for events?

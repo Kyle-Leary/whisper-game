@@ -20,6 +20,8 @@ typedef struct {
 // perfectly centered in the middle of the screen.
 GraphicsRender *font_mesh_string(Font *font, const char *str, float x_char_size,
                                  float y_char_size);
+GraphicsRender *font_mesh_string_3d(Font *font, const char *str,
+                                    float x_char_size, float y_char_size);
 
 Font *font_init(unsigned char RowStride, unsigned char ColStride,
                 TextureHandle texture_handle);

@@ -99,31 +99,41 @@ static void tick_channel(Channel *c, Node *nodes, float a, float b) {
            target_value_type_sz * target_value_num_elms);
   } break;
   case IP_LINEAR: {
-    // LINEAR is also just step interpolation for now.
-    int step_index = -1;
-    for (int i = 0; i < c->sampler->num_frames; i++) {
-      if (c->sampler->input[i] > b) {
-        step_index = i;
+    int lower_index = -1;
+    int upper_index = -1;
+    for (int i = 0; i < c->sampler->num_frames - 1; i++) {
+      if (c->sampler->input[i] <= b && c->sampler->input[i + 1] >= b) {
+        lower_index = i;
+        upper_index = i + 1;
         break;
       }
     }
-    if (step_index == -1) // then default to the first index?
-      step_index = 0;
+    if (lower_index == -1) // Default to the first index
+      lower_index = upper_index = 0;
 
-    // get a ref to the beginning of the keyframe value data, and take that as
-    // the step value base ptr. we're going to update the property on the target
-    // with this value.
+    // Get pointers to the target and keyframe values
     int target_value_type_sz;
     int target_value_num_elms;
-    void *target_value_ptr = return_prop_base_ptr(
+    float *target_value_ptr = (float *)return_prop_base_ptr(
         nodes, &c->target, &target_value_type_sz, &target_value_num_elms);
-    void *keyframe_value =
-        &(c->sampler->output[(step_index * (target_value_num_elms))]);
+    float *keyframe_value_lower =
+        (float *)&(c->sampler->output[(lower_index * target_value_num_elms)]);
+    float *keyframe_value_upper =
+        (float *)&(c->sampler->output[(upper_index * target_value_num_elms)]);
 
-    // right now, we're copying the data into the pointer each frame, even in a
-    // STEP.
-    memcpy(target_value_ptr, keyframe_value,
-           target_value_type_sz * target_value_num_elms);
+    // Calculate the interpolation factor
+    float interp_factor = 0;
+    if (c->sampler->input[lower_index] != c->sampler->input[upper_index]) {
+      interp_factor =
+          (b - c->sampler->input[lower_index]) /
+          (c->sampler->input[upper_index] - c->sampler->input[lower_index]);
+    }
+
+    // Perform linear interpolation for each element
+    for (int i = 0; i < target_value_num_elms; i++) {
+      target_value_ptr[i] = (1.0f - interp_factor) * keyframe_value_lower[i] +
+                            interp_factor * keyframe_value_upper[i];
+    }
   } break;
   default: {
   } break;

@@ -31,6 +31,13 @@ void vao_model_config(void *data) {
   vao_basic_config(data);
   ModelVertexData *model = (ModelVertexData *)data;
 
+  for (int i = 0; i < 30; i++) {
+    int base_ptr = (i * 4);
+    printf("%d %d %d %d\n", model->joint[base_ptr + 0],
+           model->joint[base_ptr + 1], model->joint[base_ptr + 2],
+           model->joint[base_ptr + 3]);
+  }
+
   // ivec4 in glsl
   make_vbo(model->joint, model->v_count, sizeof(int) * 4);
   glVertexAttribIPointer(3, 4, GL_INT, sizeof(int) * 4, (void *)0);

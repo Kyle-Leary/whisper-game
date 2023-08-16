@@ -56,6 +56,8 @@ typedef enum PipelineConfiguration {
 
   PC_SKYBOX,
 
+  PC_TEXT_3D,
+
   PC_BLANK_GOURAUD, // does a blank gouraud shader over the ambient coloring.
   PC_PBR_GOURAUD,   // gouraud with PBR in the vs.
   PC_SOLID,         // renders a single color from the uniforms.

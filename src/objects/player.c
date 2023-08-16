@@ -63,7 +63,7 @@ Player *player_build() {
   p->colliders[0].data = col_data;
 
   // parse then mesh the glb file, then render it in the normal drawing loop.
-  p->model = gltf_to_model(gltf_parse(MODEL_PATH("suzanne.glb")));
+  p->model = gltf_to_model(gltf_parse(MODEL_PATH("wiggle.glb")));
 
   // just for now, link the first root node and assume that's the one with
   // influence over the player's position.
@@ -74,7 +74,7 @@ Player *player_build() {
   p->animator.target = p->model;
   anim_insert(&p->animator);
 
-  anim_play(&(p->animator), "bend", true);
+  anim_play(&(p->animator), "wiggle", true);
 
   p->forward_speed = 1.0F;
 

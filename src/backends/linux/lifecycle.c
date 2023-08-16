@@ -205,6 +205,12 @@ int l_init() {
       make_shader(SHADER_PATH("solid.vs"), SHADER_PATH("solid.fs"));
   INSERT(solid);
 
+  Shader *text_3d_program =
+      make_shader(SHADER_PATH("text_3d.vs"), SHADER_PATH("text_3d.fs"));
+  shader_set_1i(text_3d_program, "text_font_slot", FONT_TEX_SLOT);
+  shader_set_3f(text_3d_program, "text_base_color", 0.1, 0.5, 0.5);
+  INSERT(text_3d);
+
   Shader *skybox_program =
       make_shader(SHADER_PATH("skybox.vs"), SHADER_PATH("skybox.fs"));
   INSERT(skybox);
@@ -244,6 +250,7 @@ int l_init() {
     BIND_PROGRAMS(basic_program->id);
     BIND_PROGRAMS(solid_program->id);
     BIND_PROGRAMS(skybox_program->id);
+    BIND_PROGRAMS(text_3d_program->id);
 
     // only the model program is using the BONE_BLOCK uniform.
     BIND_PROGRAMS(model_program->id);

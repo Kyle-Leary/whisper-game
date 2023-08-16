@@ -29,8 +29,6 @@ static Button *talk_btn = NULL;
 
 Texture *mouse_cursor;
 
-static Font *simple_hud_font;
-
 static void attack_callback() { printf("attacking\n"); }
 
 static void run_callback() {
@@ -44,16 +42,6 @@ void hud_init() {
   run_texture_idx = g_load_texture(TEXTURE_PATH("run_btn.png"));
   talk_texture_idx = g_load_texture(TEXTURE_PATH("talk_btn.png"));
 
-  // stride - the number of characters per row (or column) in the font.
-  // 16 x 9 font characters means each letter fits in a 16x16 px square, or on a
-  // 512 double-size texture, a 32x32px square.
-  simple_hud_font =
-      font_init(16, 16,
-                textures[g_load_texture(TEXTURE_PATH(
-                    "ui_font.png"))]); // make sure the tex size
-                                       // ends up as a power of two.
-  // 16 * 9 = 96 cells, which is the num of printable ascii characters.
-
   // we'll define the boundaries and sizes of a simple monospace font, then just
   // use the currently bound texture for font drawing, and trust that it's the
   // proper font texture that maps to this handle.
@@ -66,8 +54,8 @@ void hud_init() {
         OT_HUD);
   }
 
-  object_add((Object *)label_build(simple_hud_font, (vec2){0.2, 0.15},
-                                   "WHISPER", (vec3){0, 1, 0}),
+  object_add((Object *)label_build(simple_font, (vec2){0.2, 0.15}, "WHISPER",
+                                   (vec3){0, 1, 0}),
              OT_HUD);
 
   { // setup the mouse cursor texture display.
@@ -80,13 +68,13 @@ void hud_init() {
 
   {
     talk_btn = (Button *)object_add(
-        (Object *)button_build(simple_hud_font, (AABB){0.2F, 0.0F, 0.1F, 0.1F},
+        (Object *)button_build(simple_font, (AABB){0.2F, 0.0F, 0.1F, 0.1F},
                                "talk", talk_callback,
                                textures[talk_texture_idx]),
         OT_HUD);
 
     run_btn = (Button *)object_add(
-        (Object *)button_build(simple_hud_font, (AABB){0.7F, 0.0F, 0.1F, 0.1F},
+        (Object *)button_build(simple_font, (AABB){0.7F, 0.0F, 0.1F, 0.1F},
                                "run", run_callback, textures[run_texture_idx]),
         OT_HUD);
   }

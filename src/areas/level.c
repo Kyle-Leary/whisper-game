@@ -1,8 +1,13 @@
+#include "animation/animator.h"
 #include "areas.h"
 #include "core/area_server.h"
 #include "event_types.h"
+#include "global.h"
+#include "meshing/font.h"
 #include "meshing/gltf_mesher.h"
+#include "object.h"
 #include "object_bases.h"
+#include "objects/render.h"
 #include "objtypedef.h"
 #include "path.h"
 #include <stdint.h>
@@ -13,11 +18,17 @@
 // can also handle light logic in the area object definitions.
 static uint16_t player_id;
 
+static GraphicsRender *text_3d = NULL;
+
 void handle_area_enter(void *p, CollisionEvent *e) {
   if (e->magnitude > 0.01F && e->id == player_id) {
     // the player is exerting some non-zero force onto the entity.
     area_switch(AREA_ANOTHER);
   }
+}
+
+void setup_text3d_render() {
+  g_use_texture(simple_font->tex_handle, FONT_TEX_SLOT);
 }
 
 // setup all the local objects in the scene.
@@ -33,12 +44,14 @@ void areas_level() {
   Camera *cam = (Camera *)object_add(
       (Object *)camera_build((vec3){0}, &player->lerp_position), OT_AREA);
 
+  Model *chr_model = gltf_to_model(gltf_parse(MODEL_PATH("wiggle.glb")));
+
   Character *chr =
-      (Character *)object_add((Object *)character_build(gltf_to_model(
-                                  gltf_parse(MODEL_PATH("suzanne.glb")))),
-                              OT_AREA);
+      (Character *)object_add((Object *)character_build(chr_model), OT_AREA);
   chr->position[0] = -4;
   chr->position[1] = -1;
+
+  // anim_play(&(chr->animator), "wiggle", true);
 
   {
     Collider c;
@@ -86,4 +99,9 @@ void areas_level() {
       w_ca_add_PointLight(&g_light_data.point_light_ca, &pl);
     }
   }
+
+  text_3d = font_mesh_string_3d(simple_font, "hello 3d space", 0.5, 0.5);
+  object_add((Object *)render_build(text_3d, setup_text3d_render), OT_AREA);
 }
+
+void areas_level_update() { glm_rotate(text_3d->model, 0.01, (vec3){0, 1, 0}); }

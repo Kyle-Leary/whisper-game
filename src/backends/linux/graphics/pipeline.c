@@ -92,6 +92,10 @@ void g_use_pipeline(PipelineConfiguration config) {
     // we can set a "default" color here.
     shader_set_3f(ptr, "u_render_color", 0, 1, 0);
   } break;
+  case PC_TEXT_3D: {
+    Shader *ptr = GETSH("text_3d");
+    shader_use(ptr);
+  } break;
   case PC_SKYBOX: {
     Shader *ptr = GETSH("skybox");
     shader_set_1i(ptr, "u_cube_tex", 0);
