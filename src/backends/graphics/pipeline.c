@@ -1,8 +1,8 @@
 #include "../ogl_includes.h"
+#include "backends/graphics/shader.h"
 #include "backends/graphics_api.h"
-#include "backends/linux/graphics/shader.h"
 #include "global.h"
-#include "linux_graphics_globals.h"
+#include "graphics_globals.h"
 #include "util.h"
 #include "whisper/hashmap.h"
 #include <GL/gl.h>

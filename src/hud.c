@@ -55,7 +55,7 @@ void hud_init() {
   }
 
   object_add((Object *)label_build(simple_font, (vec2){0.2, 0.15}, "WHISPER",
-                                   (vec3){0, 1, 0}),
+                                   (vec3){0.1, 0, 0.1}),
              OT_HUD);
 
   { // setup the mouse cursor texture display.

@@ -39,6 +39,8 @@ Label *label_build(Font *font, vec2 position, const char *text, vec3 color) {
   // generate the raw buffer, and use this to cache the text.
   p->render = font_mesh_string(font, text, 0.03, 0.05);
 
+  memcpy(p->color, color, sizeof(float) * 3);
+
   p->font = font; // the font also contains the font texture we'll use for
                   // rendering later. additionally, if we want to change the
                   // GraphicsRender if the text changes, we can do that with the

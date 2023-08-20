@@ -1,5 +1,9 @@
 #include "gltf_mesher.h"
 #include "backends/graphics_api.h"
+#include "cglm/affine.h"
+#include "cglm/mat4.h"
+#include "cglm/types.h"
+#include "cglm/vec3.h"
 #include "helper_math.h"
 #include "parsers/gltf/gltf_parse.h"
 #include "printers.h"
@@ -12,29 +16,23 @@
 #include <string.h>
 #include <sys/types.h>
 
-#define VERT_BUF_SZ KB(10)
+#define VERT_BUF_SZ KB(30)
 
 // pass in alloced arrays, and this will modify based on the GLTFFile*'s
-// internal state.
-static WJSONValue *parse_basic_attrs(GLTFFile *file, float *positions,
-                                     float *normals, float *uvs,
-                                     unsigned int *indices, int *n_verts,
-                                     int *n_idx) {
+// internal state. dump the basic attrs on a specific prim in the glb JSON
+// structure.
+static WJSONValue *parse_basic_attrs(GLTFFile *file, WJSONValue *v_prim,
+                                     float *positions, float *normals,
+                                     float *uvs, unsigned int *indices,
+                                     int *n_verts, int *n_idx) {
   unsigned short internal_indices[VERT_BUF_SZ]; // will be transformed into the
                                                 // int* index buffer.
-
-  // grab the first mesh.
-  WJSONValue *mesh = wjson_index(file->meshes, 0);
-  WJSONValue *prims = wjson_get(mesh, "primitives");
-
-  // grab the first prim from the first mesh.
-  WJSONValue *prim = wjson_index(prims, 0);
 
   // the caller might need to keep parsing attributes, so pass this out of the
   // function with a pointer.
   WJSONValue *attributes =
-      wjson_get(prim, "attributes"); // all the vertex attributes of
-                                     // the vertices in this primitive.
+      wjson_get(v_prim, "attributes"); // all the vertex attributes of
+                                       // the vertices in this primitive.
 
   int pos_accessor_idx = (int)wjson_number(wjson_get(attributes, "POSITION"));
   gltf_dump_float_accessor(file, pos_accessor_idx, positions, n_verts);
@@ -45,7 +43,7 @@ static WJSONValue *parse_basic_attrs(GLTFFile *file, float *positions,
   int uv_accessor_idx = (int)wjson_number(wjson_get(attributes, "TEXCOORD_0"));
   gltf_dump_float_accessor(file, uv_accessor_idx, uvs, n_verts);
 
-  int idx_accessor_idx = (int)wjson_number(wjson_get(prim, "indices"));
+  int idx_accessor_idx = (int)wjson_number(wjson_get(v_prim, "indices"));
   gltf_dump_ushort_accessor(file, idx_accessor_idx, internal_indices, n_idx);
 
   for (int i = 0; i < *n_idx; i++) {
@@ -66,8 +64,15 @@ Model *gltf_to_model(GLTFFile *file) {
   // then, the model-specific data.
   unsigned int indices[VERT_BUF_SZ];
 
-  WJSONValue *attributes = parse_basic_attrs(file, positions, normals, uvs,
-                                             indices, &n_verts, &n_idx);
+  // grab the first mesh.
+  WJSONValue *v_mesh = wjson_index(file->meshes, 0);
+  WJSONValue *v_prims = wjson_get(v_mesh, "primitives");
+
+  // grab the first prim from the first mesh.
+  WJSONValue *v_prim = wjson_index(v_prims, 0);
+
+  WJSONValue *attributes = parse_basic_attrs(file, v_prim, positions, normals,
+                                             uvs, indices, &n_verts, &n_idx);
 
   { // weights
     WJSONValue *v_wai = wjson_get(attributes, "WEIGHTS_0");
@@ -161,10 +166,14 @@ Model *gltf_to_model(GLTFFile *file) {
     gltf_animations_parse(file, model);
     gltf_materials_parse(file, model);
 
-    model->render = gr;
+    model->num_renders = 1;
+    model->render = malloc(sizeof(GraphicsRender *) * model->num_renders);
+    model->render[0] = gr;
   }
 
   free(file);
+
+  glm_mat4_identity(model->transform);
 
   return model;
 }
@@ -179,8 +188,15 @@ GraphicsRender *gltf_to_render_simple(GLTFFile *file) {
   unsigned int indices[VERT_BUF_SZ];
   float positions[VERT_BUF_SZ], normals[VERT_BUF_SZ], uvs[VERT_BUF_SZ];
 
-  WJSONValue *attributes = parse_basic_attrs(file, positions, normals, uvs,
-                                             indices, &n_verts, &n_idx);
+  // grab the first mesh.
+  WJSONValue *v_mesh = wjson_index(file->meshes, 0);
+  WJSONValue *v_prims = wjson_get(v_mesh, "primitives");
+
+  // grab the first prim from the first mesh.
+  WJSONValue *v_prim = wjson_index(v_prims, 0);
+
+  WJSONValue *attributes = parse_basic_attrs(file, v_prim, positions, normals,
+                                             uvs, indices, &n_verts, &n_idx);
 
   GraphicsRender *gr =
       g_new_render((VertexData *)&(BasicVertexData){RC_BASIC, n_verts,

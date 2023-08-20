@@ -2,7 +2,7 @@
 
 // share the opengl includes file with the rest of the opengl/glfw linux
 // backend. we're using the same backend stuff for input AND graphics.
-#include "../graphics/linux_graphics_globals.h"
+#include "../graphics/graphics_globals.h"
 #include "../ogl_includes.h"
 
 #include "global.h"

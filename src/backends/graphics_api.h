@@ -331,10 +331,13 @@ typedef struct Model {
   ModelMaterial *materials;
   int num_materials;
 
-  // a render contains just the constant vertex buffers bound to the vao, it's
-  // nothing specific to rendering.
-  GraphicsRender *render;
+  // a model can render in multiple different segments with different shaders.
+  GraphicsRender **render;
+  int num_renders;
 
+  // a general purpose transform applied to all the child transforms of the
+  // primitives rendered by this Model.
+  mat4 transform;
 } Model;
 
 void g_init();

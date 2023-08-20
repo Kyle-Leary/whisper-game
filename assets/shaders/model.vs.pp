@@ -109,7 +109,8 @@ void main() {
 	    mat4 inverse_bind_matrix = inverse_binds[bone_index]; // inverse bind matrix for this bone
 
 	    mat4 transformation = bone_transform * inverse_bind_matrix;
-	    skin += weight * transformation;
+	    // linearly weight the full transformation in object space, then add that into the total skin modifier on this vertex.
+	    skin += (transformation * weight);
 	}
 
 	gl_Position = skin * vec4(aPos, 1.0); // Apply the combined skinning transformation

@@ -1,10 +1,10 @@
+#include "backends/graphics/shader.h"
 #include "backends/graphics_api.h"
-#include "backends/linux/graphics/shader.h"
 #include "cglm/affine.h"
 #include "cglm/mat4.h"
 #include "cglm/quat.h"
 #include "global.h"
-#include "linux_graphics_globals.h"
+#include "graphics_globals.h"
 #include "main.h"
 #include "printers.h"
 #include "util.h"
@@ -239,8 +239,18 @@ void g_draw_model(Model *m) {
 
   {} // TODO: materials
 
-  // then, draw the render.
-  g_draw_render(m->render);
+  mat4 temp_modelmat;
+
+  print_mat4(m->transform, 0);
+
+  for (int i = 0; i < m->num_renders; i++) {
+    GraphicsRender *curr_render = m->render[i];
+    glm_mat4_copy(curr_render->model, temp_modelmat);
+    glm_mat4_mul(curr_render->model, m->transform, curr_render->model);
+    g_draw_render(curr_render);
+    // restore the state of the old matrix before the transformation.
+    glm_mat4_copy(temp_modelmat, curr_render->model);
+  }
 }
 
 // maybe setup and use shaders/uniforms here instead of the lifecycle? it really

@@ -101,19 +101,40 @@ static void physics_debug_shape_generate(PhysicsObject *po) {
     GraphicsRender *collider_render = shape_renders[hashed];
 
     if (collider_render) {
-      // maintain the render, drawing it happens in another function called
-      // directly by the drawing loop in main().
-      { // position the render
-        glm_mat4_identity(collider_render->model);
-        glm_translate(collider_render->model, po->position);
+      { // maintain the debug render based on updated data. each and every
+        // useful debug draw requires
+        // frequent updates.
+
+        { // position the render
+          glm_mat4_identity(collider_render->model);
+          glm_translate(collider_render->model, po->position);
+        }
+
+        switch (base_collider->type) {
+        case CL_FLOOR: {
+          // floor stretches infinitely far.
+          glm_scale(collider_render->model, (vec3){50, 50, 50});
+        } break;
+        case CL_SPHERE: {
+        } break;
+        case CL_PILLAR: {
+        } break;
+        default: {
+        } break;
+        }
       }
+    } else {
+      // it's NULL and we need to make one.
+      GraphicsRender *gr = NULL;
 
       switch (base_collider->type) {
       case CL_FLOOR: {
-        // floor stretches infinitely far.
-        glm_scale(collider_render->model, (vec3){50, 50, 50});
+        FloorColliderData *data = (FloorColliderData *)base_collider->data;
+        gr = glprim_floor_plane(po->position);
       } break;
       case CL_SPHERE: {
+        SphereColliderData *data = (SphereColliderData *)base_collider->data;
+        gr = glprim_sphere(po->position, data->radius, 8);
       } break;
       case CL_PILLAR: {
       } break;
@@ -121,31 +142,11 @@ static void physics_debug_shape_generate(PhysicsObject *po) {
       } break;
       }
 
-      continue;
-    }
-    // else, create the render THEN insert it into the array.
-
-    GraphicsRender *gr = NULL;
-
-    switch (base_collider->type) {
-    case CL_FLOOR: {
-      FloorColliderData *data = (FloorColliderData *)base_collider->data;
-      gr = glprim_floor_plane(po->position);
-    } break;
-    case CL_SPHERE: {
-      SphereColliderData *data = (SphereColliderData *)base_collider->data;
-      gr = glprim_sphere(po->position, data->radius, 8);
-    } break;
-    case CL_PILLAR: {
-    } break;
-    default: {
-    } break;
-    }
-
-    if (gr) {
-      // each physics debug shape renders in wireframe by default.
-      gr->pc = PC_WIREFRAME;
-      shape_renders[hashed] = gr;
+      if (gr) {
+        // each physics debug shape renders in wireframe by default.
+        gr->pc = PC_WIREFRAME;
+        shape_renders[hashed] = gr;
+      }
     }
   }
 }

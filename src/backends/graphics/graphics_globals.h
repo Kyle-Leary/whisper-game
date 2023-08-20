@@ -1,5 +1,5 @@
 #include "../ogl_includes.h"
-#include "backends/linux/graphics/shader.h"
+#include "backends/graphics/shader.h"
 #include "whisper/hashmap.h"
 
 // also share state between the backend globally here.

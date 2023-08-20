@@ -7,9 +7,11 @@
 #include "backends/input_api.h"
 #include "cglm/affine-pre.h"
 #include "cglm/affine.h"
+#include "cglm/affine2d.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
+#include "cglm/util.h"
 #include "cglm/vec2.h"
 #include "cglm/vec3.h"
 #include "core/area_defines.h"
@@ -74,7 +76,7 @@ Player *player_build() {
   p->animator.target = p->model;
   anim_insert(&p->animator);
 
-  anim_play(&(p->animator), "wiggle", true);
+  // anim_play(&(p->animator), "wiggle", true);
 
   p->forward_speed = 1.0F;
 
@@ -170,13 +172,13 @@ void player_draw(void *p) {
   player->ghost_step[1] = player->lerp_position[1]; // make the lookahead flat,
                                                     // or else it looks weird.
 
-  glm_mat4_identity(player->model->render->model);
-  glm_translate(player->model->render->model, player->lerp_position);
-  glm_translate(player->model->render->model,
-                player->animation_root->translation);
+  glm_mat4_identity(player->model->transform);
+  glm_translate(player->model->transform, player->lerp_position);
+  glm_translate(player->model->transform, player->animation_root->translation);
   glm_lookat(player->lerp_position, player->ghost_step, (vec3){0, 1, 0},
-             player->model->render->model);
-  glm_mat4_inv(player->model->render->model, player->model->render->model);
+             player->model->transform);
+  glm_mat4_inv(player->model->transform, player->model->transform);
+  glm_rotate(player->model->transform, glm_rad(180), (vec3){0, 1, 0});
 
   { // draw player model with proper mats
     // store the bones? maybe have the GraphicsRender in the associated model?

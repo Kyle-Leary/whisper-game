@@ -64,8 +64,8 @@ void character_update(void *p) {}
 void character_draw(void *p) {
   CAST;
 
-  glm_mat4_identity(character->model->render->model);
-  glm_translate(character->model->render->model, character->lerp_position);
+  glm_mat4_identity(character->model->transform);
+  glm_translate(character->model->transform, character->lerp_position);
 
   g_draw_model(character->model);
 }

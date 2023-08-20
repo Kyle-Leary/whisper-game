@@ -1,6 +1,6 @@
-#include "backends/linux/graphics/shader.h"
+#include "backends/graphics/shader.h"
 #include "cglm/types.h"
-#include "linux_graphics_globals.h"
+#include "graphics_globals.h"
 
 void g_set_font_color(vec3 color) {
   Shader *text_shader = w_hm_get(shader_map, "hud_text").as_ptr;

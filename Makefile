@@ -1,7 +1,15 @@
 # Variables
 CC := gcc
 
-include config.mk
+CFLAGS += -Wall
+
+INCLUDES += -I. -Isrc -Ideps/wjson/api -Ideps -Ideps/stb -Ideps/libwhisper/api
+
+# ignore the whole backend folder, and only add in the backend subfolder.
+ALL_BACKEND := src/backends
+
+# The final target (change this to your desired target name)
+TARGET:=whisper
 
 CFLAGS += 
 # modify the include variables AFTER config.mk.
@@ -18,10 +26,10 @@ WJSON := deps/wjson/libwjson.a
 LIBWHISPER := deps/libwhisper/libwhisper.a
 GLPP := deps/glpp/glpp
 
-SRCS := $(shell find $(SRC_DIR) -type f -name "*.c" | grep -v "$(ALL_BACKEND)") 
-SRCS += $(shell find $(ALL_BACKEND)/$(BACKEND_DIR) -type f -name "*.c")
-# then, include all the general backend function implementations.
-SRCS += $(shell find $(ALL_BACKEND)/general -type f -name "*.c")
+# Get a list of all .c files
+SRCS := $(shell find $(SRC_DIR) -name '*.c' -type f)
+# Filter out .test.c files from the list
+SRCS := $(filter-out %.test.c, $(SRCS))
 
 # Object files (corresponding .o files in the obj/ directory)
 OBJS := $(patsubst %.c,%.o,$(SRCS))
@@ -30,6 +38,12 @@ SYMBOLS += $(WJSON)
 SYMBOLS += $(LIBWHISPER)
 
 REQUIREMENTS := $(SYMBOLS)
+
+TEST_SRCS := $(shell find $(SRC_DIR) -name '*.test.c' -type f)
+TEST_OBJS := $(patsubst %.test.c,%.test.o,$(TEST_SRCS))
+TEST_SYMBOLS := $(TEST_OBJS)
+# it has all the symbols as the normal build, just some extras for the test compilation units.
+TEST_SYMBOLS += $(SYMBOLS)
 
 SHADER_PATH := assets/shaders
 SHADERS := $(shell find $(SHADER_PATH) -type f)
@@ -41,6 +55,9 @@ SHADERS := $(filter-out %.glinc,$(SHADERS))
 
 REQUIREMENTS += $(SHADERS)
 REQUIREMENTS += $(GLPP)
+
+TEST_REQUIREMENTS += $(TEST_SYMBOLS)
+TEST_REQUIREMENTS += $(REQUIREMENTS)
 
 $(info OBJS is $(OBJS))
 
@@ -58,16 +75,21 @@ $(LIBWHISPER):
 $(GLPP):
 	make -C deps/glpp
 
-# compile different definitions of main into the binary depending on what we're building.
+# for both, just compile all the symbols into TARGET with CC
 $(TARGET): $(REQUIREMENTS) main.o 
 	$(CC) -o $@ $(SYMBOLS) main.o $(LIBS)
 
-$(TEST_TARGET): $(REQUIREMENTS) test.o
-	$(CC) -o $@ $(SYMBOLS) test.o $(LIBS)
+$(TEST_TARGET): $(REQUIREMENTS) $(TEST_REQUIREMENTS) testmain.o
+	$(CC) -o $@ $(TEST_SYMBOLS) testmain.o $(LIBS)
 
 # Pattern rule to compile .c files into .o files
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCLUDES) -g
+
+# the entire thing is handled by this generator script, just compile this and it should work
+# as the test main. it calls all the testing void functions.
+testmain.c:
+	./extract_test_functions.sh > $@
 
 # note: right now, only vs and fs files are being directly glpp'd. this means that
 # the common includes themselves may not, so watch out for that.
@@ -81,4 +103,5 @@ $(TEST_TARGET): $(REQUIREMENTS) test.o
 clean:
 	rm -f $(shell find . -name "*.o") $(TARGET) $(TEST_TARGET) $(WJSON) $(LIBWHISPER) $(GLPP) $(SHADERS)
 
-.PHONY: clean
+# always rebuild test.c
+.PHONY: clean test.c

@@ -1,7 +1,7 @@
 #include "vao.h"
 #include "../ogl_includes.h"
+#include "backends/graphics/render_structs.h"
 #include "backends/graphics_api.h"
-#include "backends/linux/graphics/render_structs.h"
 #include "global.h"
 
 // we will assume that the caller has already bound their generated vao, and

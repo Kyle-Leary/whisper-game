@@ -40,7 +40,7 @@ Button *button_build(Font *font, AABB aabb, const char *text,
   text_center[0] = aabb.xy[0] + (aabb.wh[0] / 2);
   text_center[1] = aabb.xy[1] + (aabb.wh[1] / 2);
 
-  p->label = label_build(font, text_center, text, (vec3){0.5, 0.5, 0.5});
+  p->label = label_build(font, text_center, text, (vec3){0.1, 0.1, 0.5});
 
   // just pass NULL if you're not using a callback.
   p->callback = callback;

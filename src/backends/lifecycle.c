@@ -2,10 +2,10 @@
 #include "backends/input_api.h"
 #include "backends/lifecycle_api.h"
 
-#include "backends/linux/graphics/shader.h"
+#include "backends/graphics/shader.h"
 #include "cglm/mat4.h"
 #include "global.h"
-#include "graphics/linux_graphics_globals.h"
+#include "graphics/graphics_globals.h"
 #include "main.h"
 #include "ogl_includes.h"
 #include "path.h"

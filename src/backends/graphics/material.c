@@ -1,7 +1,7 @@
+#include "backends/graphics/shader.h"
 #include "backends/graphics_api.h"
-#include "backends/linux/graphics/shader.h"
-#include "backends/linux/ogl_includes.h"
-#include "linux_graphics_globals.h"
+#include "backends/ogl_includes.h"
+#include "graphics_globals.h"
 #include <GL/gl.h>
 #include <stdio.h>
 
