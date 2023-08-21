@@ -76,15 +76,3 @@ void button_clean(void *p) {
   fn_lut[OBJ_TEXTURE].clean(button->texture);
   free(button);
 }
-
-void button_draw(void *p) {
-  CAST;
-
-  { // draw the texture background of the button.
-    texture_draw(button->texture);
-  }
-
-  { // draw the text itself.
-    label_draw(button->label);
-  }
-}

@@ -7,24 +7,26 @@
 #include "meshing/gltf_mesher.h"
 #include "object.h"
 #include "object_bases.h"
-#include "objects/render.h"
 #include "objtypedef.h"
 #include "path.h"
 #include <stdint.h>
 #include <stdio.h>
 
 #include "backends/graphics_api.h"
+#include "physics.h"
+#include "printers.h"
 
 // can also handle light logic in the area object definitions.
 static uint16_t player_id;
 
 static GraphicsRender *text_3d = NULL;
+static Player *our_player = NULL;
 
 void handle_area_enter(void *p, CollisionEvent *e) {
-  if (e->magnitude > 0.01F && e->id == player_id) {
-    // the player is exerting some non-zero force onto the entity.
-    area_switch(AREA_ANOTHER);
-  }
+  // if (e->magnitude > 0.01F && e->id == player_id) {
+  //   // the player is exerting some non-zero force onto the entity.
+  //   area_switch(AREA_ANOTHER);
+  // }
 }
 
 void setup_text3d_render() {
@@ -33,28 +35,28 @@ void setup_text3d_render() {
 
 // setup all the local objects in the scene.
 void areas_level() {
-  Player *player = (Player *)object_add((Object *)player_build(), OT_AREA);
-  player->position[0] = 5;
-  player->position[1] = -1;
+  our_player = (Player *)object_add((Object *)player_build(), OT_AREA);
+  our_player->phys->position[0] = 5;
+  our_player->phys->position[1] = -1;
 
-  player_id = player->id;
-
-  // note that the camera is directly LINKED to the player's lerp_position from
-  // its physics representation.
+  // note that the camera is directly LINKED to the our_player's lerp_position
+  // from its physics representation.
   Camera *cam = (Camera *)object_add(
-      (Object *)camera_build((vec3){0}, &player->lerp_position), OT_AREA);
+      (Object *)camera_build((vec3){0}, &our_player->phys->lerp_position),
+      OT_AREA);
 
   Model *chr_model = gltf_to_model(gltf_parse(MODEL_PATH("wiggle.glb")));
 
   Character *chr =
       (Character *)object_add((Object *)character_build(chr_model), OT_AREA);
-  chr->position[0] = -4;
-  chr->position[1] = -1;
+  chr->phys->position[0] = -4;
+  chr->phys->position[1] = -1;
 
   // anim_play(&(chr->animator), "wiggle", true);
 
   {
     Collider c;
+    make_colliders(1, &c);
     c.type = CL_SPHERE;
     SphereColliderData *col_data =
         (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
@@ -71,9 +73,9 @@ void areas_level() {
   object_add((Object *)cube_build((vec3){-9, -1, -9}), OT_AREA);
   object_add((Object *)cube_build((vec3){7, -1, -9}), OT_AREA);
 
-  object_add((Object *)sphere_build((vec3){2, -1, -2}, 1, 10), OT_AREA);
+  // object_add((Object *)sphere_build((vec3){2, -1, -2}, 1, 10), OT_AREA);
 
-  object_add((Object *)floor_build((vec3){0, -1, 0}, 50), OT_AREA);
+  object_add((Object *)floor_build((vec3){0, -2, 0}, 50), OT_AREA);
 
   {   // setup global lights
     { // setup ambient light
@@ -101,7 +103,6 @@ void areas_level() {
   }
 
   text_3d = font_mesh_string_3d(simple_font, "hello 3d space", 0.5, 0.5);
-  object_add((Object *)render_build(text_3d, setup_text3d_render), OT_AREA);
 }
 
 void areas_level_update() { glm_rotate(text_3d->model, 0.01, (vec3){0, 1, 0}); }

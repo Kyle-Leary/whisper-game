@@ -11,7 +11,9 @@
 #include "core/area_server.h"
 
 typedef struct Character {
-  PHYS_OBJECT_FIELDS
+  OBJECT_FIELDS
+
+  PhysComp *phys;
 
   float speed;
   Animator animator;

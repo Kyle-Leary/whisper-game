@@ -4,6 +4,7 @@
 #include "printers.h"
 #include "properties.h"
 #include "util.h"
+#include "whisper/array.h"
 #include "whisper/hashmap.h"
 
 #include <math.h>
@@ -11,7 +12,20 @@
 #include <stdint.h>
 #include <string.h>
 
-Animator *animators[NUM_ANIMATORS] = {0};
+WArray animators = {0};
+
+Animator *make_animator(Model *target) {
+  Animator a;
+
+  // we're using zero alloc as a sentinel on each of the anim entries.
+  memset(a.anims, 0, sizeof(a.anims));
+  // Animator animates a specific Model on each animation tick. maybe make this
+  // more general, somehow?
+  a.target = target;
+
+  // again, just like the components return a global index into the array.
+  return w_array_get(&animators, w_array_insert(&animators, &a));
+}
 
 static uint32_t murmur_hash3_32(const void *key, int len) {
   const uint8_t *data = (const uint8_t *)key;
@@ -178,11 +192,11 @@ static void animator_update(Animator *animator) {
   }
 }
 
-void anim_init() {}
+void anim_init() { w_make_array(&animators, sizeof(Animator), NUM_ANIMATORS); }
 
 void anim_update() {
-  for (int i = 0; i < NUM_ANIMATORS; i++) {
-    Animator *a = animators[i];
+  for (int i = 0; i < animators.upper_bound; i++) {
+    Animator *a = w_array_get(&animators, i);
     if (a) {
       animator_update(a);
     }
@@ -190,15 +204,6 @@ void anim_update() {
 }
 
 void anim_clean() {}
-
-void anim_insert(Animator *animator) {
-  for (int i = 0; i < NUM_ANIMATORS; i++) {
-    Animator *a = animators[i];
-    if (!a) {
-      animators[i] = animator;
-    }
-  }
-}
 
 void anim_play(Animator *animator, const char *anim_name, bool should_loop) {
   AnimEntry ae;

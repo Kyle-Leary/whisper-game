@@ -1,5 +1,8 @@
 #pragma once
 
+// also define general buffer sizes for typical use-cases.
+#define FILEPATH_BUF_SZ 256
+
 // Kilobytes
 #define KB(num) (1024 * (num))
 

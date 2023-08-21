@@ -9,7 +9,9 @@
 #include "cglm/types.h"
 
 typedef struct Detector {
-  PHYS_OBJECT_FIELDS
+  OBJECT_FIELDS
+
+  PhysComp *phys;
 
   float speed;
   // pass this an event handler to be called.

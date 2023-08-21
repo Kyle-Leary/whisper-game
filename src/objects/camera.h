@@ -7,9 +7,12 @@
 #include "../physics.h"
 #include "backends/graphics_api.h"
 #include "cglm/types.h"
+#include "object_bases.h"
 
 typedef struct Camera {
-  PHYS_OBJECT_FIELDS
+  OBJECT_FIELDS
+
+  PhysComp *phys;
 
   vec3 *target; // holds a pointer to a position. link another entity's position
                 // with this one through a pointer, and trust that the entity

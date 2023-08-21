@@ -1,16 +1,18 @@
 #include "cube.h"
 
-#include "cglm/types.h"
-#include "cglm/vec3.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
 #include "cglm/mat4.h"
+#include "cglm/types.h"
+#include "cglm/vec3.h"
 #include "global.h"
 #include "glprim.h"
 
 #include "helper_math.h"
 #include "input_help.h"
+#include "physics/collider_types.h"
+#include "render.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -21,13 +23,18 @@
 
 Cube *cube_build(vec3 position) {
   Cube *p = (Cube *)malloc(sizeof(Cube));
-  memcpy(p->position, position, sizeof(float) * 3);
-  p->colliders =
-      (Collider *)malloc(sizeof(Collider) * 1); // space for one collider.
-  p->colliders[0].type = CL_PILLAR;
+
   p->type = OBJ_CUBE;
-  p->num_colliders = 0;
-  p->render = glprim_cube(p->position);
+
+  {
+    Collider *colliders = NULL;
+    p->phys = make_physcomp(0.1, 1.0, 0.5, false, false, colliders, 1, position,
+                            true);
+  }
+
+  p->render =
+      make_rendercomp_from_graphicsrender(glprim_cube(p->phys->position));
+
   return p;
 }
 
@@ -35,15 +42,10 @@ void cube_init(void *p) {}
 
 void cube_update(void *p) {}
 
-void cube_draw(void *p) {
-  CAST;
-  g_draw_render(cube->render);
-}
-
 void cube_handle_collision(void *p, CollisionEvent *e) {
   Cube *cube = (Cube *)p;
   glm_vec3_scale(e->normalized_force, e->magnitude, e->normalized_force);
-  glm_vec3_add(cube->position, e->normalized_force, cube->position);
+  glm_vec3_add(cube->phys->position, e->normalized_force, cube->phys->position);
 }
 
 void cube_clean(void *p) {

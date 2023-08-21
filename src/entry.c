@@ -1,4 +1,3 @@
-#include "main.h"
 #include "animation/animator.h"
 #include "areas/areas.h"
 #include "backends/audio_api.h"
@@ -18,15 +17,19 @@
 #include "glprim.h"
 #include "helper_math.h"
 #include "hud.h"
+#include "main.h"
 #include "meshing/font.h"
 #include "meshing/gltf_mesher.h"
 #include "object.h"
+#include "objects/character.h"
 #include "objects/player.h"
 #include "path.h"
 #include "physics.h"
 #include "physics/collider_types.h"
 #include "printers.h"
+#include "render.h"
 #include "size.h"
+#include "timescale.h"
 #include "util.h"
 #include <malloc.h>
 #include <stdbool.h>
@@ -39,7 +42,7 @@
 
 Font *simple_font = NULL;
 
-int entry_point(int argc, char** argv) {
+int entry_point(int argc, char **argv) {
   // call the lifecycle init and give them control before ANYTHING else.
   l_init();
 
@@ -73,10 +76,13 @@ int entry_point(int argc, char** argv) {
   physics_init();
   object_init();
   anim_init();
+  render_init();
 
   area_switch(AREA_LEVEL);
 
   hud_init();
+
+  timescale_init();
 
   start_time = clock();
 
@@ -119,7 +125,7 @@ int entry_point(int argc, char** argv) {
     fps_timer += (currentTime - last_time);
     last_time = currentTime;
 
-    if (fps_timer < FRAME_TIME) {
+    if (fps_timer < frame_time) {
       continue;
     }
 
@@ -134,10 +140,12 @@ int entry_point(int argc, char** argv) {
     a_update();
 
     // tick
-    physics_update();
     battle_update();
+    physics_update();
     object_update();
     anim_update();
+    render_update();
+    timescale_update();
 
     {
       if (i_state.act_just_pressed[ACT_TOGGLE_DEBUG_DRAW]) {
@@ -162,8 +170,7 @@ int entry_point(int argc, char** argv) {
       }
 
       g_use_texture(nepeta, 0);
-      object_draw(); // handle all the individual draw routines for all the
-                     // objects in the world.
+      render_draw();
     }
 
     l_end_draw();

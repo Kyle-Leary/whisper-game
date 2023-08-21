@@ -18,6 +18,12 @@ static void leave_stage(PipelineConfiguration config) {
   case PC_HUD: {
     glEnable(GL_DEPTH_TEST);
   } break;
+  case PC_HUD_TEXT: {
+    glEnable(GL_DEPTH_TEST);
+  } break;
+  case PC_HUD_TEXT_WAVY: {
+    glEnable(GL_DEPTH_TEST);
+  } break;
   case PC_WIREFRAME: {
     // re-enable the FILL mode, don't do wireframe.
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -59,9 +65,8 @@ void g_use_pipeline(PipelineConfiguration config) {
     Shader *sh = w_hm_get(shader_map, "hud").as_ptr;
     shader_use(sh);
   } break;
-  case PC_HUD_TEXT: {         // prepare for hud drawing.
-    glDisable(GL_DEPTH_TEST); // dont embed and overlap the ui with other
-                              // scene stuff in the 3d shader.
+  case PC_HUD_TEXT: { // prepare for hud drawing.
+    glDisable(GL_DEPTH_TEST);
     Shader *sh = w_hm_get(shader_map, "hud_text").as_ptr;
     shader_use(sh);
   } break;

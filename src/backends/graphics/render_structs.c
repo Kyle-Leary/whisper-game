@@ -241,8 +241,6 @@ void g_draw_model(Model *m) {
 
   mat4 temp_modelmat;
 
-  print_mat4(m->transform, 0);
-
   for (int i = 0; i < m->num_renders; i++) {
     GraphicsRender *curr_render = m->render[i];
     glm_mat4_copy(curr_render->model, temp_modelmat);

@@ -33,17 +33,6 @@ Object *object_add(Object *o, ObjectTag tag) {
       o->id = i;
       fn_lut[o->type].init((void *)o);
 
-#ifdef DEBUG
-      // then, launch some debug checks on objects for common segfault spots.
-      if (IS_PHYS_OBJECT(o->type)) {
-        PhysicsObject *po = (PhysicsObject *)o;
-        if (po->num_colliders > 10) {
-          printf("WARNING: num_colliders on one object is very high, possibly "
-                 "uninitted?\n");
-        }
-      }
-#endif /* ifdef DEBUG */
-
       return o;
     }
   }
@@ -94,15 +83,6 @@ void object_update() {
     Object *o = object_state.objects[i];
     if (o != NULL) {
       fn_lut[o->type].update((void *)o);
-    }
-  }
-}
-
-void object_draw() {
-  for (int i = 0; i < NUM_OBJECTS; i++) {
-    Object *o = object_state.objects[i];
-    if (o != NULL) {
-      fn_lut[o->type].draw((void *)o);
     }
   }
 }

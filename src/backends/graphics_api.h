@@ -27,6 +27,7 @@ void g_set_font_color(vec3 color);
 // returns an index into the global textures array, after loading it into the
 // graphics backend.
 uint g_load_texture(const char *filepath);
+
 uint g_load_cubemap(char *faces[6]);
 // "activates" the texture, using it for further draw calls.
 // TODO: how to reason about texture slots?

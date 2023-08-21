@@ -3,15 +3,18 @@
 
 #include "../object_lut.h"
 
-#include "cglm/types.h"
 #include "../object.h"
 #include "../physics.h"
 #include "backends/graphics_api.h"
+#include "cglm/types.h"
+#include "render.h"
 
 typedef struct Floor {
-  PHYS_OBJECT_FIELDS
+  OBJECT_FIELDS
 
-  GraphicsRender *render;
+  PhysComp *phys;
+  RenderComp *render;
+
   float speed;
 } Floor;
 
@@ -20,7 +23,6 @@ void floor_destroy(Floor *f);
 
 void floor_init(void *f);
 void floor_update(void *f);
-void floor_draw(void *f);
 void floor_clean(void *f);
 void floor_handle_collision(void *f, CollisionEvent *e);
 

@@ -19,6 +19,8 @@ typedef enum ActionType {
   ACT_LEFT,
   ACT_RIGHT,
 
+  ACT_JUMP,
+
   ACT_CAMERA_CW,  // swing cw around the player
   ACT_CAMERA_CCW, // swing ccw around the player
 
@@ -35,6 +37,9 @@ typedef enum ActionType {
   ACT_HUD_INTERACT, // hud interaction action, like clicking on a button.
 
   ACT_TOGGLE_DEBUG_DRAW,
+
+  ACT_INCREASE_TIMESCALE,
+  ACT_DECREASE_TIMESCALE,
 
   ACT_SCREENSHOT,
 
@@ -71,5 +76,14 @@ extern InputState i_state;
 void i_init();
 void i_update();
 void i_clean();
+
+// replay a series of serialized InputState structures, frame by frame.
+// there's only one possible replay active at a time, so we don't need an ID
+// mechanism passed in here to specify.
+void i_start_replay(const char *inputs_path, bool does_loop);
+void i_toggle_replay();
+void i_pause_replay();
+void i_unpause_replay();
+void i_stop_replay();
 
 #endif

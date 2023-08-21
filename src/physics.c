@@ -4,6 +4,7 @@
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/vec3.h"
+#include "event.h"
 #include "global.h"
 #include "glprim.h"
 #include "helper_math.h"
@@ -12,16 +13,67 @@
 #include "object_lut.h"
 #include "physics/collider.h"
 #include "physics/collider_types.h"
+#include "whisper/array.h"
+#include "whisper/queue.h"
 
 #include <bits/time.h>
+#include <stdbool.h>
 #include <string.h>
+#include <sys/types.h>
 #include <time.h>
 
 PhysicsState physics_state = {}; // dummy for now.
 
-void physics_init() {}
+PhysComp *make_physcomp(float position_lerp_speed, float mass,
+                        float linear_damping, int immovable, int intangible,
+                        Collider *colliders, int num_colliders, vec3 init_pos,
+                        int no_debug_render) {
+  // make a stack PhysComp, then copy that into the array.
+  PhysComp p = {0};
 
-void physics_apply_force(PhysicsObject *po, vec3 force) {
+  memcpy(p.position, init_pos, sizeof(float) * 3);
+  memcpy(p.lerp_position, p.position, sizeof(float) * 3);
+
+  p.position_lerp_speed = position_lerp_speed;
+
+  p.intangible = intangible;
+  p.immovable = immovable;
+
+  p.mass = mass;
+  p.linear_damping = linear_damping;
+
+  p.num_colliders = num_colliders;
+  p.colliders = colliders;
+
+  p.no_debug_render = no_debug_render;
+
+  int idx = w_array_insert(&(physics_state.phys_comps), &p);
+  if (idx != -1) {
+    // either return the element pointer or exit.
+    return w_array_get(&(physics_state.phys_comps), idx);
+  } else {
+    fprintf(
+        stderr,
+        "Error: Could not allocate another physics component in the array.\n");
+    exit(1);
+  }
+}
+
+void make_colliders(uint num_col, Collider *dest) {
+  for (int i = 0; i < num_col; i++) {
+    w_make_queue(&(dest->phys_events), sizeof(PhysicsEvent),
+                 PHYS_EVENT_QUEUE_SZ);
+  }
+}
+
+void physics_init() {
+  w_make_array(&(physics_state.phys_comps), sizeof(PhysComp),
+               NUM_PHYS_COMPONENTS);
+}
+
+// this is the physics equivalent of a positional setter. just modify the
+// acceleration, taking into account the PhysComp's mass and settings.
+void physics_apply_force(PhysComp *po, vec3 force) {
   if (po->immovable) // immovable is 1, have to manually opt-in to immovability
                      // out of the calloc for the physobj.
     return;
@@ -34,12 +86,35 @@ void physics_apply_force(PhysicsObject *po, vec3 force) {
             po);
     po->mass = 0.001F; // lol
   }
+
   glm_vec3_scale(force, (1 / po->mass), force);
   glm_vec3_add(force, po->acceleration, po->acceleration);
 }
 
+void react_physevent_generic(PhysComp *base_phys, PhysComp *target_phys,
+                             PhysicsEvent *e) {
+  if (glm_vec3_distance((vec3){0}, e->normal) > 0.0001F) {
+    glm_normalize(e->normal);
+  }
+
+  { // here, react generically to the collision event generated on the
+    // target object.
+    vec3 t_phys_force;
+    // just apply the normalized force. the collision events are still
+    // important, but for other things.
+    glm_vec3_copy(e->normal, t_phys_force);
+    glm_vec3_scale(t_phys_force, e->magnitude, t_phys_force);
+
+    // apply the event's force to the target generically.
+    physics_apply_force((PhysComp *)target_phys, t_phys_force);
+    // then, apply the equal and opposite force to the sender.
+    glm_vec3_scale(t_phys_force, -1, t_phys_force);
+    physics_apply_force((PhysComp *)base_phys, t_phys_force);
+  }
+}
+
 // right now: just damping and grav?
-static void apply_etc_forces(PhysicsObject *po) {
+static void apply_etc_forces(PhysComp *po) {
   vec3 net_force;
   glm_vec3_zero(net_force); // starts at no change in acceleration.
 
@@ -48,7 +123,6 @@ static void apply_etc_forces(PhysicsObject *po) {
 
     // F = mg
     glm_vec3_scale(grav_force, po->mass * GRAVITY_SCALE, grav_force);
-    glm_vec3_add(po->acceleration, grav_force, po->acceleration);
     glm_vec3_add(net_force, grav_force, net_force);
   }
 
@@ -62,19 +136,50 @@ static void apply_etc_forces(PhysicsObject *po) {
 
   physics_apply_force(po, net_force);
 
-  glm_vec3_scale(po->acceleration, 0.8F, po->acceleration);
+  glm_vec3_scale(po->acceleration, 0.85F, po->acceleration);
 }
 
-// get vel from accel and pos from vel.
-static void euler_position(PhysicsObject *po) {
-  vec3 tmp;
-  glm_vec3_scale(po->acceleration, delta_time, tmp);
-  glm_vec3_add(tmp, po->velocity, po->velocity);
-  glm_vec3_scale(po->velocity, delta_time, tmp);
-  glm_vec3_add(tmp, po->position, po->position);
+static void rk4_position(PhysComp *po) {
+  vec3 k1_vel, k2_vel, k3_vel, k4_vel;
+  vec3 k1_pos, k2_pos, k3_pos, k4_pos;
+  vec3 tmp_vel, tmp_accel;
+
+  // K1
+  glm_vec3_scale(po->acceleration, delta_time, k1_vel);
+  glm_vec3_scale(po->velocity, delta_time, k1_pos);
+
+  // K2
+  glm_vec3_scale(k1_vel, 0.5f, tmp_vel);
+  glm_vec3_add(po->velocity, tmp_vel, tmp_vel);
+  glm_vec3_scale(k1_vel, 0.5f, tmp_accel);
+  glm_vec3_add(po->acceleration, tmp_accel, tmp_accel);
+  glm_vec3_scale(tmp_accel, delta_time, k2_vel);
+  glm_vec3_scale(tmp_vel, delta_time, k2_pos);
+
+  // K3
+  glm_vec3_scale(k2_vel, 0.5f, tmp_vel);
+  glm_vec3_add(po->velocity, tmp_vel, tmp_vel);
+  glm_vec3_scale(k2_vel, 0.5f, tmp_accel);
+  glm_vec3_add(po->acceleration, tmp_accel, tmp_accel);
+  glm_vec3_scale(tmp_accel, delta_time, k3_vel);
+  glm_vec3_scale(tmp_vel, delta_time, k3_pos);
+
+  // K4
+  glm_vec3_add(po->velocity, k3_vel, tmp_vel);
+  glm_vec3_add(po->acceleration, k3_vel, tmp_accel);
+  glm_vec3_scale(tmp_accel, delta_time, k4_vel);
+  glm_vec3_scale(tmp_vel, delta_time, k4_pos);
+
+  // Combine
+  for (int i = 0; i < 3; ++i) {
+    po->velocity[i] +=
+        (k1_vel[i] + 2 * k2_vel[i] + 2 * k3_vel[i] + k4_vel[i]) / 6.0f;
+    po->position[i] +=
+        (k1_pos[i] + 2 * k2_pos[i] + 2 * k3_pos[i] + k4_pos[i]) / 6.0f;
+  }
 }
 
-static void position_lerp(PhysicsObject *po) {
+static void position_lerp(PhysComp *po) {
   lerp_vec3(po->lerp_position, po->position, po->position_lerp_speed,
             po->lerp_position);
 }
@@ -92,9 +197,17 @@ static unsigned int pointer_hash(void *key) {
 }
 
 // debug draw ONE physics object.
-static void physics_debug_shape_generate(PhysicsObject *po) {
+static void physics_debug_shape_generate(PhysComp *po) {
+  if (po->no_debug_render) {
+    return;
+  }
+
   for (int i = 0; i < po->num_colliders; i++) {
     Collider *base_collider = &(po->colliders[i]);
+    if (base_collider == NULL) {
+      continue;
+    }
+
     int hashed = pointer_hash(base_collider);
 
     // first, check if the collider already has one associated with it.
@@ -167,128 +280,60 @@ void physics_debug_draw() {
 
 void physics_update() { // for now, this just runs
                         // through collision, and emits
-  // messages to the proper gameobjects.
-  // a list of ptrs that we can safely operate on as physics objects.
-  PhysicsObject *phys_objects[NUM_OBJECTS];
-  unsigned int n_phys_objects = 0;
-
-  { /* first, pull out the list of valid physics objects to narrow the
-      double-iteration. in this scope, we modify the phys_objects stack data */
-
-    for (int i = 0; i < NUM_OBJECTS; i++) {
-      PhysicsObject *obj = (PhysicsObject *)object_state.objects[i];
-      if (obj && IS_PHYS_OBJECT(obj->type) && obj->colliders) {
-        phys_objects[n_phys_objects] = obj;
-        n_phys_objects++;
-      }
+  for (int i = 0; i < physics_state.phys_comps.upper_bound; i++) {
+    PhysComp *base_phys = w_array_get(&(physics_state.phys_comps), i);
+    if (base_phys == NULL) {
+      continue;
     }
-  }
 
-  { // then, handle all the force generation stuff in this scope on EVERY
-    // physobject.
-    for (int i = 0; i < n_phys_objects; i++) {
-      PhysicsObject *base_obj = phys_objects[i];
+    physics_debug_shape_generate(base_phys);
 
-      physics_debug_shape_generate(base_obj);
+    apply_etc_forces(base_phys);
 
-      apply_etc_forces(base_obj);
+    for (int j = 0; j < physics_state.phys_comps.upper_bound; j++) {
+      if (i == j) // an object should not/need not collide with itself.
+        continue;
 
-      for (int j = 0; j < n_phys_objects; j++) {
-        if (i == j) // an object should not/need not collide with itself.
-          continue;
+      PhysComp *target_phys = w_array_get(&(physics_state.phys_comps), j);
+      if (target_phys == NULL) {
+        continue;
+      }
 
-        PhysicsObject *target_obj = phys_objects[j];
+      { /* generate the forces in the collision event from i -> j through a
+           double iterator over both the collision arrays. */
+        for (int col_i = 0; col_i < base_phys->num_colliders; col_i++) {
+          Collider *colliders = base_phys->colliders;
+          if (colliders == NULL) {
+            continue;
+          }
 
-        // both i and j objects are valid collision objects, and different
-        // ones, so check the force and generate an event from i -> j.
-        CollisionEvent *e = (CollisionEvent *)calloc(sizeof(CollisionEvent), 1);
-        // else, the object is valid and has a valid collision array.
+          Collider base_collider = colliders[col_i];
 
-        memcpy(e->normalized_force, (vec3){0, 0, 0}, sizeof(vec3));
-        e->magnitude = 0.00F; // empty force, doesn't move anything.
+          // the collider of the BASE imposes itself on the collider of the
+          // target. this is the BASE switch.
+          switch (base_collider.type) {
 
-        // the entity ID is different from j, since these are only the physics
-        // objects.
-        e->id = base_obj->id; // use the entity id as the id for collisions.
+          case CL_FLOOR: {
+            handle_floor_collision(base_phys, base_collider, target_phys);
+          } break;
 
-        { /* generate the forces in the collision event from i -> j through a
-             double iterator over both the collision arrays. */
-          for (int col_i = 0; col_i < base_obj->num_colliders; col_i++) {
-            Collider base_collider = base_obj->colliders[col_i];
+          case CL_PILLAR: {
+          } break;
 
-            // the collider of the BASE imposes itself on the collider of the
-            // target. this is the BASE switch.
-            switch (base_collider.type) {
+          case CL_SPHERE: {
+            handle_sphere_collision(base_phys, base_collider, target_phys);
+          } break;
 
-            case CL_FLOOR: {
-              FloorColliderData *data = base_collider.data;
-              float difference =
-                  base_obj->position[1] - target_obj->position[1];
-
-              // TODO: apply friction when the object is just in the range of
-              // the floor.
-
-              if (difference > 0) {
-                // if the floor is above the target, then push it up. push it up
-                // with a normal just as strong as the acceleration of the body
-                // pushing into it, just the opposite way. this is the "ideal"
-                // floor, which will never break.
-                vec3 normal_force;
-                // TODO: properly calculate the normal force of the object on
-                // the floor.
-                glm_vec3_scale((vec3){0, -1, 0},
-                               -(GRAVITY_SCALE * target_obj->mass),
-                               normal_force);
-                glm_vec3_copy(normal_force, e->normalized_force);
-                e->magnitude = glm_vec3_distance((vec3){0}, normal_force);
-
-                target_obj->velocity[1] = 0;
-                target_obj->position[1] = base_obj->position[1];
-              }
-            } break;
-
-            case CL_PILLAR: {
-            } break;
-
-            case CL_SPHERE: {
-              handle_sphere_collision(base_obj, base_collider, target_obj, e);
-            } break;
-
-            default:
-              break;
-            }
+          default:
+            break;
           }
         }
-
-        if (glm_vec3_distance((vec3){0}, e->normalized_force) > 0.0001F) {
-          glm_normalize(e->normalized_force);
-        }
-
-        /* then, send the batched collision response over the function pointer
-         to the target object, allowing them to react however they will. */
-        fn_lut[target_obj->type].col_handler((void *)target_obj, e);
-
-        { // here, react generically to the collision event generated on the
-          // target object.
-          vec3 t_obj_force;
-          // just apply the normalized force. the collision events are still
-          // important, but for other things.
-          glm_vec3_copy(e->normalized_force, t_obj_force);
-          glm_vec3_scale(t_obj_force, e->magnitude, t_obj_force);
-
-          // apply the event's force to the target generically.
-          physics_apply_force((PhysicsObject *)target_obj, t_obj_force);
-          // then, apply the equal and opposite force to the sender.
-          glm_vec3_scale(t_obj_force, -1, t_obj_force);
-          physics_apply_force((PhysicsObject *)base_obj, t_obj_force);
-        }
       }
-
-      euler_position(
-          base_obj); // update vel and position based on internal variables.
-      position_lerp(
-          base_obj); // update the lerp position based on the position.
     }
+
+    rk4_position(
+        base_phys); // update vel and position based on internal variables.
+    position_lerp(base_phys); // update the lerp position based on the position.
   }
 }
 

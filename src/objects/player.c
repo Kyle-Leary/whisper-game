@@ -17,6 +17,7 @@
 #include "core/area_defines.h"
 #include "core/area_server.h"
 #include "core/battle.h"
+#include "event.h"
 #include "event_types.h"
 #include "global.h"
 #include "glprim.h"
@@ -27,13 +28,17 @@
 #include "object_bases.h"
 #include "parsers/gltf/gltf_parse.h"
 #include "path.h"
+#include "physics/collider_types.h"
 #include "pragma.h"
 #include "printers.h"
+#include "render.h"
 #include "state.h"
 #include "util.h"
+#include "whisper/queue.h"
 
-#include <GL/gl.h>
+#include <assert.h>
 #include <printf.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,41 +49,46 @@
 // pipeline in the game.
 Player *player_build() {
   Player *p = (Player *)calloc(sizeof(Player), 1);
-  memcpy(p->position, (vec3){0, -1.5F, 0},
-         sizeof(float) * 3); // copy the literal from the stack.
-  memcpy(p->lerp_position, p->position,
-         sizeof(float) * 3); // copy the literal from the stack.
-  // no collision? at least not yet.
+
+  // general Object stuff
   p->type = OBJ_PLAYER;
-  p->position_lerp_speed = 0.1F;
 
-  p->mass = 1.0F;
-  p->linear_damping = 0.5F;
+  { // setup player phys data.
+    Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
+    make_colliders(1, colliders);
+    colliders[0].type = CL_SPHERE;
+    SphereColliderData *col_data =
+        (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
+    col_data->radius = 1;
+    colliders[0].data = col_data;
 
-  p->num_colliders = 1;
-  p->colliders = (Collider *)calloc(sizeof(Collider), 1);
-  p->colliders[0].type = CL_SPHERE;
+    float player_mass = 4.0;
+    p->phys = make_physcomp(1, player_mass, 0.3, false, false, colliders, 1,
+                            (vec3){0, 0, 0}, false);
 
-  SphereColliderData *col_data =
-      (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
-  col_data->radius = 1;
-  p->colliders[0].data = col_data;
+    // sanity test, make sure that the array is setting and returning properly.
+    assert(p->phys->mass == player_mass);
+  }
 
-  // parse then mesh the glb file, then render it in the normal drawing loop.
-  p->model = gltf_to_model(gltf_parse(MODEL_PATH("wiggle.glb")));
+  { // setup player rendering data.
 
-  // just for now, link the first root node and assume that's the one with
-  // influence over the player's position.
-  p->animation_root = &(p->model->nodes[p->model->roots[0]]);
+    // parse then mesh the glb file, then render it in the normal drawing loop.
+    p->render = make_rendercomp_from_glb(MODEL_PATH("wiggle.glb"));
 
-  // link it to the model pointer internally.
-  // the object system is what holds the renderer together with the animations.
-  p->animator.target = p->model;
-  anim_insert(&p->animator);
+    Model *player_model = (Model *)(p->render->data);
+    p->animator = make_animator(player_model);
 
-  // anim_play(&(p->animator), "wiggle", true);
+    // just for now, link the first root node and assume that's the one with
+    // influence over the player's position.
+    p->animation_root = &(player_model->nodes[player_model->roots[0]]);
 
-  p->forward_speed = 1.0F;
+    anim_play(p->animator, "wiggle", true);
+  }
+
+  // specific Player stuff.
+  p->forward_speed = 8.0F;
+
+  p->jump_power = 1000.0F;
 
   return p;
 }
@@ -97,7 +107,7 @@ static void player_handle_walking_state(Player *player) {
   {
     mat4 offset_m;
     glm_mat4_identity(offset_m);
-    glm_translate(offset_m, player->lerp_position);
+    glm_translate(offset_m, player->phys->lerp_position);
 
     vec2 v_move;
     get_movement_vec(v_move, i_state.act_held);
@@ -120,12 +130,12 @@ static void player_handle_walking_state(Player *player) {
         glm_vec3_scale(b.forward, v_move[1], b.forward);
         glm_vec3_add(force_direction, b.forward, force_direction);
 
-        physics_apply_force((PhysicsObject *)player, force_direction);
+        physics_apply_force((PhysComp *)player->phys, force_direction);
       }
 
       // then, take ANOTHER step, and use that to calculate the lookat matrix
       // for the proper model rotation. lazy!!!
-      glm_vec3_copy(player->position, player->ghost_step);
+      glm_vec3_copy(player->phys->position, player->ghost_step);
 
       glm_vec3_add(player->ghost_step, b.right, player->ghost_step);
       glm_vec3_add(player->ghost_step, b.forward, player->ghost_step);
@@ -152,8 +162,42 @@ static void player_handle_encounter(Player *player) {
 void player_update(void *p) {
   // trust the caller themselves to pass the right type.
   CAST;
+  Model *player_model = player->render->data;
 
-  // player->position[1] -= 0.01F;
+  player->ghost_step[1] =
+      player->phys->lerp_position[1]; // make the lookahead flat,
+                                      // or else it looks weird.
+
+  glm_mat4_identity(player_model->transform);
+  glm_translate(player_model->transform, player->phys->lerp_position);
+  glm_translate(player_model->transform, player->animation_root->translation);
+  glm_lookat(player->phys->lerp_position, player->ghost_step, (vec3){0, 1, 0},
+             player_model->transform);
+  glm_mat4_inv(player_model->transform, player_model->transform);
+  glm_rotate(player_model->transform, glm_rad(180), (vec3){0, 1, 0});
+
+  { // handle jumping, unwrap the MQ and check for any floor collisions on the
+    // previous physics tick.
+    player->is_on_floor = false;
+
+    WQueue *mailbox = &(player->phys->colliders[0].phys_events);
+    while (mailbox->active_elements > 0) {
+      PhysicsEvent *e = w_dequeue(mailbox);
+      assert(
+          e !=
+          NULL); // shouldn't happen with the active elements condition above.
+      if (e->sender_col_type == CL_FLOOR) {
+        player->is_on_floor = true;
+      }
+    }
+
+    if (player->is_on_floor) {
+      if (i_state.act_just_pressed[ACT_JUMP]) {
+        physics_apply_force((PhysComp *)player->phys,
+                            (vec3){0, player->jump_power, 0});
+      }
+    }
+  }
 
   switch (game_state) {
   case GS_WALKING:
@@ -166,28 +210,6 @@ void player_update(void *p) {
     break;
   }
 }
-
-void player_draw(void *p) {
-  CAST;
-  player->ghost_step[1] = player->lerp_position[1]; // make the lookahead flat,
-                                                    // or else it looks weird.
-
-  glm_mat4_identity(player->model->transform);
-  glm_translate(player->model->transform, player->lerp_position);
-  glm_translate(player->model->transform, player->animation_root->translation);
-  glm_lookat(player->lerp_position, player->ghost_step, (vec3){0, 1, 0},
-             player->model->transform);
-  glm_mat4_inv(player->model->transform, player->model->transform);
-  glm_rotate(player->model->transform, glm_rad(180), (vec3){0, 1, 0});
-
-  { // draw player model with proper mats
-    // store the bones? maybe have the GraphicsRender in the associated model?
-    g_draw_model(player->model); // draw the model after the caller binds the
-                                 // right pipeline configuration on their side.
-  }
-}
-
-void player_handle_collision(void *p, CollisionEvent *e) {}
 
 // maybe don't have a seperate destructor? is there a point to that?
 void player_clean(void *p) {

@@ -11,7 +11,9 @@
 
 #include "helper_math.h"
 #include "input_help.h"
+#include "render.h"
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,35 +25,47 @@ Sphere *sphere_build(vec3 position, float radius, unsigned int segments) {
   Sphere *p = (Sphere *)calloc(sizeof(Sphere), 1);
   p->type = OBJ_SPHERE;
 
-  memcpy(p->position, position, sizeof(float) * 3);
-  memcpy(p->lerp_position, p->position, sizeof(float) * 3);
+  {
+    Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
+    colliders[0].type = CL_SPHERE;
+    SphereColliderData *col_data =
+        (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
+    col_data->radius = radius;
+    colliders[0].data = col_data;
 
-  p->num_colliders = 1;
-  p->colliders = (Collider *)malloc(sizeof(Collider) * p->num_colliders);
-  p->colliders[0].type = CL_SPHERE;
+    p->phys = make_physcomp(0.1, 1.0, 0.5, false, false, colliders, 1, position,
+                            true);
+  }
 
-  SphereColliderData *col_data =
-      (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
-  col_data->radius = radius;
-  p->colliders[0].data = col_data;
+  {
+    p->render = make_rendercomp_from_graphicsrender(
+        glprim_sphere(p->phys->position, radius, segments));
+  }
 
-  p->position_lerp_speed = 0.9F;
-  p->mass = 0.1;
-  p->linear_damping = 0.5;
-
-  p->render = glprim_sphere(p->position, radius, segments);
   return p;
 }
 
 void sphere_init(void *p) {}
 
-void sphere_update(void *p) { CAST; }
-
-void sphere_draw(void *p) {
+void sphere_update(void *p) {
   CAST;
-  glm_mat4_identity(sphere->render->model);
-  glm_translate(sphere->render->model, sphere->lerp_position);
-  g_draw_render(sphere->render);
+  GraphicsRender *prim = sphere->render->data;
+  glm_mat4_identity(prim->model);
+  glm_translate(prim->model, sphere->phys->lerp_position);
+  g_draw_render(prim);
+
+  { // handle physevents
+    WQueue mailbox = sphere->phys->colliders[0].phys_events;
+    while (mailbox.active_elements > 0) {
+      PhysicsEvent *e = w_dequeue(&mailbox);
+      assert(
+          e !=
+          NULL); // shouldn't happen with the active elements condition above.
+      if (e->sender_col_type == CL_FLOOR) {
+        printf("floor\n");
+      }
+    }
+  }
 }
 
 void sphere_handle_collision(void *p, CollisionEvent *e) {}

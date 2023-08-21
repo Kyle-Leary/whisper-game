@@ -27,20 +27,13 @@ Detector *detector_build(vec3 position, Collider *col,
   Detector *p = (Detector *)calloc(sizeof(Detector), 1);
   p->type = OBJ_DETECTOR;
 
-  memcpy(p->position, position, sizeof(float) * 3);
-  memcpy(p->lerp_position, p->position, sizeof(float) * 3);
+  {
+    Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
+    memcpy(&(colliders[0]), col, sizeof(Collider));
 
-  p->num_colliders = 1;
-  p->colliders = (Collider *)malloc(sizeof(Collider) * p->num_colliders);
-  // proper copy, don't just move the pointer in.
-  memcpy(&(p->colliders[0]), col, sizeof(Collider));
-
-  p->position_lerp_speed = 0.9F;
-  p->mass = 0.1;
-  p->linear_damping = 0.5;
-
-  p->intangible = true;
-  p->immovable = true;
+    p->phys =
+        make_physcomp(0.1, 1.0, 0.5, true, true, colliders, 1, position, true);
+  }
 
   p->handler = handler;
 

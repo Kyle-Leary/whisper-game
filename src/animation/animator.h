@@ -2,6 +2,7 @@
 
 #include "animation/anim_struct.h"
 #include "backends/graphics_api.h"
+#include "whisper/array.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -27,14 +28,15 @@ typedef struct AnimEntry {
 // animator structure targeting a single model. each movable model has an
 // Animator that is ticked through and managed by the anim_ module.
 typedef struct Animator {
-  bool is_active;
   AnimEntry anims[MAX_ANIMATIONS];
   Model *target; // who are all these animations imposed on?
 } Animator;
 
 // other objects are managing their own animators, so this should be a list of
 // pointers.
-extern Animator *animators[NUM_ANIMATORS];
+extern WArray animators;
+
+Animator *make_animator(Model *target);
 
 void anim_init();
 void anim_update();

@@ -18,7 +18,6 @@
 typedef void (*InitFn)(void *); // when it's added to the objects array.
                                 // different from construction.
 typedef void (*UpdateFn)(void *);
-typedef void (*DrawFn)(void *);
 
 typedef void (*CleanFn)(void *); // when it's removed from the objects array.
                                  // different from destruction.
@@ -33,9 +32,7 @@ typedef InteractionResponse (*InteractionHandler)(void *, InteractionEvent);
 typedef struct ObjectFnPointers {
   InitFn init;
   UpdateFn update;
-  DrawFn draw;
   CleanFn clean;
-  CollisionHandler col_handler;
   InteractionHandler
       interact_handler; // calling a function directly when the player interacts
                         // with something on the map.

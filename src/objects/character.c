@@ -25,31 +25,24 @@
 
 Character *character_build(Model *model) {
   Character *p = (Character *)malloc(sizeof(Character));
-  memcpy(p->position, (vec3){0}, sizeof(float) * 3);
   p->type = OBJ_CHARACTER;
 
-  { // setup phys information.
-    memcpy(p->lerp_position, p->position,
-           sizeof(float) * 3); // copy the literal from the stack.
-    p->num_colliders = 1;
-    p->colliders = (Collider *)calloc(sizeof(Collider), 1);
-    p->colliders[0].type = CL_SPHERE;
-
+  {
+    Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
+    make_colliders(1, colliders);
+    colliders[0].type = CL_SPHERE;
     SphereColliderData *col_data =
         (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
     col_data->radius = 1;
-    p->colliders[0].data = col_data;
+    colliders[0].data = col_data;
 
-    p->position_lerp_speed = 0.1F;
-
-    p->mass = 1.0F;
-    p->linear_damping = 0.5F;
+    p->phys = make_physcomp(0.1, 1.0, 0.5, false, false, colliders, 1,
+                            (vec3){0}, true);
   }
 
   { // characters can animate their own models.
-    memset(&(p->animator), 0, sizeof(Animator));
-    p->animator.target = p->model;
-    anim_insert(&p->animator);
+    // memset(&(p->animator), 0, sizeof(Animator));
+    // p->animator.target = p->model;
   }
 
   p->model = model;
@@ -65,7 +58,7 @@ void character_draw(void *p) {
   CAST;
 
   glm_mat4_identity(character->model->transform);
-  glm_translate(character->model->transform, character->lerp_position);
+  glm_translate(character->model->transform, character->phys->lerp_position);
 
   g_draw_model(character->model);
 }
@@ -73,11 +66,11 @@ void character_draw(void *p) {
 InteractionResponse character_handle_interact(void *p, InteractionEvent e) {
   CAST;
 
-  if (e.x_pos != character->position[0] ||
+  if (e.x_pos != character->phys->position[0] ||
       e.y_pos !=
-          character->position[1]) // if the spot they want to move isn't the
-                                  // character's spot, return nothing, since we
-                                  // don't care about it.
+          character->phys->position[1]) // if the spot they want to move isn't
+                                        // the character's spot, return nothing,
+                                        // since we don't care about it.
     return (InteractionResponse){IRT_NONE};
 
   // else, they're trying to move into our spot.

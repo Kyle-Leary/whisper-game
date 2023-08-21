@@ -8,9 +8,6 @@
 #define PHYS_OBJ_END 0b10000000000
 
 typedef enum ObjectType {
-  // world
-  OBJ_RENDER,
-
   // hud
   OBJ_LABEL,
   OBJ_BUTTON,
@@ -57,26 +54,4 @@ typedef enum ObjectTag {
 // its type.
 typedef struct Object {
   OBJECT_FIELDS
-  // NOTE: set colliders to NULL if the object has no collision sender
-  // data/imposes no forces on other objects.
 } Object;
-
-// for an object to really impose physics, it needs to have a meaningful
-// position. we can't be too generic with physics.
-#define PHYS_OBJECT_FIELDS                                                     \
-  OBJECT_FIELDS                                                                \
-  vec3 lerp_position;                                                          \
-  float position_lerp_speed;                                                   \
-  vec3 position;                                                               \
-  vec3 velocity;                                                               \
-  vec3 acceleration;                                                           \
-  int immovable;                                                               \
-  int intangible;                                                              \
-  float mass;                                                                  \
-  float linear_damping;                                                        \
-  Collider *colliders;                                                         \
-  unsigned int num_colliders;
-
-typedef struct PhysicsObject {
-  PHYS_OBJECT_FIELDS
-} PhysicsObject;
