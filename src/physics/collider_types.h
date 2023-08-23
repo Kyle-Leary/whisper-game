@@ -1,6 +1,7 @@
 #pragma once
 
 #include "whisper/queue.h"
+#include <stdbool.h>
 typedef enum ColliderType {
   CL_PILLAR, // shapes a pillar around the object. compares the x and z position
              // between a radius.
@@ -28,6 +29,13 @@ typedef struct FloorColliderData { // height is determined by the physics
 // every gameobject should have an array of colliders.
 typedef struct Collider {
   ColliderType type;
+  bool immovable;
+  bool intangible;
+
+  float inertia;
+
+  bool no_debug_render;
+
   WQueue phys_events; // decouple this from the user of the component by making
                       // this a message queue rather than a direct reference to
                       // something. this WQueue doesn't store much data, so it

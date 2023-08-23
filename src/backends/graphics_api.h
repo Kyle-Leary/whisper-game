@@ -64,6 +64,9 @@ typedef enum PipelineConfiguration {
   PC_SOLID,         // renders a single color from the uniforms.
 
   PC_MODEL, // renders a model with pbr lightdata and bones.
+
+  PC_IMMEDIATE_3D,
+
   PC_COUNT,
 } PipelineConfiguration;
 

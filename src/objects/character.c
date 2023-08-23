@@ -36,8 +36,8 @@ Character *character_build(Model *model) {
     col_data->radius = 1;
     colliders[0].data = col_data;
 
-    p->phys = make_physcomp(0.1, 1.0, 0.5, false, false, colliders, 1,
-                            (vec3){0}, true);
+    p->phys = make_physcomp(0.1, 1.0, 0.5, 0.5, 0.3, false, false, colliders, 1,
+                            (vec3){0});
   }
 
   { // characters can animate their own models.

@@ -31,8 +31,8 @@ Detector *detector_build(vec3 position, Collider *col,
     Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
     memcpy(&(colliders[0]), col, sizeof(Collider));
 
-    p->phys =
-        make_physcomp(0.1, 1.0, 0.5, true, true, colliders, 1, position, true);
+    p->phys = make_physcomp(0.1, 1.0, 0.5, 0.5, 0.3, false, true, colliders, 1,
+                            position);
   }
 
   p->handler = handler;

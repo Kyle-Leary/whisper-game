@@ -17,6 +17,7 @@
 #include "whisper/queue.h"
 
 #include <bits/time.h>
+#include <math.h>
 #include <stdbool.h>
 #include <string.h>
 #include <sys/types.h>
@@ -24,28 +25,65 @@
 
 PhysicsState physics_state = {}; // dummy for now.
 
+// take in a root position, different colliders can be a specified offset from
+// the root position of the physics component.
 PhysComp *make_physcomp(float position_lerp_speed, float mass,
-                        float linear_damping, int immovable, int intangible,
-                        Collider *colliders, int num_colliders, vec3 init_pos,
-                        int no_debug_render) {
+                        float linear_damping, float static_friction,
+                        float kinetic_friction, bool should_roll,
+                        bool immovable, Collider *colliders, int num_colliders,
+                        vec3 init_pos) {
   // make a stack PhysComp, then copy that into the array.
   PhysComp p = {0};
 
-  memcpy(p.position, init_pos, sizeof(float) * 3);
-  memcpy(p.lerp_position, p.position, sizeof(float) * 3);
+  { // setup position.
+    memcpy(p.position, init_pos, sizeof(float) * 3);
+    memcpy(p.lerp_position, p.position, sizeof(float) * 3);
+  }
+
+  { // setup angle
+    // the unit quaternion of no effect/rotation.
+    memcpy(p.angle, (versor){0, 0, 0, 1}, sizeof(float) * 4);
+    memcpy(p.ang_velocity, (vec3){0}, sizeof(float) * 3);
+    memcpy(p.ang_acceleration, (vec3){0}, sizeof(float) * 3);
+  }
 
   p.position_lerp_speed = position_lerp_speed;
-
-  p.intangible = intangible;
-  p.immovable = immovable;
 
   p.mass = mass;
   p.linear_damping = linear_damping;
 
+  p.immovable = immovable;
+
   p.num_colliders = num_colliders;
   p.colliders = colliders;
 
-  p.no_debug_render = no_debug_render;
+  if (colliders != NULL) {
+    // do init on all the colliders internally.
+    for (int i = 0; i < num_colliders; i++) {
+      Collider *c = &(colliders[i]);
+
+      // calculate the inertia of the collider shape.
+      switch (c->type) {
+      case CL_SPHERE: {
+        SphereColliderData *d = c->data;
+        float radius = d->radius;
+
+        c->inertia = ((2.0 / 5.0) * p.mass * powf(radius, 2));
+      } break;
+
+      default: {
+        // ang. accel = torque / I, so if it's 0 we'll get an error.
+
+        // make it really high, so that the default behavior is no rotation at
+        // all.
+        c->inertia = 999999999.0;
+      } break;
+      }
+    }
+  }
+
+  p.static_friction = static_friction;
+  p.kinetic_friction = kinetic_friction;
 
   int idx = w_array_insert(&(physics_state.phys_comps), &p);
   if (idx != -1) {
@@ -61,7 +99,7 @@ PhysComp *make_physcomp(float position_lerp_speed, float mass,
 
 void make_colliders(uint num_col, Collider *dest) {
   for (int i = 0; i < num_col; i++) {
-    w_make_queue(&(dest->phys_events), sizeof(PhysicsEvent),
+    w_make_queue(&(dest[i].phys_events), sizeof(PhysicsEvent),
                  PHYS_EVENT_QUEUE_SZ);
   }
 }
@@ -71,24 +109,26 @@ void physics_init() {
                NUM_PHYS_COMPONENTS);
 }
 
-// this is the physics equivalent of a positional setter. just modify the
-// acceleration, taking into account the PhysComp's mass and settings.
-void physics_apply_force(PhysComp *po, vec3 force) {
-  if (po->immovable) // immovable is 1, have to manually opt-in to immovability
-                     // out of the calloc for the physobj.
+// a physics collision can be described as a force vector and contact point.
+// we need a contact point for things like torque, which depend on knowing the
+// force's distance from the center of mass.
+void physics_apply_force(PhysComp *comp, vec3 force, vec3 contact_pt) {
+  if (comp->immovable) {
     return;
-
-  // F = ma <=> F/m = a
-  if (po->mass == 0) {
-    fprintf(stderr,
-            "ERR: division by zero in force application since po->mass is zero "
-            "on object %p. Offsetting the mass slightly...\n",
-            po);
-    po->mass = 0.001F; // lol
   }
 
-  glm_vec3_scale(force, (1 / po->mass), force);
-  glm_vec3_add(force, po->acceleration, po->acceleration);
+  // F = ma <=> F/m = a
+  if (comp->mass == 0) {
+    fprintf(
+        stderr,
+        "ERR: division by zero in force application since comp->mass is zero "
+        "on object %p. Offsetting the mass slightly...\n",
+        comp);
+    comp->mass = 0.001F; // lol
+  }
+
+  glm_vec3_scale(force, (1 / comp->mass), force);
+  glm_vec3_add(force, comp->acceleration, comp->acceleration);
 }
 
 void react_physevent_generic(PhysComp *base_phys, PhysComp *target_phys,
@@ -106,14 +146,15 @@ void react_physevent_generic(PhysComp *base_phys, PhysComp *target_phys,
     glm_vec3_scale(t_phys_force, e->magnitude, t_phys_force);
 
     // apply the event's force to the target generically.
-    physics_apply_force((PhysComp *)target_phys, t_phys_force);
+    physics_apply_force((PhysComp *)target_phys, t_phys_force, e->contact_pt);
     // then, apply the equal and opposite force to the sender.
     glm_vec3_scale(t_phys_force, -1, t_phys_force);
-    physics_apply_force((PhysComp *)base_phys, t_phys_force);
+    physics_apply_force((PhysComp *)base_phys, t_phys_force, e->contact_pt);
   }
 }
 
-// right now: just damping and grav?
+// apply various central forces that all affect the object about its center of
+// mass.
 static void apply_etc_forces(PhysComp *po) {
   vec3 net_force;
   glm_vec3_zero(net_force); // starts at no change in acceleration.
@@ -134,7 +175,16 @@ static void apply_etc_forces(PhysComp *po) {
     glm_vec3_add(net_force, damping_force, net_force);
   }
 
-  physics_apply_force(po, net_force);
+  {
+#define GETRAND (((float)rand() / RAND_MAX) - 0.5)
+    vec3 random = {GETRAND, GETRAND, GETRAND};
+    glm_vec3_scale(random, 0.05, random);
+
+#undef GETRAND
+    glm_vec3_add(net_force, random, net_force);
+  }
+
+  physics_apply_force(po, net_force, po->position);
 
   glm_vec3_scale(po->acceleration, 0.85F, po->acceleration);
 }
@@ -198,14 +248,15 @@ static unsigned int pointer_hash(void *key) {
 
 // debug draw ONE physics object.
 static void physics_debug_shape_generate(PhysComp *po) {
-  if (po->no_debug_render) {
-    return;
-  }
-
   for (int i = 0; i < po->num_colliders; i++) {
     Collider *base_collider = &(po->colliders[i]);
     if (base_collider == NULL) {
       continue;
+    }
+
+    // debug rendering a collider is a property of the collider itself.
+    if (base_collider->no_debug_render) {
+      return;
     }
 
     int hashed = pointer_hash(base_collider);
@@ -301,13 +352,20 @@ void physics_update() { // for now, this just runs
 
       { /* generate the forces in the collision event from i -> j through a
            double iterator over both the collision arrays. */
+        Collider *colliders = base_phys->colliders;
+        if (colliders == NULL) {
+          continue;
+        }
+
         for (int col_i = 0; col_i < base_phys->num_colliders; col_i++) {
-          Collider *colliders = base_phys->colliders;
-          if (colliders == NULL) {
+          Collider base_collider = colliders[col_i];
+
+          if (base_collider.intangible) {
+            // an intangible collider generates no forces on other colliders.
+            // they're best used as detectors, since they can still take in
+            // messages.
             continue;
           }
-
-          Collider base_collider = colliders[col_i];
 
           // the collider of the BASE imposes itself on the collider of the
           // target. this is the BASE switch.

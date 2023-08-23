@@ -26,8 +26,19 @@ typedef struct PhysComp {
   vec3 position;
   vec3 velocity;
   vec3 acceleration;
-  int immovable;
-  int intangible;
+
+  // represent the angle of the physics object with a unit quaternion
+  versor angle;
+  // speed of rotation around global coordinate axes.
+  vec3 ang_velocity;
+  vec3 ang_acceleration;
+
+  bool should_roll; // should the angle be manually calculated by the physics
+                    // subsystem at all?
+
+  float static_friction;
+  float kinetic_friction;
+
   float mass;
   float linear_damping;
   // NOTE: set phys_comp->colliders to NULL if the object has no collision
@@ -35,8 +46,9 @@ typedef struct PhysComp {
   Collider *colliders;
   unsigned int num_colliders;
 
-  int no_debug_render;
-
+  bool immovable; // immovable is a physics body property, being intangible is a
+                  // collider property. colliders do the pushing, and bodies do
+                  // the moving.
 } PhysComp;
 
 #define NUM_PHYS_COMPONENTS 200
@@ -49,7 +61,7 @@ extern PhysicsState physics_state;
 
 void physics_init();
 // how we actually move objects in the world.
-void physics_apply_force(PhysComp *comp, vec3 force);
+void physics_apply_force(PhysComp *comp, vec3 force, vec3 contact_pt);
 // the ticking function for this physics engine.
 void physics_debug_draw();
 void physics_update();
@@ -65,9 +77,10 @@ void react_physevent_generic(PhysComp *base_phys, PhysComp *target_phys,
 // element pointer, so the caller can make sure that their PhysComp is being
 // properly shared and iterated over by the physics subsystem.
 PhysComp *make_physcomp(float position_lerp_speed, float mass,
-                        float linear_damping, int immovable, int intangible,
-                        Collider *colliders, int num_colliders, vec3 init_pos,
-                        int no_debug_render);
+                        float linear_damping, float static_friction,
+                        float kinetic_friction, bool should_roll,
+                        bool immovable, Collider *colliders, int num_colliders,
+                        vec3 init_pos);
 
 // make n colliders from the buffer passed in.
 void make_colliders(uint num_col, Collider *dest);

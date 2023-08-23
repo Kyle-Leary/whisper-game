@@ -28,8 +28,8 @@ Cube *cube_build(vec3 position) {
 
   {
     Collider *colliders = NULL;
-    p->phys = make_physcomp(0.1, 1.0, 0.5, false, false, colliders, 1, position,
-                            true);
+    p->phys = make_physcomp(0.1, 1.0, 0.5, 0.5, 0.3, true, false, colliders, 1,
+                            position);
   }
 
   p->render =

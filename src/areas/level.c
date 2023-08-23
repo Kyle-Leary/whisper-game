@@ -73,7 +73,11 @@ void areas_level() {
   object_add((Object *)cube_build((vec3){-9, -1, -9}), OT_AREA);
   object_add((Object *)cube_build((vec3){7, -1, -9}), OT_AREA);
 
-  // object_add((Object *)sphere_build((vec3){2, -1, -2}, 1, 10), OT_AREA);
+  object_add((Object *)sphere_build((vec3){2, -1, -2}, 1, 10), OT_AREA);
+  object_add((Object *)sphere_build((vec3){2, 2, -2}, 1, 10), OT_AREA);
+  object_add((Object *)sphere_build((vec3){2, 5, -2}, 1, 10), OT_AREA);
+  object_add((Object *)sphere_build((vec3){2, 10, -2}, 1, 10), OT_AREA);
+  object_add((Object *)sphere_build((vec3){2, 20, -2}, 1, 10), OT_AREA);
 
   object_add((Object *)floor_build((vec3){0, -2, 0}, 50), OT_AREA);
 

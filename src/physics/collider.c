@@ -31,28 +31,28 @@ void handle_sphere_collision(PhysComp *base_phys, Collider base_collider,
   }
 
   for (int col_j = 0; col_j < target_phys->num_colliders; col_j++) {
-    bool is_nontrivial = false;
+    bool is_collision_detected = false;
 
-    Collider target_collider = colliders[col_j];
+    Collider *target_collider = &(colliders[col_j]);
 
     PhysicsEvent e; // event from col_i -> col_j, put in col_j's message queue
     e.sender_col_type = base_collider.type;
 
-    switch (target_collider.type) {
+    switch (target_collider->type) {
     case CL_FLOOR: {
     } break;
 
     case CL_SPHERE: { // compare radii length.
-      SphereColliderData *target_data = target_collider.data;
+      SphereColliderData *target_data = target_collider->data;
       float distance =
           glm_vec3_distance(base_phys->position, target_phys->position);
       if (distance < (radius + target_data->radius)) {
         // then the two spheres are intersecting.
-        e.magnitude = 0.1F * distance;
+        e.magnitude = 8 * distance;
         glm_vec3_sub(target_phys->position, base_phys->position,
                      e.normal); // base -> target force direction.
 
-        is_nontrivial = true;
+        is_collision_detected = true;
       }
     } break;
 
@@ -63,9 +63,12 @@ void handle_sphere_collision(PhysComp *base_phys, Collider base_collider,
     } break;
     }
 
-    if (is_nontrivial) {
-      w_enqueue(&(target_collider.phys_events), &e);
-      react_physevent_generic(base_phys, target_phys, &e);
+    if (is_collision_detected) {
+      w_enqueue(&(target_collider->phys_events), &e);
+
+      if (!(target_collider->intangible)) {
+        react_physevent_generic(base_phys, target_phys, &e);
+      }
     }
   }
 }
@@ -80,7 +83,7 @@ void handle_floor_collision(PhysComp *base_phys, Collider base_collider,
   }
 
   for (int col_j = 0; col_j < target_phys->num_colliders; col_j++) {
-    bool is_nontrivial = false;
+    bool is_collision_detected = false;
 
     Collider *target_collider = &(colliders[col_j]);
 
@@ -107,7 +110,7 @@ void handle_floor_collision(PhysComp *base_phys, Collider base_collider,
 
         target_phys->velocity[1] = -(target_phys->velocity[1] / 5);
 
-        is_nontrivial = true;
+        is_collision_detected = true;
       }
     } break;
 
@@ -118,9 +121,12 @@ void handle_floor_collision(PhysComp *base_phys, Collider base_collider,
     } break;
     }
 
-    if (is_nontrivial) {
+    if (is_collision_detected) {
       w_enqueue(&(target_collider->phys_events), &e);
-      react_physevent_generic(base_phys, target_phys, &e);
+
+      if (!(target_collider->intangible)) {
+        react_physevent_generic(base_phys, target_phys, &e);
+      }
     }
   }
 }

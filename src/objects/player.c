@@ -22,10 +22,13 @@
 #include "global.h"
 #include "glprim.h"
 #include "helper_math.h"
+#include "im_prims.h"
+#include "immediate.h"
 #include "input_help.h"
 #include "meshing/gltf_mesher.h"
 #include "meshing/obj/obj_parse.h"
 #include "object_bases.h"
+#include "objects/detector.h"
 #include "parsers/gltf/gltf_parse.h"
 #include "path.h"
 #include "physics/collider_types.h"
@@ -45,6 +48,11 @@
 
 #define CAST Player *player = (Player *)p
 
+#define BASE_RADIUS (1.0)
+
+#define BASE_COLLIDER 0
+#define INTERACTION_COLLIDER 1
+
 // use the dummy as the default entity, just for the initial setup of the object
 // pipeline in the game.
 Player *player_build() {
@@ -54,17 +62,28 @@ Player *player_build() {
   p->type = OBJ_PLAYER;
 
   { // setup player phys data.
-    Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
-    make_colliders(1, colliders);
-    colliders[0].type = CL_SPHERE;
-    SphereColliderData *col_data =
-        (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
-    col_data->radius = 1;
-    colliders[0].data = col_data;
+    Collider *colliders = (Collider *)calloc(sizeof(Collider), 2);
+    make_colliders(2, colliders);
+
+    SphereColliderData *col_datas =
+        (SphereColliderData *)calloc(sizeof(SphereColliderData), 2);
+
+    { // base collider for movement and floor collisions etc
+      colliders[BASE_COLLIDER].type = CL_SPHERE;
+      col_datas[BASE_COLLIDER].radius = BASE_RADIUS;
+      colliders[BASE_COLLIDER].data = &(col_datas[BASE_COLLIDER]);
+    }
+
+    { // for detection of other objects.
+      colliders[INTERACTION_COLLIDER].type = CL_SPHERE;
+      col_datas[INTERACTION_COLLIDER].radius = BASE_RADIUS * 5;
+      colliders[INTERACTION_COLLIDER].data = &(col_datas[INTERACTION_COLLIDER]);
+      colliders[INTERACTION_COLLIDER].intangible = true;
+    }
 
     float player_mass = 4.0;
-    p->phys = make_physcomp(1, player_mass, 0.3, false, false, colliders, 1,
-                            (vec3){0, 0, 0}, false);
+    p->phys = make_physcomp(1, player_mass, 0.3, 0.5, 0.3, false, false,
+                            colliders, 2, (vec3){0, 0, 0});
 
     // sanity test, make sure that the array is setting and returning properly.
     assert(p->phys->mass == player_mass);
@@ -130,7 +149,9 @@ static void player_handle_walking_state(Player *player) {
         glm_vec3_scale(b.forward, v_move[1], b.forward);
         glm_vec3_add(force_direction, b.forward, force_direction);
 
-        physics_apply_force((PhysComp *)player->phys, force_direction);
+        // apply at the center of mass.
+        physics_apply_force((PhysComp *)player->phys, force_direction,
+                            player->phys->position);
       }
 
       // then, take ANOTHER step, and use that to calculate the lookat matrix
@@ -176,11 +197,14 @@ void player_update(void *p) {
   glm_mat4_inv(player_model->transform, player_model->transform);
   glm_rotate(player_model->transform, glm_rad(180), (vec3){0, 1, 0});
 
+  im_velocity(player->phys);
+  im_acceleration(player->phys);
+
   { // handle jumping, unwrap the MQ and check for any floor collisions on the
     // previous physics tick.
     player->is_on_floor = false;
 
-    WQueue *mailbox = &(player->phys->colliders[0].phys_events);
+    WQueue *mailbox = &(player->phys->colliders[BASE_COLLIDER].phys_events);
     while (mailbox->active_elements > 0) {
       PhysicsEvent *e = w_dequeue(mailbox);
       assert(
@@ -194,8 +218,17 @@ void player_update(void *p) {
     if (player->is_on_floor) {
       if (i_state.act_just_pressed[ACT_JUMP]) {
         physics_apply_force((PhysComp *)player->phys,
-                            (vec3){0, player->jump_power, 0});
+                            (vec3){0, player->jump_power, 0},
+                            player->phys->position);
       }
+    }
+  }
+
+  {
+    WQueue *mailbox =
+        &(player->phys->colliders[INTERACTION_COLLIDER].phys_events);
+    while (mailbox->active_elements > 0) {
+      PhysicsEvent *e = w_dequeue(mailbox);
     }
   }
 

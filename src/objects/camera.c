@@ -39,7 +39,7 @@ Camera *camera_build(vec3 position, vec3 *target) {
     // colliders[0].data = col_data;
 
     p->phys =
-        make_physcomp(0.1, 1.0, 0.5, true, true, NULL, 1, position, false);
+        make_physcomp(0.1, 1.0, 0.5, 0.5, 0.3, false, true, NULL, 1, position);
   }
 
   p->target = target;

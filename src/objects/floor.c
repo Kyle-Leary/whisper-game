@@ -29,14 +29,15 @@ Floor *floor_build(vec3 position, float strength) {
   {
     Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
     make_colliders(1, colliders);
+
     colliders[0].type = CL_FLOOR;
     FloorColliderData *col_data =
         (FloorColliderData *)malloc(sizeof(FloorColliderData) * 1);
     col_data->strength = strength;
     colliders[0].data = col_data;
 
-    p->phys =
-        make_physcomp(0.1, 1.0, 0.5, true, false, colliders, 1, position, true);
+    p->phys = make_physcomp(0.1, 1.0, 0.5, 0.5, 0.3, false, true, colliders, 1,
+                            position);
   }
 
   p->render = make_rendercomp_from_graphicsrender(

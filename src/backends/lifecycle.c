@@ -223,6 +223,12 @@ int l_init() {
                     // by default.
   INSERT(model);
 
+  // im_3d renderer
+  Shader *im_3d_program =
+      make_shader(SHADER_PATH("im_3d.vs"), SHADER_PATH("im_3d.fs"));
+  shader_set_4f(im_3d_program, "u_color", 1, 1, 1, 1);
+  INSERT(im_3d);
+
   { // SET UP UBOS
 #define APPLY_BINDINGS(BIND_FUNC, PROGRAM)                                     \
   printf("applying to " #PROGRAM "\n");                                        \
@@ -256,6 +262,8 @@ int l_init() {
     BIND_PROGRAMS(model_program->id);
     ID_TO_BLOCK("BoneData", BONE_BLOCK, model_program->id);
     ID_TO_BLOCK("MaterialBlock", MATERIAL_BLOCK, model_program->id);
+
+    ID_TO_BLOCK("ViewProjection", MATRIX_BLOCK, im_3d_program->id);
 
     GLuint buf[4];
     glGenBuffers(4, buf);

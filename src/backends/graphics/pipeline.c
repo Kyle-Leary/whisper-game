@@ -113,6 +113,10 @@ void g_use_pipeline(PipelineConfiguration config) {
 
     shader_use(ptr);
   } break;
+  case PC_IMMEDIATE_3D: {
+    Shader *ptr = GETSH("im_3d");
+    shader_use(ptr);
+  } break;
   default: {
   } break;
   }

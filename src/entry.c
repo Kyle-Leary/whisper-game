@@ -17,6 +17,7 @@
 #include "glprim.h"
 #include "helper_math.h"
 #include "hud.h"
+#include "immediate.h"
 #include "main.h"
 #include "meshing/font.h"
 #include "meshing/gltf_mesher.h"
@@ -35,6 +36,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -43,6 +45,8 @@
 Font *simple_font = NULL;
 
 int entry_point(int argc, char **argv) {
+  srand(time(NULL));
+
   // call the lifecycle init and give them control before ANYTHING else.
   l_init();
 
@@ -77,6 +81,7 @@ int entry_point(int argc, char **argv) {
   object_init();
   anim_init();
   render_init();
+  im_init();
 
   area_switch(AREA_LEVEL);
 
@@ -171,6 +176,9 @@ int entry_point(int argc, char **argv) {
 
       g_use_texture(nepeta, 0);
       render_draw();
+
+      // draw all the immediate mode stuff with the im 3d positional shader.
+      im_flush();
     }
 
     l_end_draw();

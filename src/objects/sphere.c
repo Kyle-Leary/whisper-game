@@ -32,9 +32,10 @@ Sphere *sphere_build(vec3 position, float radius, unsigned int segments) {
         (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
     col_data->radius = radius;
     colliders[0].data = col_data;
+    colliders[0].intangible = false;
 
-    p->phys = make_physcomp(0.1, 1.0, 0.5, false, false, colliders, 1, position,
-                            true);
+    p->phys = make_physcomp(0.9, 2.0, 0.1, 0.5, 0.3, true, false, colliders, 1,
+                            position);
   }
 
   {
