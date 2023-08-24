@@ -6,9 +6,9 @@
 #include <string.h>
 
 RigidBody *make_rigid_body(float position_lerp_speed, float mass,
-                           float linear_damping, float static_friction,
-                           float kinetic_friction, bool should_roll,
-                           vec3 init_pos) {
+                           float linear_damping, float angular_damping,
+                           float static_friction, float kinetic_friction,
+                           bool should_roll, vec3 init_pos) {
   // make a stack PhysComp, then copy that into the array.
   RigidBody body = {0};
 
@@ -19,7 +19,7 @@ RigidBody *make_rigid_body(float position_lerp_speed, float mass,
 
   { // setup angle
     // the unit quaternion of no effect/rotation.
-    memcpy(body.angle, (versor){0, 0, 0, 1}, sizeof(float) * 4);
+    memcpy(body.rotation, (versor){0, 0, 0, 1}, sizeof(float) * 4);
     memcpy(body.ang_velocity, (vec3){0}, sizeof(float) * 3);
     memcpy(body.ang_acceleration, (vec3){0}, sizeof(float) * 3);
   }
@@ -28,6 +28,9 @@ RigidBody *make_rigid_body(float position_lerp_speed, float mass,
 
   body.mass = mass;
   body.linear_damping = linear_damping;
+  body.angular_damping = angular_damping;
+
+  body.should_roll = should_roll;
 
   // the caller can change this themselves on the object.
   body.frozen = false;

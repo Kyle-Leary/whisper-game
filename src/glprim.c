@@ -57,6 +57,42 @@ GraphicsRender *glprim_cube(vec3 position) {
   return gr;
 }
 
+static float rectNormals[] = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+                              1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+                              1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+
+static float rectUVs[] = {0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+                          1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f};
+
+static unsigned int rectIndices[] = {
+    0, 1, 2, 2, 3, 0, // Front face
+    4, 5, 6, 6, 7, 4, // Back face
+    0, 1, 5, 5, 4, 0, // Bottom face
+    2, 3, 7, 7, 6, 2, // Top face
+    0, 3, 7, 7, 4, 0, // Left face
+    1, 2, 6, 6, 5, 1  // Right face
+};
+
+// returns a render centered at the origin, position the model yourself.
+GraphicsRender *glprim_rect(vec3 extents) {
+  float rectPositions[] = {
+      -extents[0], -extents[1], extents[2],  // Front bottom left
+      extents[0],  -extents[1], extents[2],  // Front bottom right
+      extents[0],  extents[1],  extents[2],  // Front top right
+      -extents[0], extents[1],  extents[2],  // Front top left
+      -extents[0], -extents[1], -extents[2], // Back bottom left
+      extents[0],  -extents[1], -extents[2], // Back bottom right
+      extents[0],  extents[1],  -extents[2], // Back top right
+      -extents[0], extents[1],  -extents[2]  // Back top left
+  };
+
+  GraphicsRender *gr = g_new_render(
+      (VertexData *)&(BasicVertexData){RC_BASIC, cubeNumVertices, cubePositions,
+                                       cubeNormals, cubeUVs},
+      cubeIndices, cubeNumIndices);
+  return gr;
+}
+
 // all at 1.0, good for skyboxes and projection of cubemaps.
 static float skyboxCubePositions[] = {-1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,
                                       1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,

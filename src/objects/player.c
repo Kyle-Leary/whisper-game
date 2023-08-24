@@ -66,9 +66,10 @@ Player *player_build() {
   p->type = OBJ_PLAYER;
 
   { // setup player phys data.
-    p->phys = make_physcomp((Body *)make_rigid_body(0.7, 1.0, 0.9, 0.5, 0.3,
-                                                    false, (vec3){5, 0, 2}),
-                            (Collider *)make_sphere_collider(BASE_RADIUS));
+    p->phys =
+        make_physcomp((Body *)make_rigid_body(0.7, 9.0, 0.5, 0.5, 0.5, 0.3,
+                                              false, (vec3){5, 0, 2}),
+                      (Collider *)make_sphere_collider(BASE_RADIUS));
   }
 
   { // setup player rendering data.

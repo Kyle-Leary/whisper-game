@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 // how many events can be stored by the physics component until it's
 // overwritten?
@@ -35,8 +36,9 @@ FloorCollider *make_floor_collider() {
   INDEX_AND_RETURN(c, floors)
 }
 
-RectCollider *make_rect_collider() {
+RectCollider *make_rect_collider(vec3 extents) {
   RectCollider c;
+  memcpy(&(c.extents), extents, sizeof(float) * 3);
   setup_collider((Collider *)&c);
   INDEX_AND_RETURN(c, rects)
 }

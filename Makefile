@@ -1,7 +1,9 @@
 # Variables
 CC := gcc
 
-CFLAGS += -Wall
+# there are some cases where we literally can't align a vec4 on a 16 byte boundary.
+# skip the CGLM check. https://cglm.readthedocs.io/en/stable/opt.html
+CFLAGS += -Wall -DCGLM_ALL_UNALIGNED=1
 
 INCLUDES += -I. -Isrc -Ideps/wjson/api -Ideps -Ideps/stb -Ideps/libwhisper/api
 
@@ -77,10 +79,10 @@ $(GLPP):
 
 # for both, just compile all the symbols into TARGET with CC
 $(TARGET): $(REQUIREMENTS) main.o 
-	$(CC) -o $@ $(SYMBOLS) main.o $(LIBS)
+	$(CC) -o $@ $(SYMBOLS) main.o $(CFLAGS) $(LIBS)
 
 $(TEST_TARGET): $(REQUIREMENTS) $(TEST_REQUIREMENTS) testmain.o
-	$(CC) -o $@ $(TEST_SYMBOLS) testmain.o $(LIBS)
+	$(CC) -o $@ $(TEST_SYMBOLS) testmain.o $(CFLAGS) $(LIBS)
 
 # Pattern rule to compile .c files into .o files
 %.o: %.c

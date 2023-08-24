@@ -51,11 +51,11 @@ void areas_level() {
   chr->phys->body->position[0] = -4;
   chr->phys->body->position[1] = -1;
 
-  object_add((Object *)cube_build((vec3){9, -1, 0}), OT_AREA);
-  object_add((Object *)cube_build((vec3){0, -1, 9}), OT_AREA);
-  object_add((Object *)cube_build((vec3){0, -1, -9}), OT_AREA);
-  object_add((Object *)cube_build((vec3){-9, -1, -9}), OT_AREA);
-  object_add((Object *)cube_build((vec3){7, -1, -9}), OT_AREA);
+  object_add((Object *)cube_build((vec3){9, 5, 0}, (vec3){1, 2, 3}), OT_AREA);
+  object_add((Object *)cube_build((vec3){0, 5, 9}, (vec3){1, 2, 3}), OT_AREA);
+  object_add((Object *)cube_build((vec3){0, 5, -9}, (vec3){1, 2, 3}), OT_AREA);
+  object_add((Object *)cube_build((vec3){-9, 5, -9}, (vec3){1, 2, 3}), OT_AREA);
+  object_add((Object *)cube_build((vec3){7, 5, -9}, (vec3){1, 2, 3}), OT_AREA);
 
   object_add((Object *)floor_build((vec3){0, -2, 0}, 50), OT_AREA);
 

@@ -1,9 +1,12 @@
 #pragma once
 
 #include "cglm/types.h"
+#include <stdalign.h>
 #include <stdbool.h>
 
-#define BODY_FIELDS vec3 position;
+#define BODY_FIELDS                                                            \
+  vec3 position;                                                               \
+  versor rotation;
 
 typedef struct Body {
   BODY_FIELDS
@@ -20,7 +23,6 @@ typedef struct RigidBody {
   vec3 acceleration;
 
   // represent the angle of the physics object with a unit quaternion
-  versor angle;
   // speed of rotation around global coordinate axes.
   vec3 ang_velocity;
   vec3 ang_acceleration;
@@ -35,6 +37,7 @@ typedef struct RigidBody {
 
   float mass;
   float linear_damping;
+  float angular_damping;
 
   bool frozen; // ignore all dynamics and forces applied to this rigid body.
 } RigidBody;
@@ -48,9 +51,9 @@ typedef struct AreaBody {
 } AreaBody;
 
 RigidBody *make_rigid_body(float position_lerp_speed, float mass,
-                           float linear_damping, float static_friction,
-                           float kinetic_friction, bool should_roll,
-                           vec3 init_pos);
+                           float linear_damping, float angular_damping,
+                           float static_friction, float kinetic_friction,
+                           bool should_roll, vec3 init_pos);
 
 StaticBody *make_static_body(vec3 init_pos);
 

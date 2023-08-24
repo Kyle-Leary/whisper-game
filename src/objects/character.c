@@ -29,9 +29,10 @@ Character *character_build(Model *model) {
   p->type = OBJ_CHARACTER;
 
   {
-    p->phys = make_physcomp((Body *)make_rigid_body(0.9, 1.0, 0.9, 0.5, 0.3,
-                                                    false, (vec3){5, 0, 2}),
-                            (Collider *)make_sphere_collider(1.0));
+    p->phys =
+        make_physcomp((Body *)make_rigid_body(0.9, 1.0, 0.9, 0.5, 0.5, 0.3,
+                                              false, (vec3){5, 0, 2}),
+                      (Collider *)make_sphere_collider(1.0));
   }
 
   { // characters can animate their own models.

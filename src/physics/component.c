@@ -13,7 +13,7 @@ PhysComp *make_physcomp(Body *body, Collider *collider) {
   comp.collider = collider;
 
   // then, link the collider's position with the body's position.
-  comp.collider->position = (float *)&(body->position);
+  comp.collider->body = body;
 
   INDEX_AND_RETURN(comp, phys_comps)
 }

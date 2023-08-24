@@ -26,27 +26,37 @@ static unsigned int pointer_hash(void *key) {
 static void update_floor_render(Collider *c, GraphicsRender *gr) {
   { // position the render
     glm_mat4_identity(gr->model);
-    glm_translate(gr->model, c->position);
+    glm_translate(gr->model, c->body->position);
   }
 
   glm_scale(gr->model, (vec3){50, 50, 50});
 }
 static void update_rect_render(Collider *c, GraphicsRender *gr) {
   glm_mat4_identity(gr->model);
-  glm_translate(gr->model, c->position);
+  glm_translate(gr->model, c->body->position);
+
+  { // apply rotation from the versor:
+    // make the rotation matrix from the versor
+    mat4 rot_mat;
+
+    glm_quat_mat4(c->body->rotation, rot_mat);
+    glm_mat4_mul(gr->model, rot_mat, gr->model);
+  }
 }
 static void update_sphere_render(Collider *c, GraphicsRender *gr) {
   glm_mat4_identity(gr->model);
-  glm_translate(gr->model, c->position);
+  glm_translate(gr->model, c->body->position);
 }
 
 static GraphicsRender *create_floor_render(Collider *c) {
-  return glprim_floor_plane(c->position);
+  return glprim_floor_plane(c->body->position);
 }
-static GraphicsRender *create_rect_render(Collider *c) { return NULL; }
+static GraphicsRender *create_rect_render(Collider *c) {
+  return glprim_rect(((RectCollider *)c)->extents);
+}
 static GraphicsRender *create_sphere_render(Collider *c) {
   SphereCollider *sc = (SphereCollider *)c;
-  return glprim_sphere(c->position, sc->radius, 7);
+  return glprim_sphere(c->body->position, sc->radius, 7);
 }
 
 #define DEBUG_SHAPE_PASS(shape, array)                                         \

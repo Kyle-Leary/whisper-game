@@ -6,6 +6,8 @@
 #include "helper_math.h"
 
 GraphicsRender *glprim_cube(vec3 position);
+GraphicsRender *glprim_rect(vec3 extents);
+
 GraphicsRender *glprim_skybox_cube();
 GraphicsRender *glprim_upright_plane(vec3 position);
 GraphicsRender *glprim_floor_plane(vec3 position);

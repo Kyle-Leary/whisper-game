@@ -8,13 +8,15 @@
 #include "object_bases.h"
 #include <stdbool.h>
 
+#include "physics/body/body.h"
 #include "whisper/queue.h"
 
-// this is weird, this field shares a pointer to the position of the physics
-// body it's attached to. the body is the one that actually has position,
-// and a shape doesn't make sense without a position.
+// this field shares a pointer to a subset of a different body, containing stuff
+// like the versor for rotation and the vec3 for position. NOTE: in the
+// detection, we can't assume anything about the body type other than the common
+// fields already directly in Body. no typepunning!
 #define COLLIDER_FIELDS                                                        \
-  float *position;                                                             \
+  Body *body;                                                                  \
   WQueue phys_events;                                                          \
   bool inactive;
 
@@ -29,6 +31,8 @@ typedef struct SphereCollider {
 
 typedef struct RectCollider {
   COLLIDER_FIELDS
+  vec3 extents; // how far each edge is from the rect's center of mass.
+                // the x, y and z extent in one vector.
 } RectCollider;
 
 typedef struct FloorCollider {
@@ -37,4 +41,4 @@ typedef struct FloorCollider {
 
 SphereCollider *make_sphere_collider(float radius);
 FloorCollider *make_floor_collider();
-RectCollider *make_rect_collider();
+RectCollider *make_rect_collider(vec3 extents);

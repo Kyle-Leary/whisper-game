@@ -16,7 +16,7 @@ typedef struct Cube {
   RenderComp *render;
 } Cube;
 
-Cube *cube_build(vec3 position);
+Cube *cube_build(vec3 position, vec3 extents);
 void cube_destroy(Cube *c);
 
 void cube_init(void *c);

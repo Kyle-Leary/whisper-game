@@ -1,5 +1,6 @@
 #include "rigid_body.h"
 
+#include "cglm/quat.h"
 #include "cglm/vec3.h"
 #include "global.h"
 #include "helper_math.h"
@@ -87,6 +88,82 @@ static void rk4_position(RigidBody *rb) {
   }
 }
 
+static void versor_to_euler_angles(versor q, vec3 eulerAngles) {
+  // 1. Compute some useful values
+  float ysqr = q[1] * q[1];
+  float t0 = -2.0f * (ysqr + q[2] * q[2]) + 1.0f;
+  float t1 = +2.0f * (q[0] * q[1] - q[3] * q[2]);
+  float t2 = -2.0f * (q[0] * q[2] + q[3] * q[1]);
+  float t3 = +2.0f * (q[1] * q[2] - q[3] * q[0]);
+  float t4 = -2.0f * (q[0] * q[0] + ysqr) + 1.0f;
+
+  // 2. Handle singularities
+  if (t2 > 1.0f)
+    t2 = 1.0f;
+  if (t2 < -1.0f)
+    t2 = -1.0f;
+
+  // 3. Compute pitch, roll, and yaw
+  float pitch = asinf(t2);
+  float roll = atan2f(t3, t4);
+  float yaw = atan2f(t1, t0);
+
+  // 4. Store in result vector and convert to degrees
+  eulerAngles[0] = glm_deg(roll);
+  eulerAngles[1] = glm_deg(pitch);
+  eulerAngles[2] = glm_deg(yaw);
+}
+
+void euler_angles_to_versor(vec3 eulerAngles, versor q) {
+  // Convert angles from degrees to radians
+  float roll = glm_rad(eulerAngles[0]);
+  float pitch = glm_rad(eulerAngles[1]);
+  float yaw = glm_rad(eulerAngles[2]);
+
+  // Compute individual quaternion components
+  float cy = cosf(yaw * 0.5f);
+  float sy = sinf(yaw * 0.5f);
+  float cp = cosf(pitch * 0.5f);
+  float sp = sinf(pitch * 0.5f);
+  float cr = cosf(roll * 0.5f);
+  float sr = sinf(roll * 0.5f);
+
+  q[0] = cr * cp * cy + sr * sp * sy;
+  q[1] = sr * cp * cy - cr * sp * sy;
+  q[2] = cr * sp * cy + sr * cp * sy;
+  q[3] = cr * cp * sy - sr * sp * cy;
+}
+
+static void rotation_tick(RigidBody *rb) {
+  if (!(rb->should_roll))
+    return;
+
+  // operate on the euler angles, then convert them back into the original
+  // versor.
+  vec3 eulerAngles;
+  versor_to_euler_angles(rb->rotation, eulerAngles);
+
+  // { // accelerate the velocity
+  //   vec3 vel_step;
+  //   glm_vec3_scale(rb->ang_acceleration, delta_time, vel_step);
+  //   glm_vec3_add(rb->ang_velocity, vel_step, rb->ang_velocity);
+  // }
+  //
+  // { // apply velocity to the angles
+  //   vec3 angle_step;
+  //   glm_vec3_scale(rb->ang_velocity, delta_time, angle_step);
+  //   glm_vec3_add(eulerAngles, angle_step, eulerAngles);
+  // }
+
+  euler_angles_to_versor(eulerAngles, rb->rotation);
+
+  glm_quat_normalize(rb->rotation);
+
+  { // apply angular damping
+    glm_vec3_scale(rb->ang_velocity, rb->angular_damping, rb->ang_velocity);
+  }
+}
+
 static void position_lerp(RigidBody *rb) {
   lerp_vec3(rb->lerp_position, rb->position, rb->position_lerp_speed,
             rb->lerp_position);
@@ -96,6 +173,7 @@ void single_rb_dynamics(RigidBody *rb) {
   rb_apply_etc_forces(rb);
   rk4_position(rb);
   position_lerp(rb);
+  rotation_tick(rb);
 }
 void single_rb_response(RigidBody *rb, WQueue collider_events) {}
 
