@@ -6,17 +6,6 @@
 #include "core/area_defines.h"
 #include <stdint.h>
 
-typedef struct CollisionEvent { // contains all the data sent to an entity from
-                                // the CollisionEventHandler function in the
-                                // LUT.
-
-  uint16_t id; // id, based on the index of the objects array.
-
-  vec3 normalized_force; // encode the data of where the object was pushed from,
-                         // and how far the push should be.
-  float magnitude;
-} CollisionEvent;
-
 // interaction - when you bump/interact with something on the map.
 typedef enum InteractionType {
   IT_MOVE_INTO, // just moving into their position.

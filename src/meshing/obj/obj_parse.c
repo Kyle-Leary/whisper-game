@@ -1,6 +1,5 @@
 #include "obj_parse.h"
 #include "backends/graphics_api.h"
-#include "cglm/affine-pre.h"
 
 #include <stdio.h>
 #include <stdlib.h>

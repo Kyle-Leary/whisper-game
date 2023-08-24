@@ -5,7 +5,6 @@
 #include "objects/camera.h"
 #include "objects/character.h"
 #include "objects/cube.h"
-#include "objects/detector.h"
 #include "objects/floor.h"
 #include "objects/label.h"
 #include "objects/player.h"

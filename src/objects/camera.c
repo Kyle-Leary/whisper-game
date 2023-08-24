@@ -1,7 +1,6 @@
 #include "camera.h"
 
 #include "../object.h"
-#include "../physics.h"
 #include "backends/graphics_api.h"
 #include "backends/input_api.h"
 #include "cglm/cam.h"
@@ -14,7 +13,10 @@
 
 #include "helper_math.h"
 #include "input_help.h"
-#include "physics/raycast.h"
+#include "physics/body/body.h"
+#include "physics/collider/collider.h"
+#include "physics/component.h"
+#include "physics/raycast_detection.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -23,23 +25,15 @@
 // really basic camera entity type.
 
 #define CAST Camera *camera = (Camera *)p
+#define CAST_AB AreaBody *ab = (AreaBody *)camera->phys->body;
 
 Camera *camera_build(vec3 position, vec3 *target) {
   Camera *p = (Camera *)malloc(sizeof(Camera));
 
-  { // give the camera basic collisions with the world, this will be useful when
-    // trying to make it not jank/clipping through walls.
-    // Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
-    // make_colliders(1, colliders);
-    //
-    // colliders[0].type = CL_SPHERE;
-    // SphereColliderData *col_data =
-    //     (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
-    // col_data->radius = 1;
-    // colliders[0].data = col_data;
+  AreaBody *ab = make_area_body(position);
 
-    p->phys =
-        make_physcomp(0.1, 1.0, 0.5, 0.5, 0.3, false, true, NULL, 1, position);
+  { // give the camera basic collisions with the world, this will be useful when
+    p->phys = make_physcomp((Body *)ab, (Collider *)make_sphere_collider(4.0));
   }
 
   p->target = target;
@@ -63,9 +57,9 @@ static void mouse_picking_loop(Camera *camera) {
   if (i_state.act_just_pressed[ACT_HUD_INTERACT]) {
     uint16_t indices[MAX_MOUSEPICKING_OBJECTS];
 
-    int num_found =
-        raycast_intersect(indices, MAX_MOUSEPICKING_OBJECTS,
-                          camera->phys->lerp_position, (vec3){0, -1, 0});
+    CAST_AB;
+    int num_found = raycast_intersect(indices, MAX_MOUSEPICKING_OBJECTS,
+                                      ab->position, (vec3){0, -1, 0});
 
     for (int i = 0; i < num_found; i++) {
       uint16_t id = indices[i];
@@ -76,6 +70,7 @@ static void mouse_picking_loop(Camera *camera) {
 
 void camera_update(void *p) {
   CAST;
+  CAST_AB;
 
   mouse_picking_loop(camera);
 
@@ -100,24 +95,16 @@ void camera_update(void *p) {
            (vec3){13 * sin(camera->rotation), camera->height,
                   13 * cos(camera->rotation)},
            sizeof(float) * 3);
-    glm_vec3_add(*camera->target, offset, camera->phys->position);
+    glm_vec3_add(*camera->target, offset, ab->position);
   }
 
   { // then, update the view matrix with the new position.
     mat4 offset_m;
     glm_mat4_identity(offset_m);
-    glm_translate(offset_m, camera->phys->position);
+    glm_translate(offset_m, ab->position);
 
-    glm_lookat(camera->phys->position, *camera->target, (vec3){0, 0.9, 0.01},
-               m_view);
+    glm_lookat(ab->position, *camera->target, (vec3){0, 0.9, 0.01}, m_view);
   }
-}
-
-void camera_handle_collision(void *p, CollisionEvent *e) {
-  CAST;
-  glm_vec3_scale(e->normalized_force, e->magnitude, e->normalized_force);
-  glm_vec3_add(camera->phys->position, e->normalized_force,
-               camera->phys->position);
 }
 
 void camera_clean(void *p) {

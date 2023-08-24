@@ -269,7 +269,6 @@ void gltf_node_parse(GLTFFile *file, Model *model, NodeIndex n_idx) {
       // child. i can't think of an easier way to do this.
       model->nodes[child_node_index].parent = target_node_index;
     }
-    PRINT_PTR(target_node->children)
   }
 
   { // now, init the basic properties of the node, i guess depending on the type
@@ -421,13 +420,6 @@ void gltf_animations_parse(GLTFFile *file, Model *model) {
       curr_anim->samplers = malloc(sizeof(Sampler) * curr_anim->num_samplers);
       gltf_samplers_parse(file, v_samplers, curr_anim->samplers,
                           curr_anim->num_samplers);
-
-      for (int i = 0; i < 30; i++) {
-        printf("%f ", curr_anim->samplers[0].output[i]);
-        if (i % 3 == 0) {
-          printf("\n");
-        }
-      }
     }
 
     { // channels

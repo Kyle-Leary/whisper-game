@@ -4,9 +4,9 @@
 #include "../object_lut.h"
 
 #include "../object.h"
-#include "../physics.h"
 #include "backends/graphics_api.h"
 #include "cglm/types.h"
+#include "physics/component.h"
 #include "render.h"
 
 typedef struct Floor {
@@ -24,6 +24,5 @@ void floor_destroy(Floor *f);
 void floor_init(void *f);
 void floor_update(void *f);
 void floor_clean(void *f);
-void floor_handle_collision(void *f, CollisionEvent *e);
 
 #endif // !FLOOR_H

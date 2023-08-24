@@ -4,12 +4,11 @@
 #include "../object_lut.h"
 
 #include "../object.h"
-#include "../physics.h"
 #include "animation/animator.h"
 #include "backends/graphics_api.h"
 #include "cglm/types.h"
 #include "defines.h"
-#include "objects/detector.h"
+#include "physics/component.h"
 #include "render.h"
 #include <stdbool.h>
 
@@ -20,8 +19,6 @@ typedef struct Player {
   PhysComp *phys;
   RenderComp *render;
   Animator *animator;
-
-  Detector *interact_detector;
 
   Node *animation_root; // a direct link to the Node in the Model hierarchy that
                         // has direct influence over the player's trs vectors.

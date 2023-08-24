@@ -13,8 +13,10 @@
 #include "objects/label.h"
 #include "objects/texture.h"
 #include "path.h"
-#include "physics/raycast.h"
 #include "state.h"
+
+#include "physics/raycast_detection.h"
+
 #include <GL/gl.h>
 #include <stdint.h>
 

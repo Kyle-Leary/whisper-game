@@ -4,10 +4,10 @@
 #include "../object_lut.h"
 
 #include "../object.h"
-#include "../physics.h"
 #include "backends/graphics_api.h"
 #include "cglm/types.h"
 #include "object_bases.h"
+#include "physics/physics.h"
 
 typedef struct Camera {
   OBJECT_FIELDS
@@ -33,6 +33,5 @@ void camera_destroy(Camera *c);
 void camera_init(void *c);
 void camera_update(void *c);
 void camera_clean(void *c);
-void camera_handle_collision(void *c, CollisionEvent *e);
 
 #endif // !CAMERA_H

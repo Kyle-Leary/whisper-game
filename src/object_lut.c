@@ -6,7 +6,6 @@
 #include "objects/camera.h"
 #include "objects/character.h"
 #include "objects/cube.h"
-#include "objects/detector.h"
 #include "objects/floor.h"
 #include "objects/label.h"
 #include "objects/player.h"
@@ -35,8 +34,7 @@ ObjectFnPointers fn_lut[OBJ_COUNT] = {
     [OBJ_CAMERA] = {camera_init, camera_update, camera_clean, none_int},
     [OBJ_CUBE] = {cube_init, cube_update, cube_clean, none_int},
     [OBJ_SPHERE] = {sphere_init, sphere_update, sphere_clean, none_int},
-    [OBJ_DETECTOR] = {detector_init, detector_update, detector_clean, none_int},
     [OBJ_FLOOR] = {floor_init, floor_update, floor_clean, none_int},
     [OBJ_CHARACTER] = {character_init, character_update, character_clean,
-                       character_handle_interact},
+                       none_int},
 };

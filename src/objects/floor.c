@@ -1,9 +1,7 @@
 #include "floor.h"
 
 #include "../object.h"
-#include "../physics.h"
 #include "backends/graphics_api.h"
-#include "cglm/affine-pre.h"
 #include "cglm/affine.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
@@ -13,6 +11,8 @@
 
 #include "helper_math.h"
 #include "input_help.h"
+#include "physics/body/body.h"
+#include "physics/collider/collider.h"
 #include "printers.h"
 #include "render.h"
 
@@ -27,21 +27,14 @@ Floor *floor_build(vec3 position, float strength) {
   p->type = OBJ_FLOOR;
 
   {
-    Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
-    make_colliders(1, colliders);
-
-    colliders[0].type = CL_FLOOR;
-    FloorColliderData *col_data =
-        (FloorColliderData *)malloc(sizeof(FloorColliderData) * 1);
-    col_data->strength = strength;
-    colliders[0].data = col_data;
-
-    p->phys = make_physcomp(0.1, 1.0, 0.5, 0.5, 0.3, false, true, colliders, 1,
-                            position);
+    p->phys = make_physcomp((Body *)make_static_body(position),
+                            (Collider *)make_floor_collider());
   }
 
-  p->render = make_rendercomp_from_graphicsrender(
-      glprim_floor_plane(p->phys->lerp_position));
+  StaticBody *sb = (StaticBody *)p->phys->body;
+
+  p->render =
+      make_rendercomp_from_graphicsrender(glprim_floor_plane(sb->position));
   GraphicsRender *prim = (GraphicsRender *)p->render->data;
   glm_scale(prim->model, (vec3){100, 1, 100});
   glm_translate(prim->model, position);
@@ -51,8 +44,6 @@ Floor *floor_build(vec3 position, float strength) {
 void floor_init(void *p) {}
 
 void floor_update(void *p) {}
-
-void floor_handle_collision(void *p, CollisionEvent *e) {}
 
 void floor_clean(void *p) {
   Floor *floor = (Floor *)p;

@@ -1,7 +1,6 @@
 #include "character.h"
 
 #include "../object.h"
-#include "../physics.h"
 #include "animation/animator.h"
 #include "backends/graphics_api.h"
 #include "cglm/affine-pre.h"
@@ -15,6 +14,7 @@
 #include "helper_math.h"
 #include "input_help.h"
 #include "object_lut.h"
+#include "path.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -22,30 +22,27 @@
 // really basic Character entity type.
 
 #define CAST Character *character = (Character *)p
+#define CAST_RB RigidBody *rb = (RigidBody *)character->phys->body
 
 Character *character_build(Model *model) {
   Character *p = (Character *)malloc(sizeof(Character));
   p->type = OBJ_CHARACTER;
 
   {
-    Collider *colliders = (Collider *)calloc(sizeof(Collider), 1);
-    make_colliders(1, colliders);
-    colliders[0].type = CL_SPHERE;
-    SphereColliderData *col_data =
-        (SphereColliderData *)malloc(sizeof(SphereColliderData) * 1);
-    col_data->radius = 1;
-    colliders[0].data = col_data;
-
-    p->phys = make_physcomp(0.1, 1.0, 0.5, 0.5, 0.3, false, false, colliders, 1,
-                            (vec3){0});
+    p->phys = make_physcomp((Body *)make_rigid_body(0.9, 1.0, 0.9, 0.5, 0.3,
+                                                    false, (vec3){5, 0, 2}),
+                            (Collider *)make_sphere_collider(1.0));
   }
 
   { // characters can animate their own models.
-    // memset(&(p->animator), 0, sizeof(Animator));
-    // p->animator.target = p->model;
-  }
+    // parse then mesh the glb file, then render it in the normal drawing loop.
+    p->render = make_rendercomp_from_glb(MODEL_PATH("wiggle.glb"));
 
-  p->model = model;
+    Model *player_model = (Model *)(p->render->data);
+    p->animator = make_animator(player_model);
+
+    anim_play(p->animator, "wiggle", true);
+  }
 
   return p;
 }
@@ -53,40 +50,6 @@ Character *character_build(Model *model) {
 void character_init(void *p) {}
 
 void character_update(void *p) {}
-
-void character_draw(void *p) {
-  CAST;
-
-  glm_mat4_identity(character->model->transform);
-  glm_translate(character->model->transform, character->phys->lerp_position);
-
-  g_draw_model(character->model);
-}
-
-InteractionResponse character_handle_interact(void *p, InteractionEvent e) {
-  CAST;
-
-  if (e.x_pos != character->phys->position[0] ||
-      e.y_pos !=
-          character->phys->position[1]) // if the spot they want to move isn't
-                                        // the character's spot, return nothing,
-                                        // since we don't care about it.
-    return (InteractionResponse){IRT_NONE};
-
-  // else, they're trying to move into our spot.
-  switch (e.type) {
-  case IT_MOVE_INTO:
-    return (InteractionResponse){IRT_BLOCK}; // block them, don't let them move.
-    break;
-  case IT_EXAMINE:
-    return (InteractionResponse){
-        IRT_ENCOUNTER}; // block them, don't let them move.
-    break;
-  default:
-    return (InteractionResponse){IRT_NONE};
-    break;
-  }
-}
 
 void character_clean(void *p) {
   Character *character = (Character *)p;

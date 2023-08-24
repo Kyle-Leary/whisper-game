@@ -1,7 +1,6 @@
 #pragma once
 
 #include "cglm/types.h"
-#include "physics/collider_types.h"
 #include <stdint.h>
 
 #define PHYS_OBJ_START 0b1000000000

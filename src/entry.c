@@ -4,7 +4,6 @@
 #include "backends/graphics_api.h"
 #include "backends/input_api.h"
 #include "backends/lifecycle_api.h"
-#include "cglm/affine-pre.h"
 #include "cglm/cglm.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
@@ -25,8 +24,7 @@
 #include "objects/character.h"
 #include "objects/player.h"
 #include "path.h"
-#include "physics.h"
-#include "physics/collider_types.h"
+#include "physics/physics.h"
 #include "printers.h"
 #include "render.h"
 #include "size.h"
@@ -55,7 +53,8 @@ int entry_point(int argc, char **argv) {
 
   // glm is general purpose math, this isn't gl-specific. everything uses
   // projection matrices!
-  glm_perspective(glm_rad(75.0f), WIN_W / WIN_H, 0.1f, 100.0f, m_projection);
+  glm_perspective(glm_rad(75.0f), (float)WIN_W / WIN_H, 0.1f, 100.0f,
+                  m_projection);
   glm_mat4_identity(m_view);
   glm_mat4_identity(m_model);
 
@@ -110,6 +109,7 @@ int entry_point(int argc, char **argv) {
 
     TextureHandle skybox_tex = textures[g_load_cubemap(cubemap_paths)];
     skybox_render->pc = PC_SKYBOX;
+
     // this also means that you can effectively change the whole skybox without
     // much CPU overhead by simply changing the cubemap texture bound to
     // SKYBOX_TEX_SLOT.
@@ -164,14 +164,10 @@ int entry_point(int argc, char **argv) {
 
     // after admin matrix stuff is over with, actually draw all the Renders.
 
-    { // draw the 3d scene
+    { // draw the 3d scene (YES, ORDER MATTERS HERE)
       // our top-level, default pipeline.
       { // render skybox
         g_draw_render(skybox_render);
-      }
-
-      if (debug_drawing) { // render the debug physics objects.
-        physics_debug_draw();
       }
 
       g_use_texture(nepeta, 0);
@@ -179,6 +175,10 @@ int entry_point(int argc, char **argv) {
 
       // draw all the immediate mode stuff with the im 3d positional shader.
       im_flush();
+
+      if (debug_drawing) { // render the debug physics objects.
+        physics_debug_draw();
+      }
     }
 
     l_end_draw();

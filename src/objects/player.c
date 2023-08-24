@@ -3,7 +3,6 @@
 #include "camera.h"
 
 #include "../object.h"
-#include "../physics.h"
 #include "backends/input_api.h"
 #include "cglm/affine-pre.h"
 #include "cglm/affine.h"
@@ -28,10 +27,17 @@
 #include "meshing/gltf_mesher.h"
 #include "meshing/obj/obj_parse.h"
 #include "object_bases.h"
-#include "objects/detector.h"
+#include "objects/player.h"
 #include "parsers/gltf/gltf_parse.h"
 #include "path.h"
-#include "physics/collider_types.h"
+
+#include "physics/body/body.h"
+#include "physics/body/rigid_body.h"
+#include "physics/collider/collider.h"
+#include "physics/component.h"
+#include "physics/detection.h"
+#include "physics/physics.h"
+
 #include "pragma.h"
 #include "printers.h"
 #include "render.h"
@@ -47,11 +53,9 @@
 #include <string.h>
 
 #define CAST Player *player = (Player *)p
+#define CAST_RB RigidBody *rb = (RigidBody *)player->phys->body;
 
-#define BASE_RADIUS (1.0)
-
-#define BASE_COLLIDER 0
-#define INTERACTION_COLLIDER 1
+#define BASE_RADIUS (3.0)
 
 // use the dummy as the default entity, just for the initial setup of the object
 // pipeline in the game.
@@ -62,31 +66,9 @@ Player *player_build() {
   p->type = OBJ_PLAYER;
 
   { // setup player phys data.
-    Collider *colliders = (Collider *)calloc(sizeof(Collider), 2);
-    make_colliders(2, colliders);
-
-    SphereColliderData *col_datas =
-        (SphereColliderData *)calloc(sizeof(SphereColliderData), 2);
-
-    { // base collider for movement and floor collisions etc
-      colliders[BASE_COLLIDER].type = CL_SPHERE;
-      col_datas[BASE_COLLIDER].radius = BASE_RADIUS;
-      colliders[BASE_COLLIDER].data = &(col_datas[BASE_COLLIDER]);
-    }
-
-    { // for detection of other objects.
-      colliders[INTERACTION_COLLIDER].type = CL_SPHERE;
-      col_datas[INTERACTION_COLLIDER].radius = BASE_RADIUS * 5;
-      colliders[INTERACTION_COLLIDER].data = &(col_datas[INTERACTION_COLLIDER]);
-      colliders[INTERACTION_COLLIDER].intangible = true;
-    }
-
-    float player_mass = 4.0;
-    p->phys = make_physcomp(1, player_mass, 0.3, 0.5, 0.3, false, false,
-                            colliders, 2, (vec3){0, 0, 0});
-
-    // sanity test, make sure that the array is setting and returning properly.
-    assert(p->phys->mass == player_mass);
+    p->phys = make_physcomp((Body *)make_rigid_body(0.9, 1.0, 0.9, 0.5, 0.3,
+                                                    false, (vec3){5, 0, 2}),
+                            (Collider *)make_sphere_collider(BASE_RADIUS));
   }
 
   { // setup player rendering data.
@@ -121,12 +103,14 @@ static void player_handle_interactions(Player *player) { Position p; }
 
 // The main function
 static void player_handle_walking_state(Player *player) {
+  CAST_RB;
+
   player_handle_interactions(player);
 
   {
     mat4 offset_m;
     glm_mat4_identity(offset_m);
-    glm_translate(offset_m, player->phys->lerp_position);
+    glm_translate(offset_m, rb->position);
 
     vec2 v_move;
     get_movement_vec(v_move, i_state.act_held);
@@ -150,13 +134,12 @@ static void player_handle_walking_state(Player *player) {
         glm_vec3_add(force_direction, b.forward, force_direction);
 
         // apply at the center of mass.
-        physics_apply_force((PhysComp *)player->phys, force_direction,
-                            player->phys->position);
+        rb_apply_force(rb, force_direction, 1.0, rb->position);
       }
 
       // then, take ANOTHER step, and use that to calculate the lookat matrix
       // for the proper model rotation. lazy!!!
-      glm_vec3_copy(player->phys->position, player->ghost_step);
+      glm_vec3_copy(rb->position, player->ghost_step);
 
       glm_vec3_add(player->ghost_step, b.right, player->ghost_step);
       glm_vec3_add(player->ghost_step, b.forward, player->ghost_step);
@@ -183,52 +166,40 @@ static void player_handle_encounter(Player *player) {
 void player_update(void *p) {
   // trust the caller themselves to pass the right type.
   CAST;
+  CAST_RB;
+
   Model *player_model = player->render->data;
 
-  player->ghost_step[1] =
-      player->phys->lerp_position[1]; // make the lookahead flat,
-                                      // or else it looks weird.
+  player->ghost_step[1] = rb->lerp_position[1]; // make the lookahead flat,
+                                                // or else it looks weird.
 
   glm_mat4_identity(player_model->transform);
-  glm_translate(player_model->transform, player->phys->lerp_position);
+  glm_translate(player_model->transform, rb->lerp_position);
   glm_translate(player_model->transform, player->animation_root->translation);
-  glm_lookat(player->phys->lerp_position, player->ghost_step, (vec3){0, 1, 0},
+  glm_lookat(rb->lerp_position, player->ghost_step, (vec3){0, 1, 0},
              player_model->transform);
   glm_mat4_inv(player_model->transform, player_model->transform);
   glm_rotate(player_model->transform, glm_rad(180), (vec3){0, 1, 0});
 
-  im_velocity(player->phys);
-  im_acceleration(player->phys);
+  im_velocity(rb);
+  im_acceleration(rb);
 
   { // handle jumping, unwrap the MQ and check for any floor collisions on the
     // previous physics tick.
     player->is_on_floor = false;
 
-    WQueue *mailbox = &(player->phys->colliders[BASE_COLLIDER].phys_events);
+    WQueue *mailbox = &(player->phys->collider->phys_events);
     while (mailbox->active_elements > 0) {
-      PhysicsEvent *e = w_dequeue(mailbox);
+      CollisionEvent *e = w_dequeue(mailbox);
       assert(
           e !=
           NULL); // shouldn't happen with the active elements condition above.
-      if (e->sender_col_type == CL_FLOOR) {
-        player->is_on_floor = true;
-      }
     }
 
     if (player->is_on_floor) {
       if (i_state.act_just_pressed[ACT_JUMP]) {
-        physics_apply_force((PhysComp *)player->phys,
-                            (vec3){0, player->jump_power, 0},
-                            player->phys->position);
+        rb_apply_force(rb, (vec3){0, 1, 0}, player->jump_power, rb->position);
       }
-    }
-  }
-
-  {
-    WQueue *mailbox =
-        &(player->phys->colliders[INTERACTION_COLLIDER].phys_events);
-    while (mailbox->active_elements > 0) {
-      PhysicsEvent *e = w_dequeue(mailbox);
     }
   }
 

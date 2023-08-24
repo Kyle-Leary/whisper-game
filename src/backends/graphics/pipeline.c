@@ -25,6 +25,7 @@ static void leave_stage(PipelineConfiguration config) {
     glEnable(GL_DEPTH_TEST);
   } break;
   case PC_WIREFRAME: {
+    glEnable(GL_DEPTH_TEST);
     // re-enable the FILL mode, don't do wireframe.
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   } break;
@@ -77,11 +78,12 @@ void g_use_pipeline(PipelineConfiguration config) {
   } break;
   case PC_WIREFRAME: {
     // wireframe is mostly just handled through the settings, not the shader.
+    glDisable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     Shader *ptr = GETSH("solid");
     shader_use(ptr);
 
-    shader_set_3f(ptr, "u_render_color", 1, 0, 0);
+    shader_set_4f(ptr, "u_render_color", 1, 0, 0, 0.1);
   } break;
   case PC_BLANK_GOURAUD: {
     shader_use(GETSH("gouraud"));
@@ -95,7 +97,7 @@ void g_use_pipeline(PipelineConfiguration config) {
     Shader *ptr = GETSH("solid");
 
     // we can set a "default" color here.
-    shader_set_3f(ptr, "u_render_color", 0, 1, 0);
+    shader_set_4f(ptr, "u_render_color", 0, 1, 1, 1);
   } break;
   case PC_TEXT_3D: {
     Shader *ptr = GETSH("text_3d");

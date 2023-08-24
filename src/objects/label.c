@@ -1,9 +1,7 @@
 #include "label.h"
 
 #include "../object.h"
-#include "../physics.h"
 #include "backends/graphics_api.h"
-#include "cglm/affine-pre.h"
 #include "cglm/affine.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"

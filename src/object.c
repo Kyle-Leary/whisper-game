@@ -4,7 +4,7 @@
 #include "object_bases.h"
 #include "object_lut.h"
 #include "objects/player.h"
-#include "physics.h"
+#include "physics/physics.h"
 
 #include <signal.h>
 #include <stddef.h>

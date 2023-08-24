@@ -21,7 +21,6 @@ typedef void (*UpdateFn)(void *);
 
 typedef void (*CleanFn)(void *); // when it's removed from the objects array.
                                  // different from destruction.
-typedef void (*CollisionHandler)(void *, CollisionEvent *);
 // the area_server should handle propagating these events, started by function
 // calls from the player and potentially other objects.
 typedef InteractionResponse (*InteractionHandler)(void *, InteractionEvent);
@@ -39,7 +38,5 @@ typedef struct ObjectFnPointers {
 } ObjectFnPointers;
 
 extern ObjectFnPointers fn_lut[OBJ_COUNT];
-
-void none_col(void *v, CollisionEvent *e);
 
 #endif // !OBJECT_LUT_H

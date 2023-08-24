@@ -4,9 +4,9 @@
 #include "../object_lut.h"
 
 #include "../object.h"
-#include "../physics.h"
 #include "backends/graphics_api.h"
 #include "cglm/types.h"
+#include "physics/component.h"
 #include "render.h"
 
 typedef struct Cube {
@@ -22,6 +22,5 @@ void cube_destroy(Cube *c);
 void cube_init(void *c);
 void cube_update(void *c);
 void cube_clean(void *c);
-void cube_handle_collision(void *c, CollisionEvent *e);
 
 #endif // !CUBE_H

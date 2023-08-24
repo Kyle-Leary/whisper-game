@@ -6,7 +6,6 @@
 #include "cglm/types.h"
 #include "main.h"
 #include "meshing/font.h"
-#include "objects/player.h"
 
 #include <sys/types.h>
 
