@@ -29,6 +29,10 @@ void setup_text3d_render() {
 
 // setup all the local objects in the scene.
 void areas_level() {
+  object_add((Object *)sphere_build((vec3){3, 5, -2}, 1, 10), OT_AREA);
+  object_add((Object *)sphere_build((vec3){6, 10, -2}, 1, 10), OT_AREA);
+  object_add((Object *)sphere_build((vec3){-2, 20, -2}, 1, 10), OT_AREA);
+
   our_player = (Player *)object_add((Object *)player_build(), OT_AREA);
   our_player->phys->body->position[0] = 5;
   our_player->phys->body->position[1] = -1;
@@ -52,12 +56,6 @@ void areas_level() {
   object_add((Object *)cube_build((vec3){0, -1, -9}), OT_AREA);
   object_add((Object *)cube_build((vec3){-9, -1, -9}), OT_AREA);
   object_add((Object *)cube_build((vec3){7, -1, -9}), OT_AREA);
-
-  object_add((Object *)sphere_build((vec3){2, -1, -2}, 1, 10), OT_AREA);
-  object_add((Object *)sphere_build((vec3){2, 2, -2}, 1, 10), OT_AREA);
-  object_add((Object *)sphere_build((vec3){2, 5, -2}, 1, 10), OT_AREA);
-  object_add((Object *)sphere_build((vec3){2, 10, -2}, 1, 10), OT_AREA);
-  object_add((Object *)sphere_build((vec3){2, 20, -2}, 1, 10), OT_AREA);
 
   object_add((Object *)floor_build((vec3){0, -2, 0}, 50), OT_AREA);
 

@@ -4,31 +4,37 @@
 #include "physics/physics.h"
 #include "util.h"
 #include "whisper/array.h"
+#include "whisper/queue.h"
 
 #include <stddef.h>
 
-#define DETECTION_INNER(type_one, type_two, array_one, array_two, mod)         \
+#define DETECTION_DIFFERENT(type_one, type_two, array_one, array_two)          \
   for (int i = 0; i < physics_state.array_one.upper_bound; i++) {              \
     type_one *base = w_array_get(&physics_state.array_one, i);                 \
     if (base == NULL)                                                          \
       continue;                                                                \
-    for (int j = i mod; j < physics_state.array_two.upper_bound; j++) {        \
-      CollisionEvent e_into_target;                                            \
-      CollisionEvent e_into_base;                                              \
-      bool is_collision_detected = false;                                      \
+    for (int j = 0; j < physics_state.array_two.upper_bound; j++) {            \
       type_two *target = w_array_get(&physics_state.array_two, j);             \
       if (target == NULL)                                                      \
-        continue;
-
-// intro has no modifier on the index, since they're not modifying the same
-// array.
-#define DETECTION_DIFFERENT(type_one, type_two, array_one, array_two)          \
-  DETECTION_INNER(type_one, type_two, array_one, array_two, )
+        continue;                                                              \
+      CollisionEvent e_into_target;                                            \
+      CollisionEvent e_into_base;                                              \
+      bool is_collision_detected = false;
 
 // add one to the inner index to not generate collisions between the shape and
 // itself.
 #define DETECTION_SAME(type, array)                                            \
-  DETECTION_INNER(type, type, array, array, +1)
+  for (int i = 0; i < physics_state.array.upper_bound; i++) {                  \
+    type *base = w_array_get(&physics_state.array, i);                         \
+    if (base == NULL)                                                          \
+      continue;                                                                \
+    for (int j = i + 1; j < physics_state.array.upper_bound; j++) {            \
+      type *target = w_array_get(&physics_state.array, j);                     \
+      if (target == NULL)                                                      \
+        continue;                                                              \
+      CollisionEvent e_into_target;                                            \
+      CollisionEvent e_into_base;                                              \
+      bool is_collision_detected = false;
 
 #define DETECTION_END                                                          \
   if (is_collision_detected) {                                                 \
@@ -43,7 +49,7 @@ void handle_sphere_sphere() {
 
   float distance = glm_vec3_distance(base->position, target->position);
   if (distance < (base->radius + target->radius)) {
-    float magnitude = 8 * distance;
+    float magnitude = distance;
     e_into_base.magnitude = magnitude;
     e_into_target.magnitude = magnitude;
 
@@ -65,9 +71,9 @@ void handle_sphere_rect() {
 void handle_sphere_floor() {
   DETECTION_DIFFERENT(SphereCollider, FloorCollider, spheres, floors)
 
-  float distance = target->position[1] - base->position[1];
+  float distance = target->position[1] - (base->position[1] - base->radius);
   if (distance >= 0) {
-    float magnitude = 20 * distance;
+    float magnitude = distance * 4;
     e_into_base.magnitude = magnitude;
     e_into_target.magnitude = magnitude;
 
@@ -98,7 +104,20 @@ void handle_rect_floor() {
 // "floor" here.
 void handle_floor_floor();
 
+#define CLEAN(array)                                                           \
+  for (int i = 0; i < physics_state.array.upper_bound; i++) {                  \
+    Collider *base = w_array_get(&physics_state.array, i);                     \
+    WQueue *mailbox = &(base->phys_events);                                    \
+    while (mailbox->active_elements > 0) {                                     \
+      CollisionEvent *e = w_dequeue(mailbox);                                  \
+    }                                                                          \
+  }
+
 void detection_pass() {
+  CLEAN(spheres)
+  CLEAN(floors)
+  CLEAN(rects)
+
   handle_sphere_sphere();
   handle_sphere_rect();
   handle_sphere_floor();

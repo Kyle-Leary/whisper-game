@@ -9,9 +9,12 @@
 #include "glprim.h"
 
 #include "helper_math.h"
+#include "im_prims.h"
 #include "input_help.h"
 #include "physics/detection.h"
+#include "printers.h"
 #include "render.h"
+#include "util.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -28,8 +31,11 @@ Sphere *sphere_build(vec3 position, float radius, unsigned int segments) {
 
   {
     p->phys = make_physcomp(
-        (Body *)make_rigid_body(0.9, 1.0, 0.9, 0.5, 0.3, true, (vec3){1, 0, 9}),
+        (Body *)make_rigid_body(0.7, 1.0, 0.9, 0.5, 0.3, true, position),
         (Collider *)make_sphere_collider(radius));
+    // p->phys = make_physcomp(
+    //     (Body *)make_rigid_body(0.9, 5.0, 0.2, 0.5, 0.3, true, position),
+    //     (Collider *)make_sphere_collider(radius));
   }
 
   {
@@ -51,13 +57,13 @@ void sphere_update(void *p) {
   glm_translate(prim->model, rb->lerp_position);
   g_draw_render(prim);
 
+  im_velocity(rb);
+  im_acceleration(rb);
+
   { // handle physevents
     WQueue mailbox = sphere->phys->collider->phys_events;
     while (mailbox.active_elements > 0) {
       CollisionEvent *e = w_dequeue(&mailbox);
-      assert(
-          e !=
-          NULL); // shouldn't happen with the active elements condition above.
     }
   }
 }

@@ -66,7 +66,7 @@ Player *player_build() {
   p->type = OBJ_PLAYER;
 
   { // setup player phys data.
-    p->phys = make_physcomp((Body *)make_rigid_body(0.9, 1.0, 0.9, 0.5, 0.3,
+    p->phys = make_physcomp((Body *)make_rigid_body(0.7, 1.0, 0.9, 0.5, 0.3,
                                                     false, (vec3){5, 0, 2}),
                             (Collider *)make_sphere_collider(BASE_RADIUS));
   }
@@ -191,9 +191,9 @@ void player_update(void *p) {
     WQueue *mailbox = &(player->phys->collider->phys_events);
     while (mailbox->active_elements > 0) {
       CollisionEvent *e = w_dequeue(mailbox);
-      assert(
-          e !=
-          NULL); // shouldn't happen with the active elements condition above.
+      if (glm_vec3_dot(e->direction, (vec3){0, 1, 0})) {
+        player->is_on_floor = true;
+      }
     }
 
     if (player->is_on_floor) {

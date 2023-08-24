@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 
-#define GRAVITY_SCALE 1.5F
+#define GRAVITY_SCALE 0.3F
 
 #define MAX_RIGID_BODY 16
 #define MAX_STATIC_BODY 16
