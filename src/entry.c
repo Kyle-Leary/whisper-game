@@ -142,13 +142,24 @@ int entry_point(int argc, char **argv) {
 
     u_time += delta_time;
 
+    i_update(); // clear the temporary input state
+
     console_update();
 
     area_update();
 
-    i_update(); // clear the temporary input state
     l_update(); // potentially poll for events?
     a_update();
+
+    {
+      if (i_state.act_just_pressed[ACT_TOGGLE_DEBUG_DRAW]) {
+        debug_drawing = !debug_drawing;
+      }
+
+      if (i_state.act_just_pressed[ACT_TOGGLE_DEBUG_CONSOLE]) {
+        toggle_console();
+      }
+    }
 
     // tick
     battle_update();
@@ -157,12 +168,6 @@ int entry_point(int argc, char **argv) {
     anim_update();
     render_update();
     timescale_update();
-
-    {
-      if (i_state.act_just_pressed[ACT_TOGGLE_DEBUG_DRAW]) {
-        debug_drawing = !debug_drawing;
-      }
-    }
 
     hud_update();
 

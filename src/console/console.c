@@ -2,10 +2,11 @@
 #include "backends/graphics/shader.h"
 #include "backends/graphics_api.h"
 #include "backends/ogl_includes.h"
-#include "cglm/affine-pre.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
+#include "console/commands.h"
+#include "helper_math.h"
 #include "meshing/font.h"
 #include "path.h"
 #include "whisper/queue.h"
@@ -16,6 +17,10 @@
 #include <string.h>
 #include <sys/types.h>
 
+static bool has_control = false;
+
+void toggle_console() { has_control = !has_control; }
+
 Font *console_font;
 Shader *console_program;
 mat4 c_projection, c_model;
@@ -24,7 +29,8 @@ mat4 c_projection, c_model;
 #define NUM_KEYS 348
 
 typedef struct ConsoleInput {
-  WQueue char_queue; // use a queuing structure to handle the key events.
+  WQueue char_queue; // this is a list of shorts. we're using the ASCII range
+                     // for characters, and the rest for special characters.
 
   int last_input_state[NUM_KEYS]; // list of either 0 or 1 for each key.
 } ConsoleInput;
@@ -36,24 +42,35 @@ static ConsoleInput c_input = {0};
 typedef struct ConsoleRender {
   uint vao;
   uint n_idx;
-  vec2 position;
 } ConsoleRender;
 
-#define NUM_CONSOLE_RENDERS 10
+#define NUM_LINES 10
+// every line needs its own console render slot.
+#define NUM_CONSOLE_RENDERS NUM_LINES
 
-// either vao or n_idx being zero should indicate an invalid ConsoleRender.
-static ConsoleRender renders[NUM_CONSOLE_RENDERS] = {0};
-
-#define LINE_BUF_SZ 1024
+#define RERENDER_LINE(slot)                                                    \
+  console_string_render(&(c_graphics.renders[slot]),                           \
+                        c_graphics.lines[slot].buffer);
 
 typedef struct ConsoleLine {
-  ConsoleRender *cr;
   char buffer[LINE_BUF_SZ];
   uint len;
 } ConsoleLine;
 
+typedef struct ConsoleGraphics {
+  // either vao or n_idx being zero should indicate an invalid ConsoleRender.
+  ConsoleRender renders[NUM_CONSOLE_RENDERS];
+  ConsoleLine lines[NUM_LINES];
+  float line_height;
+  char last_command[LINE_BUF_SZ];
+  int last_command_sz;
+} ConsoleGraphics;
+
 // a text entry is just a special use of a ConsoleLine.
-static ConsoleLine test_entry = {0};
+static ConsoleGraphics c_graphics = {0};
+
+#define CONSOLE_TEXT_ENTRY_LINE_SLOT (0)
+#define CONSOLE_TEXT_ENTRY (c_graphics.lines[CONSOLE_TEXT_ENTRY_LINE_SLOT])
 
 void console_string_render(ConsoleRender *cr,
                            const char *str) { // init test render.
@@ -68,8 +85,8 @@ void console_string_render(ConsoleRender *cr,
 
   cr->n_idx = num_indices;
 
-  font_mesh_string_raw(console_font, str, len, 0.1, 0.1, positions, uvs,
-                       indices);
+  font_mesh_string_raw(console_font, str, len, 0.04, c_graphics.line_height,
+                       positions, uvs, indices);
 
   { // init test render in opengl.
     glGenVertexArrays(1, &(cr->vao));
@@ -106,8 +123,13 @@ void console_string_render(ConsoleRender *cr,
 }
 
 void console_init() {
+  { // default settings
+    c_graphics.line_height = 0.04;
+  }
+
   { // input structure init
-    w_make_queue(&(c_input.char_queue), sizeof(char), MAX_CONSOLE_INPUT_EVENTS);
+    w_make_queue(&(c_input.char_queue), sizeof(short),
+                 MAX_CONSOLE_INPUT_EVENTS);
   }
 
   console_font =
@@ -115,25 +137,22 @@ void console_init() {
 
   // init mats
   {
-    glm_ortho(0, 1, 0, 1, -5.0f, 5.0f, c_projection);
+    float fov = glm_rad(45.0f);
+    float aspect = 1.0f;
+    float near = 0.1f;
+    float far = 5.0f;
+
+    glm_perspective(fov, aspect, near, far, c_projection);
+
+    mat4 private_view;
+    vec3 camera_pos = {0.5, 0.8, 0}; // Camera at the origin
+    vec3 point_pos = {0.5, 0.5, -1}; // The point you want to center
+    vec3 up = {0, 1, 0};             // The 'up' direction
+
+    glm_lookat(camera_pos, point_pos, up, private_view);
+    glm_mat4_mul(c_projection, private_view, c_projection);
+
     glm_mat4_identity(c_model);
-  }
-
-  {
-    // init test renders
-    console_string_render(&(renders[0]), "hello");
-    console_string_render(&(renders[1]), "world");
-    renders[0].position[0] = 0.5;
-    renders[0].position[1] = 0.5;
-
-    renders[1].position[0] = 0.5;
-    renders[1].position[1] = 0.3;
-
-    { // test out the textentry system.
-      renders[2].position[0] = 0.5;
-      renders[2].position[1] = 0.7;
-      test_entry.cr = &(renders[2]);
-    }
   }
 
   // init shader w/ uniforms
@@ -148,27 +167,34 @@ void console_init() {
 }
 
 void console_handle_input(int key, int scancode, int action, int mods) {
+  if (!has_control)
+    return;
+
 #define IS_SHIFT (mods & GLFW_MOD_SHIFT)
 #define IS_CTRL (mods & GLFW_MOD_CTRL)
 
-  if (key < 255 && key > 0) {
-    // we're looking at an action representing an ASCII value.
-    switch (action) {
-    case GLFW_PRESS:
-      if (!c_input.last_input_state[key]) {
+  switch (action) {
+  case GLFW_PRESS:
+    if (!c_input.last_input_state[key]) {
+      if (key < 255 && key > 0) {
+        // we're looking at an action representing an ASCII value.
         // copy the actual character value itself into the queue slot.
-        char final_key = IS_SHIFT ? key : tolower(key);
+        short final_key = IS_SHIFT ? key : tolower(key);
         w_enqueue(&(c_input.char_queue), &final_key);
+      } else {
+        // only apply the tolower to chars. these are special keys, and are
+        // copied in as-is.
+        w_enqueue(&(c_input.char_queue), &key);
       }
-      break;
-    case GLFW_RELEASE:
-      if (c_input.last_input_state[key]) {
-        // we've just released this key.
-      }
-      break;
-    default:
-      break;
     }
+    break;
+  case GLFW_RELEASE:
+    if (c_input.last_input_state[key]) {
+      // we've just released this key.
+    }
+    break;
+  default:
+    break;
   }
 
   c_input.last_input_state[key] = 1;
@@ -177,8 +203,62 @@ void console_handle_input(int key, int scancode, int action, int mods) {
 #undef IS_CTRL
 }
 
+void console_newline() {
+  for (int i = NUM_LINES - 2; i >= 0; i--) {
+    memcpy(&(c_graphics.lines[i + 1]), &(c_graphics.lines[i]),
+           sizeof(ConsoleLine));
+    memset(&(c_graphics.lines[i]), 0, sizeof(ConsoleLine));
+    RERENDER_LINE(i);
+    RERENDER_LINE(i + 1);
+  }
+}
+
+void console_print(char *text, int len) {
+  char *starting_point = CONSOLE_TEXT_ENTRY.buffer + CONSOLE_TEXT_ENTRY.len;
+  int bytes_remaining = (CONSOLE_TEXT_ENTRY.buffer + LINE_BUF_SZ) -
+                        (CONSOLE_TEXT_ENTRY.buffer + CONSOLE_TEXT_ENTRY.len);
+  int safe_range = MIN(bytes_remaining, len);
+  // copy up to the rest of the buffer, or the nullterm in char* text.
+  strncpy(starting_point, text, safe_range);
+}
+
+void console_println(char *line_text, int len) {
+  console_print(line_text, len);
+  console_newline();
+}
+
+static void console_submit() {
+  memset(
+      c_graphics.last_command, 0,
+      LINE_BUF_SZ); // make sure there's no dangling stuff on the last command.
+  memcpy(c_graphics.last_command, CONSOLE_TEXT_ENTRY.buffer, LINE_BUF_SZ);
+  c_graphics.last_command_sz = CONSOLE_TEXT_ENTRY.len;
+
+  console_newline();
+  CommandResponse r = {0};
+  // the command runner can handle its own printing through the exposed console
+  // api.
+  command_run(&r, c_graphics.last_command, c_graphics.last_command_sz);
+}
+
+// with the up key, get the last command you submitted.
+static void console_history_up() {
+  memcpy(CONSOLE_TEXT_ENTRY.buffer, c_graphics.last_command, LINE_BUF_SZ);
+  CONSOLE_TEXT_ENTRY.len = c_graphics.last_command_sz;
+  RERENDER_LINE(0);
+}
+
+// be lazy for now.
+static void console_history_down() {
+  memset(CONSOLE_TEXT_ENTRY.buffer, 0, LINE_BUF_SZ);
+  RERENDER_LINE(0);
+}
+
 void console_update() {
-  {
+  if (!has_control)
+    return;
+
+  { // update the text entry line with the new input.
     WQueue *w = &(c_input.char_queue);
     WQueueSaveState s;
     w_queue_save_state(w, &s);
@@ -186,24 +266,62 @@ void console_update() {
     bool did_change;
 
     for (;;) {
-      if (test_entry.len >= LINE_BUF_SZ) {
+      if (CONSOLE_TEXT_ENTRY.len >= LINE_BUF_SZ) {
         fprintf(stderr, "ERROR: no more room in textentry character buffer.\n");
         break;
       }
 
-      char *input_ch_ptr = (char *)w_dequeue(w);
+      short *input_ch_ptr = (short *)w_dequeue(w);
       if (!input_ch_ptr)
         break;
 
-      char input_ch = *input_ch_ptr;
-      test_entry.buffer[test_entry.len] = input_ch;
-      test_entry.len++;
-
-      did_change++;
+      short input_ch = *input_ch_ptr;
+      if (input_ch < 256) {
+        // it's text and we put it in.
+        CONSOLE_TEXT_ENTRY.buffer[CONSOLE_TEXT_ENTRY.len] = input_ch;
+        CONSOLE_TEXT_ENTRY.len++;
+        did_change++;
+      } else {
+        switch (input_ch) {
+        case GLFW_KEY_BACKSPACE: {
+          if (CONSOLE_TEXT_ENTRY.len > 0) {
+            CONSOLE_TEXT_ENTRY.len--;
+            CONSOLE_TEXT_ENTRY.buffer[CONSOLE_TEXT_ENTRY.len] = '\0';
+            did_change++;
+          } // else, don't backspace since we're out of text.
+        } break;
+        }
+      }
     }
 
     if (did_change) {
-      console_string_render(test_entry.cr, test_entry.buffer);
+      RERENDER_LINE(0);
+    }
+
+    w_queue_load_state(w, &s);
+  }
+
+  {
+    WQueue *w = &(c_input.char_queue);
+    WQueueSaveState s;
+    w_queue_save_state(w, &s);
+
+    for (;;) {
+      short *input_ch_ptr = (short *)w_dequeue(w);
+      if (!input_ch_ptr)
+        break;
+
+      short input_ch = *input_ch_ptr;
+      if (input_ch > 255) {
+        if (input_ch == GLFW_KEY_ENTER) {
+          // copy the line entry up one line, then clear the 0th line.
+          console_submit();
+        } else if (input_ch == GLFW_KEY_UP) {
+          console_history_up();
+        } else if (input_ch == GLFW_KEY_DOWN) {
+          console_history_down();
+        }
+      }
     }
 
     w_queue_load_state(w, &s);
@@ -212,8 +330,8 @@ void console_update() {
   { // then, we need to just clear the queue.
     WQueue *w = &(c_input.char_queue);
     for (;;) {
-      char *input_ch_ptr = (char *)w_dequeue(w);
-      if (!input_ch_ptr)
+      void *ptr = (void *)w_dequeue(w);
+      if (!ptr)
         break;
     }
   }
@@ -224,15 +342,22 @@ void console_update() {
 }
 
 void console_draw() {
+  if (!has_control)
+    return;
+
+  // batch all the console renders with the same texture.
   g_use_texture(console_font->tex_handle, 0);
 
   for (int i = 0; i < NUM_CONSOLE_RENDERS; i++) {
-    ConsoleRender cr = renders[i]; // we only need a stack copy.
+    ConsoleRender cr = c_graphics.renders[i]; // we only need a stack copy.
     if (cr.vao == 0)
       continue;
 
+    float x = 0.5;
+    float y = c_graphics.line_height * i + 0.5;
+
     glm_mat4_identity(c_model);
-    glm_translate(c_model, (vec3){cr.position[0], cr.position[1], 0});
+    glm_translate(c_model, (vec3){x, y, 0});
     // keep the u_model updated in a loop.
     shader_set_matrix4fv(console_program, "u_model", (float *)c_model);
     glBindVertexArray(cr.vao);
@@ -240,4 +365,5 @@ void console_draw() {
   }
 }
 
+// TODO: how to keep track of and properly free the VAOs we're making?
 void console_clean() {}

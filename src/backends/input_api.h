@@ -37,6 +37,7 @@ typedef enum ActionType {
   ACT_HUD_INTERACT, // hud interaction action, like clicking on a button.
 
   ACT_TOGGLE_DEBUG_DRAW,
+  ACT_TOGGLE_DEBUG_CONSOLE,
 
   ACT_INCREASE_TIMESCALE,
   ACT_DECREASE_TIMESCALE,
