@@ -14,32 +14,26 @@
 
 static u8 has_run = 0;
 
-GraphicsRender *font_mesh_string(Font *font, const char *str, float x_char_size,
-                                 float y_char_size) {
-  int len = strlen(str);
-
+void font_mesh_string_raw(Font *font, const char *str, uint strlen,
+                          float x_char_size, float y_char_size,
+                          float *positions, float *uvs, uint *indices) {
   // get the whole vertex data for each character, all four points as seperate
   // vertices.
-  int num_verts = len * 4;
+  int num_verts = strlen * 4;
   // Two tris for each character.
-  int num_indices = len * 6;
-
-  float positions[num_verts * 2];
-  float uvs[num_verts * 2];
-
-  uint indices[num_indices];
+  int num_indices = strlen * 6;
 
   // we start positioning the texture at the left edge, so that the positions
   // are nicely centered. changing the base position can better be accomplished
   // through the model matrix.
-  float x_base = -(((float)len / 2) * x_char_size);
+  float x_base = -(((float)strlen / 2) * x_char_size);
   float y_base = -(y_char_size / 2);
 
   float x_offset = 0;
   float y_offset = 0;
 
   // Populate vertices and UV arrays
-  for (size_t i = 0; i < len; i++) {
+  for (size_t i = 0; i < strlen; i++) {
     char target_ch = str[i];
 
     if (target_ch == '\n') {
@@ -117,6 +111,20 @@ GraphicsRender *font_mesh_string(Font *font, const char *str, float x_char_size,
 
     x_offset += x_char_size;
   }
+}
+
+GraphicsRender *font_mesh_string(Font *font, const char *str, float x_char_size,
+                                 float y_char_size) {
+  int len = strlen(str);
+  int num_verts = len * 4;
+  int num_indices = len * 6;
+
+  float positions[num_verts * 2];
+  float uvs[num_verts * 2];
+  uint indices[num_indices];
+
+  font_mesh_string_raw(font, str, len, x_char_size, y_char_size, positions, uvs,
+                       indices);
 
   // Pass positions, uvs, and indices to your rendering function
   // (You will need to modify g_new_render to accept these separate arrays)

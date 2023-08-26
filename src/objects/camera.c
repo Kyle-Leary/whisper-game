@@ -13,6 +13,7 @@
 
 #include "helper_math.h"
 #include "input_help.h"
+#include "mathdef.h"
 #include "physics/body/body.h"
 #include "physics/collider/collider.h"
 #include "physics/component.h"
@@ -30,7 +31,7 @@
 Camera *camera_build(vec3 position, vec3 *target) {
   Camera *p = (Camera *)malloc(sizeof(Camera));
 
-  AreaBody *ab = make_area_body(position);
+  AreaBody *ab = make_area_body(position, 1.0, IDENTITY_VERSOR);
 
   { // give the camera basic collisions with the world, this will be useful when
     p->phys = make_physcomp((Body *)ab, (Collider *)make_sphere_collider(4.0));

@@ -5,6 +5,7 @@
 #include "../graphics/graphics_globals.h"
 #include "../ogl_includes.h"
 
+#include "console/console.h"
 #include "defines.h"
 #include "global.h"
 #include "helper_math.h"
@@ -101,6 +102,8 @@ static void handle_generic_input(int key, int action) {
 
 static void input_key_callback(GLFWwindow *window, int key, int scancode,
                                int action, int mods) {
+  console_handle_input(key, scancode, action, mods);
+
   if (i_is_playing) {
   } else {
     InputState *state = &i_state;

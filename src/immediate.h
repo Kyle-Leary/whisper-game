@@ -11,6 +11,7 @@ typedef enum IMDrawMode {
   IM_POLYGON,
   IM_LINE_STRIP,
   IM_LINES,
+  IM_POINTS,
   IM_COUNT,
 } IMDrawMode;
 

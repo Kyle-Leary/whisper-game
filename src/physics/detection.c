@@ -20,8 +20,8 @@
       type_two *target = w_array_get(&physics_state.array_two, j);             \
       if (target == NULL)                                                      \
         continue;                                                              \
-      CollisionEvent e_into_target;                                            \
-      CollisionEvent e_into_base;
+      CollisionEvent e_into_target = {0};                                      \
+      CollisionEvent e_into_base = {0};
 
 // add one to the inner index to not generate collisions between the shape and
 // itself.
@@ -34,12 +34,16 @@
       type *target = w_array_get(&physics_state.array, j);                     \
       if (target == NULL)                                                      \
         continue;                                                              \
-      CollisionEvent e_into_target;                                            \
-      CollisionEvent e_into_base;
+      CollisionEvent e_into_target = {0};                                      \
+      CollisionEvent e_into_base = {0};
 
 #define DETECTION_PUSH                                                         \
-  w_enqueue(&(target->phys_events), &e_into_target);                           \
-  w_enqueue(&(base->phys_events), &e_into_base);
+  {                                                                            \
+    e_into_target.from = (Body *)base->body;                                   \
+    e_into_base.from = (Body *)target->body;                                   \
+    w_enqueue(&(target->phys_events), &e_into_target);                         \
+    w_enqueue(&(base->phys_events), &e_into_base);                             \
+  }
 
 #define DETECTION_END                                                          \
   }                                                                            \
@@ -51,10 +55,8 @@ void handle_sphere_sphere() {
   float distance =
       glm_vec3_distance(base->body->position, target->body->position);
   if (distance < (base->radius + target->radius)) {
-    float magnitude = distance;
-    e_into_base.magnitude = magnitude;
-    e_into_target.magnitude = magnitude;
-
+    e_into_target.depth = fabsf(distance);
+    e_into_base.depth = fabsf(distance);
     glm_vec3_sub(target->body->position, base->body->position,
                  e_into_target.direction);
     glm_vec3_scale(e_into_target.direction, -1, e_into_base.direction);
@@ -77,14 +79,11 @@ void handle_sphere_floor() {
   float distance =
       target->body->position[1] - (base->body->position[1] - base->radius);
   if (distance >= 0) {
-    float magnitude = distance * 8;
-    e_into_base.magnitude = magnitude;
-    e_into_target.magnitude = magnitude;
-
+    e_into_target.depth = fabsf(distance);
+    e_into_base.depth = fabsf(distance);
     // the sphere pushes DOWN into the floor
     glm_vec3_copy((vec3){0, -1, 0}, e_into_target.direction);
-    // the floor gives an equal and opposite reaction
-    glm_vec3_scale(e_into_target.direction, -1, e_into_base.direction);
+    glm_vec3_copy((vec3){0, 1, 0}, e_into_base.direction);
 
     DETECTION_PUSH
   }
@@ -130,15 +129,14 @@ void handle_rect_floor() {
   }
 
   for (int k = 0; k < 8; k++) {
+    e_into_target.depth = 0;
+    e_into_base.depth = 0;
+
     vec3 curr_pt;
     glm_vec3_add(positions[k], base->body->position, curr_pt);
 
     float distance = target->body->position[1] - curr_pt[1];
     if (distance >= 0) {
-      float magnitude = distance * 4;
-      e_into_base.magnitude = magnitude;
-      e_into_target.magnitude = magnitude;
-
       // the sphere pushes DOWN into the floor
       glm_vec3_copy((vec3){0, -1, 0}, e_into_target.direction);
       // the floor gives an equal and opposite reaction

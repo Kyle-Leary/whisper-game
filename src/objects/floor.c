@@ -11,6 +11,7 @@
 
 #include "helper_math.h"
 #include "input_help.h"
+#include "mathdef.h"
 #include "physics/body/body.h"
 #include "physics/collider/collider.h"
 #include "printers.h"
@@ -27,8 +28,9 @@ Floor *floor_build(vec3 position, float strength) {
   p->type = OBJ_FLOOR;
 
   {
-    p->phys = make_physcomp((Body *)make_static_body(position),
-                            (Collider *)make_floor_collider());
+    p->phys = make_physcomp(
+        (Body *)make_static_body(0.5, position, 1.0, IDENTITY_VERSOR),
+        (Collider *)make_floor_collider());
   }
 
   StaticBody *sb = (StaticBody *)p->phys->body;

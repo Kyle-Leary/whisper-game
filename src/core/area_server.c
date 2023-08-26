@@ -12,6 +12,7 @@ static AreaEntry areas[AREA_COUNT] = {
     [AREA_INVALID] = {none_area, none_area, none_area},
 
     [AREA_LEVEL] = {areas_level, areas_level_update, none_area},
+    [AREA_STATIC] = {areas_static, areas_static_update, none_area},
     [AREA_ANOTHER] = {areas_another, none_area, none_area},
 };
 

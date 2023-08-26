@@ -14,6 +14,11 @@ typedef struct {
   TextureHandle tex_handle;
 } Font;
 
+// expose a simpler method for those not using the full GraphicsRender api.
+void font_mesh_string_raw(Font *font, const char *str, uint strlen,
+                          float x_char_size, float y_char_size,
+                          float *positions, float *uvs, uint *indices);
+
 // pass the size you want each character to be.
 // this function will return a render containing centered text geometry.
 // for example, if you render this at the screen offset 0.5 0.5, it'll be

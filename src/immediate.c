@@ -64,6 +64,9 @@ static GLenum gl_mode_from_drawmode(IMDrawMode m) {
   case IM_LINES: {
     return GL_LINES;
   } break;
+  case IM_POINTS: {
+    return GL_POINTS;
+  } break;
   default: {
     return GL_LINE_STRIP;
   } break;

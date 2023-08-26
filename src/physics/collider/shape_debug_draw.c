@@ -6,6 +6,7 @@
 #include "macros.h"
 #include "physics/collider/collider.h"
 #include "physics/physics.h"
+#include "transform.h"
 #include "util.h"
 #include "whisper/array.h"
 
@@ -44,8 +45,7 @@ static void update_rect_render(Collider *c, GraphicsRender *gr) {
   }
 }
 static void update_sphere_render(Collider *c, GraphicsRender *gr) {
-  glm_mat4_identity(gr->model);
-  glm_translate(gr->model, c->body->position);
+  m4_apply_transform_from_body(gr->model, c->body);
 }
 
 static GraphicsRender *create_floor_render(Collider *c) {

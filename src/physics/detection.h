@@ -4,14 +4,17 @@
 // module.
 
 #include "cglm/types.h"
+#include "physics/body/body.h"
 
 // generate pairs of these events and put them into eachother's shape event
 // queues.
 typedef struct CollisionEvent {
+  Body *from; // who was this event from?
+
   vec3 contact_pt;
   vec3 direction; // encode the data of where the object was pushed from,
                   // and how far the push should be.
-  float magnitude;
+  float depth;    // how far inside the sender is the contact point?
 } CollisionEvent;
 
 void detection_pass();

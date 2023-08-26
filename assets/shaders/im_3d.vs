@@ -12,5 +12,6 @@ out vec3 oPos;
 
 void main() {
 	oPos = aPos;
+	gl_PointSize = 5.0;
 	gl_Position = projection * view * (vec4(aPos, 1.0));
 }

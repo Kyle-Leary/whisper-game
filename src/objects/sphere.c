@@ -11,9 +11,11 @@
 #include "helper_math.h"
 #include "im_prims.h"
 #include "input_help.h"
+#include "mathdef.h"
 #include "physics/detection.h"
 #include "printers.h"
 #include "render.h"
+#include "transform.h"
 #include "util.h"
 
 #include <assert.h>
@@ -30,12 +32,10 @@ Sphere *sphere_build(vec3 position, float radius, unsigned int segments) {
   p->type = OBJ_SPHERE;
 
   {
-    p->phys = make_physcomp(
-        (Body *)make_rigid_body(0.7, 10.0, 0.5, 0.5, 0.5, 0.3, true, position),
-        (Collider *)make_sphere_collider(radius));
-    // p->phys = make_physcomp(
-    //     (Body *)make_rigid_body(0.9, 5.0, 0.2, 0.5, 0.3, true, position),
-    //     (Collider *)make_sphere_collider(radius));
+    p->phys = make_physcomp((Body *)make_rigid_body(0.1, 0.7, 5.0, 0.5, 0.5,
+                                                    0.5, 0.3, true, position,
+                                                    5.0, IDENTITY_VERSOR),
+                            (Collider *)make_sphere_collider(radius));
   }
 
   {
@@ -52,20 +52,20 @@ void sphere_update(void *p) {
   CAST;
   CAST_RB;
 
-  GraphicsRender *prim = sphere->render->data;
-  glm_mat4_identity(prim->model);
-  glm_translate(prim->model, rb->lerp_position);
-  g_draw_render(prim);
-
-  im_velocity(rb);
-  im_acceleration(rb);
-
   { // handle physevents
     WQueue mailbox = sphere->phys->collider->phys_events;
     while (mailbox.active_elements > 0) {
       CollisionEvent *e = w_dequeue(&mailbox);
     }
   }
+
+  { // render setup
+    GraphicsRender *prim = sphere->render->data;
+    m4_apply_transform_from_body(prim->model, sphere->phys->body);
+  }
+
+  im_velocity(rb);
+  im_acceleration(rb);
 }
 
 void sphere_clean(void *p) {

@@ -4,8 +4,11 @@
 #include <stdalign.h>
 #include <stdbool.h>
 
+// store a generic transform, the collisions need this and every body should
+// have at least this, or else it isn't much of a "physics body".
 #define BODY_FIELDS                                                            \
   vec3 position;                                                               \
+  float scale;                                                                 \
   versor rotation;
 
 typedef struct Body {
@@ -27,7 +30,8 @@ typedef struct RigidBody {
   vec3 ang_velocity;
   vec3 ang_acceleration;
 
-  float inertia;
+  mat3 inverse_inertia; // we only use the inverse of the inertia tensor for
+                        // in-engine calculation. store this directly.
 
   bool should_roll; // should the angle be manually calculated by the physics
                     // subsystem at all?
@@ -39,22 +43,29 @@ typedef struct RigidBody {
   float linear_damping;
   float angular_damping;
 
+  float restitution;
+
   bool frozen; // ignore all dynamics and forces applied to this rigid body.
 } RigidBody;
 
 typedef struct StaticBody {
   BODY_FIELDS
+
+  float restitution;
 } StaticBody;
 
 typedef struct AreaBody {
   BODY_FIELDS
 } AreaBody;
 
-RigidBody *make_rigid_body(float position_lerp_speed, float mass,
-                           float linear_damping, float angular_damping,
-                           float static_friction, float kinetic_friction,
-                           bool should_roll, vec3 init_pos);
+RigidBody *make_rigid_body(float restitution, float position_lerp_speed,
+                           float mass, float linear_damping,
+                           float angular_damping, float static_friction,
+                           float kinetic_friction, bool should_roll,
+                           vec3 init_pos, float init_scale,
+                           versor init_rotation);
 
-StaticBody *make_static_body(vec3 init_pos);
+StaticBody *make_static_body(float restitution, vec3 init_pos, float init_scale,
+                             versor init_rotation);
 
-AreaBody *make_area_body(vec3 init_pos);
+AreaBody *make_area_body(vec3 init_pos, float init_scale, versor init_rotation);

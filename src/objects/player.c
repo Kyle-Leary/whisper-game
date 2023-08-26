@@ -24,6 +24,7 @@
 #include "im_prims.h"
 #include "immediate.h"
 #include "input_help.h"
+#include "mathdef.h"
 #include "meshing/gltf_mesher.h"
 #include "meshing/obj/obj_parse.h"
 #include "object_bases.h"
@@ -42,6 +43,7 @@
 #include "printers.h"
 #include "render.h"
 #include "state.h"
+#include "transform.h"
 #include "util.h"
 #include "whisper/queue.h"
 
@@ -65,12 +67,24 @@ Player *player_build() {
   // general Object stuff
   p->type = OBJ_PLAYER;
 
+#define PLAYER_INIT_MASS (5.0)
+
+  p->jump_power = PLAYER_INIT_MASS * 80;
+  p->forward_speed = PLAYER_INIT_MASS * 1.0F;
+
   { // setup player phys data.
-    p->phys =
-        make_physcomp((Body *)make_rigid_body(0.7, 9.0, 0.5, 0.5, 0.5, 0.3,
-                                              false, (vec3){5, 0, 2}),
-                      (Collider *)make_sphere_collider(BASE_RADIUS));
+    // p->phys = make_physcomp(
+    //     (Body *)make_rigid_body(0.1, 0.7, PLAYER_INIT_MASS, 0.0, 0.5, 0.5,
+    //     0.3,
+    //                             false, (vec3){5, 0, 2}, 1, IDENTITY_VERSOR),
+    //     (Collider *)make_sphere_collider(BASE_RADIUS));
+    p->phys = make_physcomp(
+        (Body *)make_rigid_body(0.1, 0.7, 5.0, 0.5, 0.5, 0.5, 0.3, false,
+                                (vec3){5, 0, 2}, 5.0, IDENTITY_VERSOR),
+        (Collider *)make_sphere_collider(BASE_RADIUS));
   }
+
+#undef PLAYER_INIT_MASS
 
   { // setup player rendering data.
 
@@ -86,11 +100,6 @@ Player *player_build() {
 
     anim_play(p->animator, "wiggle", true);
   }
-
-  // specific Player stuff.
-  p->forward_speed = 8.0F;
-
-  p->jump_power = 1000.0F;
 
   return p;
 }
@@ -174,8 +183,8 @@ void player_update(void *p) {
   player->ghost_step[1] = rb->lerp_position[1]; // make the lookahead flat,
                                                 // or else it looks weird.
 
-  glm_mat4_identity(player_model->transform);
-  glm_translate(player_model->transform, rb->lerp_position);
+  m4_apply_transform_from_body(player_model->transform, (Body *)rb);
+
   glm_translate(player_model->transform, player->animation_root->translation);
   glm_lookat(rb->lerp_position, player->ghost_step, (vec3){0, 1, 0},
              player_model->transform);

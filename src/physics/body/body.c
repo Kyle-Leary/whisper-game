@@ -1,28 +1,32 @@
 #include "body.h"
+#include "cglm/mat3.h"
 #include "physics/constructor_macros.h"
 #include "physics/physics.h"
 #include "whisper/array.h"
 #include <stdio.h>
 #include <string.h>
 
-RigidBody *make_rigid_body(float position_lerp_speed, float mass,
-                           float linear_damping, float angular_damping,
-                           float static_friction, float kinetic_friction,
-                           bool should_roll, vec3 init_pos) {
+// setup the common stuff shared between each body.
+#define SETUP_TF(on_body)                                                      \
+  memcpy(on_body.position, init_pos, sizeof(float) * 3);                       \
+  memcpy(on_body.rotation, init_rotation, sizeof(float) * 4);                  \
+  on_body.scale = init_scale;
+
+RigidBody *make_rigid_body(float restitution, float position_lerp_speed,
+                           float mass, float linear_damping,
+                           float angular_damping, float static_friction,
+                           float kinetic_friction, bool should_roll,
+                           vec3 init_pos, float init_scale,
+                           versor init_rotation) {
   // make a stack PhysComp, then copy that into the array.
   RigidBody body = {0};
+  SETUP_TF(body)
+  memcpy(body.lerp_position, body.position, sizeof(float) * 3);
+  memcpy(body.ang_velocity, (vec3){0}, sizeof(float) * 3);
+  memcpy(body.ang_acceleration, (vec3){0}, sizeof(float) * 3);
 
-  { // setup position.
-    memcpy(body.position, init_pos, sizeof(float) * 3);
-    memcpy(body.lerp_position, body.position, sizeof(float) * 3);
-  }
-
-  { // setup angle
-    // the unit quaternion of no effect/rotation.
-    memcpy(body.rotation, (versor){0, 0, 0, 1}, sizeof(float) * 4);
-    memcpy(body.ang_velocity, (vec3){0}, sizeof(float) * 3);
-    memcpy(body.ang_acceleration, (vec3){0}, sizeof(float) * 3);
-  }
+  body.restitution =
+      restitution; // from 0 - 1, 1 is a perfectly elastic collision.
 
   body.position_lerp_speed = position_lerp_speed;
 
@@ -38,17 +42,24 @@ RigidBody *make_rigid_body(float position_lerp_speed, float mass,
   body.static_friction = static_friction;
   body.kinetic_friction = kinetic_friction;
 
+  // give a dummy initial value for the inverse inertia, just in case the caller
+  // doesn't assign this properly.
+  glm_mat3_identity(body.inverse_inertia);
+
   INDEX_AND_RETURN(body, rigid_bodies)
 }
 
-StaticBody *make_static_body(vec3 init_pos) {
+StaticBody *make_static_body(float restitution, vec3 init_pos, float init_scale,
+                             versor init_rotation) {
   StaticBody sb;
-  memcpy(sb.position, init_pos, sizeof(float) * 3);
+  SETUP_TF(sb)
+  sb.restitution = restitution;
   INDEX_AND_RETURN(sb, static_bodies)
 }
 
-AreaBody *make_area_body(vec3 init_pos) {
+AreaBody *make_area_body(vec3 init_pos, float init_scale,
+                         versor init_rotation) {
   AreaBody ab;
-  memcpy(ab.position, init_pos, sizeof(float) * 3);
+  SETUP_TF(ab)
   INDEX_AND_RETURN(ab, area_bodies)
 }

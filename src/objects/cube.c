@@ -12,6 +12,7 @@
 #include "helper_math.h"
 #include "input_help.h"
 
+#include "mathdef.h"
 #include "physics/body/body.h"
 #include "physics/collider/collider.h"
 #include "printers.h"
@@ -31,9 +32,10 @@ Cube *cube_build(vec3 position, vec3 extents) {
   p->type = OBJ_CUBE;
 
   {
-    p->phys = make_physcomp(
-        (Body *)make_rigid_body(0.1, 1.0, 0.5, 0.5, 0.5, 0.3, true, position),
-        (Collider *)make_rect_collider(extents));
+    p->phys = make_physcomp((Body *)make_rigid_body(0.5, 0.1, 1.0, 0.5, 0.9,
+                                                    0.5, 0.3, true, position,
+                                                    1.0, IDENTITY_VERSOR),
+                            (Collider *)make_rect_collider(extents));
   }
 
   p->phys->body->rotation[0] += 1;
@@ -50,7 +52,7 @@ void cube_update(void *p) {
   CAST;
   CAST_RB;
 
-  rb->ang_acceleration[0] = 0.001;
+  rb->ang_acceleration[0] = 5;
 
   GraphicsRender *prim = cube->render->data;
   glm_mat4_identity(prim->model);

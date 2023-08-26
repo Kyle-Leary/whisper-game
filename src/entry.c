@@ -8,6 +8,7 @@
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/util.h"
+#include "console/console.h"
 #include "core/area_server.h"
 #include "core/battle.h"
 #include "event_types.h"
@@ -30,6 +31,7 @@
 #include "size.h"
 #include "timescale.h"
 #include "util.h"
+
 #include <malloc.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -68,6 +70,8 @@ int entry_point(int argc, char **argv) {
                                                    // ends up as a power of two.
     // 16 * 9 = 96 cells, which is the num of printable ascii characters.
   }
+
+  console_init();
 
   // api init
   i_init();
@@ -138,6 +142,8 @@ int entry_point(int argc, char **argv) {
 
     u_time += delta_time;
 
+    console_update();
+
     area_update();
 
     i_update(); // clear the temporary input state
@@ -167,9 +173,8 @@ int entry_point(int argc, char **argv) {
     { // draw the 3d scene (YES, ORDER MATTERS HERE)
       // our top-level, default pipeline.
       { // render skybox
-        g_draw_render(skybox_render);
+        // g_draw_render(skybox_render);
       }
-
       g_use_texture(nepeta, 0);
       render_draw();
 
@@ -179,6 +184,8 @@ int entry_point(int argc, char **argv) {
       if (debug_drawing) { // render the debug physics objects.
         physics_debug_draw();
       }
+
+      console_draw();
     }
 
     l_end_draw();
@@ -188,6 +195,8 @@ int entry_point(int argc, char **argv) {
     double delta_time = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
     start_time = end_time;
   }
+
+  console_clean();
 
   i_clean();
   g_clean();

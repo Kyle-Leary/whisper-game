@@ -33,9 +33,15 @@ void areas_level() {
   object_add((Object *)sphere_build((vec3){6, 10, -2}, 1, 10), OT_AREA);
   object_add((Object *)sphere_build((vec3){-2, 20, -2}, 1, 10), OT_AREA);
 
+  object_add((Object *)cube_build((vec3){9, 5, 0}, (vec3){1, 2, 8}), OT_AREA);
+  object_add((Object *)cube_build((vec3){0, 5, 9}, (vec3){1, 2, 3}), OT_AREA);
+  object_add((Object *)cube_build((vec3){0, 5, -9}, (vec3){1, 2, 4}), OT_AREA);
+  object_add((Object *)cube_build((vec3){-9, 5, -9}, (vec3){1, 2, 1}), OT_AREA);
+  object_add((Object *)cube_build((vec3){7, 5, -9}, (vec3){1, 2, 9}), OT_AREA);
+
   our_player = (Player *)object_add((Object *)player_build(), OT_AREA);
   our_player->phys->body->position[0] = 5;
-  our_player->phys->body->position[1] = -1;
+  our_player->phys->body->position[1] = 1;
 
   // note that the camera is directly LINKED to the our_player's lerp_position
   // from its physics representation.
@@ -50,12 +56,6 @@ void areas_level() {
       (Character *)object_add((Object *)character_build(chr_model), OT_AREA);
   chr->phys->body->position[0] = -4;
   chr->phys->body->position[1] = -1;
-
-  object_add((Object *)cube_build((vec3){9, 5, 0}, (vec3){1, 2, 3}), OT_AREA);
-  object_add((Object *)cube_build((vec3){0, 5, 9}, (vec3){1, 2, 3}), OT_AREA);
-  object_add((Object *)cube_build((vec3){0, 5, -9}, (vec3){1, 2, 3}), OT_AREA);
-  object_add((Object *)cube_build((vec3){-9, 5, -9}, (vec3){1, 2, 3}), OT_AREA);
-  object_add((Object *)cube_build((vec3){7, 5, -9}, (vec3){1, 2, 3}), OT_AREA);
 
   object_add((Object *)floor_build((vec3){0, -2, 0}, 50), OT_AREA);
 

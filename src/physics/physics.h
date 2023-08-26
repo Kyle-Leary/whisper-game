@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 
-#define GRAVITY_SCALE 0.3F
+#define GRAVITY_SCALE 1.3F
 
 #define MAX_RIGID_BODY 16
 #define MAX_STATIC_BODY 16
@@ -43,9 +43,32 @@ typedef struct PhysicsState {
   // dont even ask
   void *rigid_bodies_start;
   void *rigid_bodies_end;
+  void *static_bodies_start;
+  void *static_bodies_end;
+  void *area_bodies_start;
+  void *area_bodies_end;
+
+  void *floors_start;
+  void *floors_end;
+  void *spheres_start;
+  void *spheres_end;
+  void *rects_start;
+  void *rects_end;
 } PhysicsState;
 
 extern PhysicsState physics_state;
+
+#define CHECK_IN(array, obj)                                                   \
+  (((void *)obj < physics_state.array##_end) &&                                \
+   ((void *)obj >= physics_state.array##_start))
+
+#define IS_RB(body) CHECK_IN(rigid_bodies, body)
+#define IS_SB(body) CHECK_IN(static_bodies, body)
+#define IS_AB(body) CHECK_IN(area_bodies, body)
+
+#define IS_FLOOR(col) CHECK_IN(floors, col)
+#define IS_SPHERE(col) CHECK_IN(spheres, col)
+#define IS_RECT(col) CHECK_IN(rects, col)
 
 void physics_init();
 // the ticking function for this physics engine.

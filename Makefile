@@ -106,4 +106,4 @@ clean:
 	rm -f $(shell find . -name "*.o") $(TARGET) $(TEST_TARGET) $(WJSON) $(LIBWHISPER) $(GLPP) $(SHADERS)
 
 # always rebuild test.c
-.PHONY: clean test.c
+.PHONY: clean testmain.c

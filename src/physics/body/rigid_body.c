@@ -8,6 +8,8 @@
 #include "physics/dynamics.h"
 #include "physics/physics.h"
 #include "physics/response.h"
+#include "printers.h"
+#include "util.h"
 #include "whisper/queue.h"
 #include <stdio.h>
 
@@ -135,33 +137,39 @@ void euler_angles_to_versor(vec3 eulerAngles, versor q) {
 }
 
 static void rotation_tick(RigidBody *rb) {
-  if (!(rb->should_roll))
+  if (!rb->should_roll)
     return;
 
-  // operate on the euler angles, then convert them back into the original
-  // versor.
-  vec3 eulerAngles;
-  versor_to_euler_angles(rb->rotation, eulerAngles);
+  // Integrate angular acceleration to get the new angular velocity
+  rb->ang_velocity[0] += rb->ang_acceleration[0] * delta_time;
+  rb->ang_velocity[1] += rb->ang_acceleration[1] * delta_time;
+  rb->ang_velocity[2] += rb->ang_acceleration[2] * delta_time;
 
-  // { // accelerate the velocity
-  //   vec3 vel_step;
-  //   glm_vec3_scale(rb->ang_acceleration, delta_time, vel_step);
-  //   glm_vec3_add(rb->ang_velocity, vel_step, rb->ang_velocity);
-  // }
-  //
-  // { // apply velocity to the angles
-  //   vec3 angle_step;
-  //   glm_vec3_scale(rb->ang_velocity, delta_time, angle_step);
-  //   glm_vec3_add(eulerAngles, angle_step, eulerAngles);
-  // }
+  // Apply angular damping
+  rb->ang_velocity[0] *= (1 - rb->angular_damping * delta_time);
+  rb->ang_velocity[1] *= (1 - rb->angular_damping * delta_time);
+  rb->ang_velocity[2] *= (1 - rb->angular_damping * delta_time);
 
-  euler_angles_to_versor(eulerAngles, rb->rotation);
+  // Compute the quaternion representing the change in rotation
+  float angle = sqrt(rb->ang_velocity[0] * rb->ang_velocity[0] +
+                     rb->ang_velocity[1] * rb->ang_velocity[1] +
+                     rb->ang_velocity[2] * rb->ang_velocity[2]);
 
-  glm_quat_normalize(rb->rotation);
-
-  { // apply angular damping
-    glm_vec3_scale(rb->ang_velocity, rb->angular_damping, rb->ang_velocity);
+  if (angle == 0) {
+    angle = 0.001;
   }
+
+  // so this will always be normalized?
+  vec3 axis = {rb->ang_velocity[0] / angle, rb->ang_velocity[1] / angle,
+               rb->ang_velocity[2] / angle};
+
+  versor delta_rotation;
+  delta_rotation[3] = cos(angle * delta_time / 2);
+  delta_rotation[0] = axis[0] * sin(angle * delta_time / 2);
+  delta_rotation[1] = axis[1] * sin(angle * delta_time / 2);
+  delta_rotation[2] = axis[2] * sin(angle * delta_time / 2);
+
+  glm_quat_mul(rb->rotation, delta_rotation, rb->rotation);
 }
 
 static void position_lerp(RigidBody *rb) {
