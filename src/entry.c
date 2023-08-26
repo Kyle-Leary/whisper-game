@@ -15,6 +15,7 @@
 #include "general_lighting.h"
 #include "global.h"
 #include "glprim.h"
+#include "gui/gui.h"
 #include "helper_math.h"
 #include "hud.h"
 #include "immediate.h"
@@ -72,6 +73,7 @@ int entry_point(int argc, char **argv) {
   }
 
   console_init();
+  gui_init();
 
   // api init
   i_init();
@@ -142,9 +144,16 @@ int entry_point(int argc, char **argv) {
 
     u_time += delta_time;
 
-    i_update(); // clear the temporary input state
-
     console_update();
+    gui_update();
+
+    gui_label("hello", &(AABB){0.4, 0.8, 0.2, 0.45});
+    if (gui_button("helloworld", &(AABB){0.4, 0.2, 0.05, 0.02})) {
+      printf("hello\n");
+    }
+    gui_draggable("draggablestuff", &(AABB){0.3, 0.3, 0.1, 0.1});
+
+    i_update(); // clear the temporary input state
 
     area_update();
 
@@ -190,6 +199,7 @@ int entry_point(int argc, char **argv) {
         physics_debug_draw();
       }
 
+      gui_draw();
       console_draw();
     }
 
@@ -202,6 +212,7 @@ int entry_point(int argc, char **argv) {
   }
 
   console_clean();
+  gui_clean();
 
   i_clean();
   g_clean();

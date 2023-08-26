@@ -2,6 +2,9 @@
 #include "global.h"
 #include "cglm/types.h"
 
+int win_w = 1700;
+int win_h = 820;
+
 mat4 m_model = {0};
 mat4 m_view = {0};
 mat4 m_projection = {0};

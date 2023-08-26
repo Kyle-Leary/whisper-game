@@ -16,8 +16,10 @@ Basis get_basis(mat4 m) {
 }
 
 bool is_point_inside(AABB aabb, vec2 v) {
-  return (v[0] >= aabb.xy[0] && v[0] <= (aabb.xy[0] + aabb.wh[0]) &&
-          v[1] >= aabb.xy[1] && v[1] <= (aabb.xy[1] + aabb.wh[1]));
+  return (v[0] >= (aabb.center[0] - aabb.extents[0]) &&
+          v[0] <= (aabb.center[0] + aabb.extents[0]) &&
+          v[1] >= (aabb.center[1] - aabb.extents[1]) &&
+          v[1] <= (aabb.center[1] + aabb.extents[1]));
 }
 
 float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }

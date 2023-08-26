@@ -1,6 +1,7 @@
 #include "transform.h"
 #include "cglm/mat4.h"
 #include "cglm/quat.h"
+#include "helper_math.h"
 #include "printers.h"
 #include "util.h"
 

@@ -140,9 +140,9 @@ static void input_cursor_position_callback(GLFWwindow *window, double xpos,
     if (delta_time > 0) { // Avoid division by zero
       // Compute speed (difference in position / difference in time)
       i_state.pointer_velocity[0] =
-          (xpos / WIN_W - i_state.prev_pointer[0]) / delta_time;
+          (xpos / win_w - i_state.prev_pointer[0]) / delta_time;
       i_state.pointer_velocity[1] =
-          (1 - ypos / WIN_H - i_state.prev_pointer[1]) / delta_time;
+          (1 - ypos / win_h - i_state.prev_pointer[1]) / delta_time;
     } else {
       // No time has passed, velocity is 0
       i_state.pointer_velocity[0] = 0;
@@ -152,8 +152,8 @@ static void input_cursor_position_callback(GLFWwindow *window, double xpos,
     // this is the most common case, reference the pointer position wrt the ui
     // screenspace coords with bottom to top y and a percentage rather than a
     // pixel.
-    i_state.pointer[0] = xpos / WIN_W;
-    i_state.pointer[1] = 1 - (ypos / WIN_H);
+    i_state.pointer[0] = xpos / win_w;
+    i_state.pointer[1] = 1 - (ypos / win_h);
   }
 }
 

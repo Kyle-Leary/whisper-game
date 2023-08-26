@@ -9,6 +9,9 @@
 
 #include <sys/types.h>
 
+extern int win_w;
+extern int win_h;
+
 // these are global and cross-backend. it's just a matrix, we can handle the
 // difference between actually setting the matrix in the graphics_api.h file.
 extern mat4 m_model;

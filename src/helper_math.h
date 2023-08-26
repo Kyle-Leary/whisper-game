@@ -30,8 +30,8 @@ Basis get_basis(mat4 m);
 
 // aabb collision helpers, for stuff like buttons
 typedef struct AABB {
-  vec2 xy;
-  vec2 wh;
+  vec2 center;
+  vec2 extents;
 } AABB;
 
 bool is_point_inside(AABB aabb, vec2 v);

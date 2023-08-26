@@ -20,6 +20,14 @@
 // define the externs in ogl_includes.h
 GLFWwindow *window = NULL;
 
+static void framebuffer_size_callback(GLFWwindow *window, int width,
+                                      int height) {
+  // Set the OpenGL viewport to cover the entire window
+  glViewport(0, 0, width, height);
+  win_w = width;
+  win_h = height;
+}
+
 // dumb
 static void save_screenshot(GLFWwindow *window, const char *filename) {
   int width, height;
@@ -96,7 +104,7 @@ int l_init() {
 
   // Create a windowed mode window and its OpenGL context
   window =
-      glfwCreateWindow(WIN_W, WIN_H, WIN_TITLE, NULL,
+      glfwCreateWindow(win_w, win_h, WIN_TITLE, NULL,
                        NULL); // set the global window, so that the other /linux
                               // backend implementations like "input" and
                               // "graphics" can access this windowstate.
@@ -111,6 +119,8 @@ int l_init() {
 
   // Make the window's context current
   glfwMakeContextCurrent(window);
+
+  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   // Initialize GLEW
   GLenum err = glewInit();
