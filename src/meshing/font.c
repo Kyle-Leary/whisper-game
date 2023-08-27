@@ -8,8 +8,8 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "backends/graphics_api.h"
 #include "printers.h"
+#include "shaders/shader_instances.h"
 #include "util.h"
 
 static u8 has_run = 0;
@@ -132,7 +132,8 @@ GraphicsRender *font_mesh_string(Font *font, const char *str, float x_char_size,
       (VertexData *)&(HUDVertexData){RC_HUD, num_verts, positions, uvs},
       indices, num_indices);
 
-  gr->pc = PC_HUD_TEXT;
+  gr->shader = get_shader("hud_text");
+
   return gr;
 }
 
@@ -264,7 +265,7 @@ GraphicsRender *font_mesh_string_3d(Font *font, const char *str,
                                                     positions, normals, uvs},
                    indices, num_indices);
 
-  gr->pc = PC_TEXT_3D;
+  gr->shader = get_shader("text_3d");
   return gr;
 }
 

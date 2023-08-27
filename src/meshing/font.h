@@ -4,8 +4,9 @@
 // font is basically just a meshing api. it creates vertices and indices, and
 // returns a generic Render structure for later rendering.
 
-#include "backends/graphics_api.h"
 #include "defines.h"
+#include "render/graphics_render.h"
+#include "render/texture.h"
 
 // this is implementation independent.
 typedef struct {

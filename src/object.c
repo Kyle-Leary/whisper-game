@@ -87,17 +87,6 @@ void object_update() {
   }
 }
 
-// allocate and pass in a responses array of at least size NUM_OBJECTS.
-void object_interact(InteractionEvent e, InteractionResponse *responses) {
-  for (int i = 0; i < NUM_OBJECTS; i++) {
-    Object *o = object_state.objects[i];
-    if (o != NULL) {
-      // just use the object id as the index. that's gotta be helpful somehow.
-      responses[i] = fn_lut[o->type].interact_handler((void *)o, e);
-    }
-  }
-}
-
 // again, this doesn't call the function, it cleans up the overall ObjectState
 // subsystem.
 void object_clean() {}

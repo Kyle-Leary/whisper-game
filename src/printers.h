@@ -1,6 +1,7 @@
 #pragma once
 
-#include "backends/graphics_api.h"
+#include "render/graphics_render.h"
+#include "render/model.h"
 
 // functions that print stuff.
 

@@ -5,11 +5,10 @@
 
 #include "../object.h"
 #include "animation/animator.h"
-#include "backends/graphics_api.h"
 #include "cglm/types.h"
 #include "defines.h"
 #include "physics/component.h"
-#include "render.h"
+#include "render/render.h"
 #include <stdbool.h>
 
 // the camera is basically an object that controls and modifies the view matrix.

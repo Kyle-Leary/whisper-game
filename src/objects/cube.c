@@ -1,13 +1,11 @@
 #include "cube.h"
 
 #include "../object.h"
-#include "backends/graphics_api.h"
 #include "cglm/mat4.h"
 #include "cglm/quat.h"
 #include "cglm/types.h"
 #include "cglm/vec3.h"
 #include "global.h"
-#include "glprim.h"
 
 #include "helper_math.h"
 #include "input_help.h"
@@ -16,7 +14,8 @@
 #include "physics/body/body.h"
 #include "physics/collider/collider.h"
 #include "printers.h"
-#include "render.h"
+
+#include "render/gr_prim.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -41,7 +40,7 @@ Cube *cube_build(vec3 position, vec3 extents) {
   p->phys->body->rotation[0] += 1;
   p->phys->body->rotation[1] += 0.5;
 
-  p->render = make_rendercomp_from_graphicsrender(glprim_rect(extents));
+  p->render = make_rendercomp_from_graphicsrender(gr_prim_rect(extents));
 
   return p;
 }

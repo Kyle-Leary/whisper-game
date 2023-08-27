@@ -4,10 +4,9 @@
 #include "../object_lut.h"
 
 #include "../object.h"
-#include "backends/graphics_api.h"
 #include "cglm/types.h"
 #include "physics/component.h"
-#include "render.h"
+#include "render/render.h"
 
 typedef struct Sphere {
   OBJECT_FIELDS

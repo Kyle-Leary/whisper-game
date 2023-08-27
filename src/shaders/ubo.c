@@ -1,7 +1,9 @@
 #include "ubo.h"
 
-#include "backends/ogl_includes.h"
 #include "global.h"
+#include "ogl_includes.h"
+#include "render/light.h"
+#include "render/rigging.h"
 #include <sys/types.h>
 
 // go by the index specified in the enum variant.
@@ -53,4 +55,23 @@ void ubo_update() { // update UBOs.
 
   // we're not updating bone ubo in a loop, just update that before we draw a
   // model, calling the specified graphics api function.
+}
+
+void ubo_push_material(MaterialData *mat) {
+  if (mat == NULL) {
+    fprintf(stderr,
+            "g_use_material() was passed a NULL material. Returning...\n");
+    return;
+  }
+  glBindBuffer(GL_UNIFORM_BUFFER, ubo_ids[MATERIAL_BLOCK]);
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(MaterialData), mat);
+}
+
+void ubo_push_bones(mat4 *bones, mat4 *ibms, int num_bones) {
+  glBindBuffer(GL_UNIFORM_BUFFER, ubo_ids[BONE_BLOCK]);
+  int bone_sz = sizeof(float) * 16 * BONE_LIMIT;
+  int ibm_sz = bone_sz;
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, bone_sz, bones);
+  glBufferSubData(GL_UNIFORM_BUFFER, bone_sz, ibm_sz, ibms);
+  glBufferSubData(GL_UNIFORM_BUFFER, bone_sz + ibm_sz, sizeof(int), &num_bones);
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "animation/anim_struct.h"
-#include "backends/graphics_api.h"
+#include "render/model.h"
 #include "whisper/array.h"
 #include <stdbool.h>
 #include <stdint.h>

@@ -1,16 +1,22 @@
 #include "shape_debug_draw.h"
-#include "backends/graphics_api.h"
 #include "cglm/affine.h"
 #include "cglm/mat4.h"
-#include "glprim.h"
 #include "macros.h"
 #include "physics/collider/collider.h"
 #include "physics/physics.h"
+#include "render/graphics_render.h"
+#include "shaders/shader_instances.h"
 #include "transform.h"
 #include "util.h"
 #include "whisper/array.h"
 
+#include "render/gr_prim.h"
+
 #include <stddef.h>
+
+static Shader *wireframe_program;
+
+void debug_shape_init() { wireframe_program = get_shader("wireframe"); }
 
 // define a hashtable over a bunch of pointers, the pointers to the collision
 // objects. we want to map each collision object to one GraphicsRender*, for the
@@ -49,14 +55,14 @@ static void update_sphere_render(Collider *c, GraphicsRender *gr) {
 }
 
 static GraphicsRender *create_floor_render(Collider *c) {
-  return glprim_floor_plane(c->body->position);
+  return gr_prim_floor_plane(c->body->position);
 }
 static GraphicsRender *create_rect_render(Collider *c) {
-  return glprim_rect(((RectCollider *)c)->extents);
+  return gr_prim_rect(((RectCollider *)c)->extents);
 }
 static GraphicsRender *create_sphere_render(Collider *c) {
   SphereCollider *sc = (SphereCollider *)c;
-  return glprim_sphere(c->body->position, sc->radius, 7);
+  return gr_prim_sphere(c->body->position, sc->radius, 7);
 }
 
 #define DEBUG_SHAPE_PASS(shape, array)                                         \
@@ -72,7 +78,6 @@ static GraphicsRender *create_sphere_render(Collider *c) {
     } else {                                                                   \
       GraphicsRender *gr = create_##shape##_render(base_collider);             \
       if (gr) {                                                                \
-        gr->pc = PC_WIREFRAME;                                                 \
         shape_renders[hashed] = gr;                                            \
       }                                                                        \
     }                                                                          \

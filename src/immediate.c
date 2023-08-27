@@ -1,9 +1,8 @@
 #include "immediate.h"
 
-#include "backends/graphics/graphics_globals.h"
-#include "backends/graphics/shader.h"
-#include "backends/graphics_api.h"
-#include "backends/ogl_includes.h"
+#include "ogl_includes.h"
+#include "shaders/shader.h"
+#include "shaders/shader_instances.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -81,7 +80,7 @@ static void im_flush_one(IMDrawCall *call) {
 }
 
 void im_init() {
-  im_3d_shader = w_hm_get(shader_map, "im_3d").as_ptr;
+  im_3d_shader = get_shader("im_3d");
   assert(im_3d_shader != NULL);
   im_buf.num_draws = 0;
 }

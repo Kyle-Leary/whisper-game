@@ -21,9 +21,6 @@ typedef void (*UpdateFn)(void *);
 
 typedef void (*CleanFn)(void *); // when it's removed from the objects array.
                                  // different from destruction.
-// the area_server should handle propagating these events, started by function
-// calls from the player and potentially other objects.
-typedef InteractionResponse (*InteractionHandler)(void *, InteractionEvent);
 
 // have a LUT of ObjectFnPointers for each type of object.
 // the functions themselves are passed a void *, and trusted to cast to the
@@ -32,9 +29,6 @@ typedef struct ObjectFnPointers {
   InitFn init;
   UpdateFn update;
   CleanFn clean;
-  InteractionHandler
-      interact_handler; // calling a function directly when the player interacts
-                        // with something on the map.
 } ObjectFnPointers;
 
 extern ObjectFnPointers fn_lut[OBJ_COUNT];

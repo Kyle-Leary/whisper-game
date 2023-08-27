@@ -1,16 +1,6 @@
 #include "ansi.h"
 #include <stdio.h>
-
-// The "base case" to stop the recursion
-#define DO_FOR_EACH_LAST(FUNC, x) FUNC(x)
-
-// This does the recursion
-#define DO_FOR_EACH(FUNC, x, ...)                                              \
-  FUNC(x);                                                                     \
-  DO_FOR_EACH_1(FUNC, __VA_ARGS__)
-
-// To deal with the macro expansion order
-#define DO_FOR_EACH_1(FUNC, ...) DO_FOR_EACH(FUNC, __VA_ARGS__)
+#include <stdlib.h>
 
 #define TIMES(code, num_times)                                                 \
   {                                                                            \
@@ -20,7 +10,15 @@
     }                                                                          \
   }
 
-#define INTERNAL_ERROR_MSG(msg)                                                \
+#define INTERNAL_ERROR_MSG(msg, ...)                                           \
+  {                                                                            \
+    fprintf(stderr,                                                            \
+            ANSI_RED "ERROR: " msg                                             \
+                     "\n\t[at file: (%s, %d); in: %s]" ANSI_RESET "\n",        \
+            ##__VA_ARGS__, __FILE__, __LINE__, __PRETTY_FUNCTION__);           \
+  }
+
+#define INTERNAL_ERROR_MSG_NO_ARGS(msg)                                        \
   {                                                                            \
     fprintf(stderr,                                                            \
             ANSI_RED "ERROR: " msg                                             \
@@ -29,21 +27,46 @@
   }
 
 #ifdef DEBUG
-#define ERROR(msg)                                                             \
+#define ERROR(msg, ...)                                                        \
   {                                                                            \
-    INTERNAL_ERROR_MSG(msg);                                                   \
+    INTERNAL_ERROR_MSG(msg, __VA_ARGS__);                                      \
+    fprintf(stderr, "Crashing...\n");                                          \
+    exit(1);                                                                   \
+  }
+#define ERROR_NO_ARGS(msg)                                                     \
+  {                                                                            \
+    INTERNAL_ERROR_MSG_NO_ARGS(msg);                                           \
     fprintf(stderr, "Crashing...\n");                                          \
     exit(1);                                                                   \
   }
 #else
-#define ERROR(msg)                                                             \
-  { INTERNAL_ERROR_MSG(msg); }
+#define ERROR(msg, ...)                                                        \
+  { INTERNAL_ERROR_MSG(msg, __VA_ARGS__); }
+#define ERROR_NO_ARGS(msg)                                                     \
+  { INTERNAL_ERROR_MSG_NO_ARGS(msg); }
 #endif // DEBUG
+
+#define ERROR_FROM_BUF(message_buffer)                                         \
+  { ERROR("%s", message_buffer); }
 
 #define NULL_CHECK(value)                                                      \
   {                                                                            \
     if (value == NULL) {                                                       \
-      ERROR("NULL check of " #value " failed.");                               \
+      ERROR_NO_ARGS("NULL check of " #value " failed.");                       \
+    }                                                                          \
+  }
+
+#define NULL_CHECK_MSG(value, msg)                                             \
+  {                                                                            \
+    if (value == NULL) {                                                       \
+      ERROR_NO_ARGS("NULL check of " #value " failed: " msg ".");              \
+    }                                                                          \
+  }
+
+#define NULL_CHECK_STR_MSG(value, msg)                                         \
+  {                                                                            \
+    if (value == NULL) {                                                       \
+      ERROR("NULL check of " #value " failed: %s.", msg);                      \
     }                                                                          \
   }
 

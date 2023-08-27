@@ -1,22 +1,26 @@
 #include "gui.h"
-#include "backends/graphics/shader.h"
-#include "backends/graphics_api.h"
-#include "backends/input_api.h"
 #include "cglm/affine.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/util.h"
 #include "helper_math.h"
+#include "input/input.h"
 #include "meshing/font.h"
 #include "path.h"
+#include "render/graphics_render.h"
+#include "render/render_configuration.h"
+#include "shaders/shader.h"
+#include "shaders/shader_binding.h"
 #include "whisper/colmap.h"
+#include "whisper/hashmap.h"
 #include <stdbool.h>
 #include <string.h>
 #include <sys/types.h>
 
 // highest z_index is on the top.
 #define WIDGET_COMMON                                                          \
+  GraphicsRender *render;                                                      \
   bool is_in_use;                                                              \
   int z_index;
 
@@ -25,15 +29,12 @@ typedef struct GUILabel {
   char buffer[256];
   int buf_len;
   AABB aabb;
-  uint vao;
-  uint n_idx;
 } GUILabel;
 
 // just a draggable quad. this always has 6 indices.
 typedef struct GUIDraggable {
   WIDGET_COMMON
   AABB aabb;
-  uint vao;
 } GUIDraggable;
 
 typedef struct GUIButton {
@@ -41,8 +42,6 @@ typedef struct GUIButton {
   char buffer[256];
   int buf_len;
   AABB aabb;
-  uint vao;
-  uint n_idx;
 } GUIButton;
 
 typedef struct GUIState {
@@ -86,53 +85,25 @@ void gui_init() {
   gui_font =
       font_init(16, 16, textures[g_load_texture(TEXTURE_PATH("ui_font.png"))]);
 
-  { // init mats
+  { // init mats/global shader ref from the shader subsystem.
+    gui_program = get_shader("gui");
     glm_ortho(0, 1, 0, 1, 0.01, 100, g_projection);
-  }
 
-  // init shader w/ uniforms
-  {
-    gui_program = make_shader(SHADER_PATH("gui.shader"));
-    shader_set_1i(gui_program, "u_tex_sampler", 0); // 0th slot
-    // fix the projection at shader-creation time.
+    shader_bind(gui_program);
     shader_set_matrix4fv(gui_program, "u_projection", (float *)g_projection);
   }
 }
 
-static void gui_make_vao(uint *vao, float *positions, float *uvs,
-                         unsigned int *indices, uint num_indices,
-                         uint num_verts) { // init test render in opengl.
-  glGenVertexArrays(1, &(*vao));
-  glBindVertexArray(*vao);
-
-  GLuint vbo_pos_id;
-  glGenBuffers(1, &vbo_pos_id);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_pos_id);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * num_verts, positions,
-               GL_STATIC_DRAW);
-
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float),
-                        (GLvoid *)0);
-  glEnableVertexAttribArray(0);
-
-  GLuint vbo_uv_id;
-  glGenBuffers(1, &vbo_uv_id);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo_uv_id);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * num_verts, uvs,
-               GL_STATIC_DRAW);
-
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float),
-                        (GLvoid *)0);
-  glEnableVertexAttribArray(1);
-
-  GLuint ebo_id;
-  glGenBuffers(1, &ebo_id);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_id);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint) * num_indices, indices,
-               GL_STATIC_DRAW);
+static GraphicsRender *
+gui_make_render(float *positions, float *uvs, unsigned int *indices,
+                uint num_indices,
+                uint num_verts) { // init test render in opengl.
+  return g_new_render(
+      (VertexData *)&(HUDVertexData){RC_HUD, num_verts, positions, uvs},
+      indices, num_indices);
 }
 
-static void gui_quad_vao(uint *vao) {
+static GraphicsRender *gui_quad_render() {
   // Vertex positions (x, y)
   float positions[8] = {
       -0.5f, -0.5f, // Bottom-left corner
@@ -155,11 +126,10 @@ static void gui_quad_vao(uint *vao) {
       2, 3, 0  // Second triangle (top-right -> top-left -> bottom-left)
   };
 
-  gui_make_vao(vao, positions, uvs, indices, 6, 4);
+  return gui_make_render(positions, uvs, indices, 6, 4);
 }
 
-static void gui_string_vao(uint *vao, uint *n_idx,
-                           const char *str) { // init test render.
+static GraphicsRender *gui_string_render(const char *str) { // init test render.
   uint len = strlen(str);
 
   int num_verts = len * 4;
@@ -169,42 +139,9 @@ static void gui_string_vao(uint *vao, uint *n_idx,
   float uvs[num_verts * 2];
   uint indices[num_indices];
 
-  *n_idx = num_indices;
-
   font_mesh_string_raw(gui_font, str, len, 1, 1, positions, uvs, indices);
 
-  { // init test render in opengl.
-    glGenVertexArrays(1, &(*vao));
-    glBindVertexArray(*vao);
-
-    GLuint vbo_pos_id;
-    glGenBuffers(1, &vbo_pos_id);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_pos_id);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * num_verts, positions,
-                 GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float),
-                          (GLvoid *)0);
-    glEnableVertexAttribArray(0);
-
-    GLuint vbo_uv_id;
-    glGenBuffers(1, &vbo_uv_id);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_uv_id);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * num_verts, uvs,
-                 GL_STATIC_DRAW);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float),
-                          (GLvoid *)0);
-    glEnableVertexAttribArray(1);
-
-    GLuint ebo_id;
-    glGenBuffers(1, &ebo_id);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_id);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint) * num_indices, indices,
-                 GL_STATIC_DRAW);
-
-    glBindVertexArray(0);
-  }
+  return gui_make_render(positions, uvs, indices, num_indices, num_verts);
 }
 
 #define DEFAULT_Z_INDEX()                                                      \
@@ -219,7 +156,7 @@ void gui_label(const char *text, AABB *aabb) {
   if (label_ptr) {
     GUILabel *ptr = (GUILabel *)label_ptr;
     // new insertion.
-    gui_string_vao(&(ptr->vao), &(ptr->n_idx), text);
+    ptr->render = gui_string_render(text);
     int len = strlen(text);
     DEFAULT_Z_INDEX();
     memcpy(ptr->buffer, text, len);
@@ -238,7 +175,7 @@ bool gui_button(const char *text, AABB *aabb) {
   if (button_ptr) {
     GUIButton *ptr = (GUIButton *)button_ptr;
     // new insertion.
-    gui_string_vao(&(ptr->vao), &(ptr->n_idx), text);
+    ptr->render = gui_string_render(text);
     int len = strlen(text);
     memcpy(ptr->buffer, text, len);
     DEFAULT_Z_INDEX();
@@ -265,7 +202,7 @@ void gui_draggable(const char *name, AABB *aabb) {
     GUIDraggable *ptr = (GUIDraggable *)draggable_ptr;
     // new insertion.
     DEFAULT_Z_INDEX();
-    gui_quad_vao(&(ptr->vao));
+    ptr->render = gui_quad_render();
     memcpy(&(ptr->aabb), aabb, sizeof(AABB));
     ptr->is_in_use = true;
   } else {
@@ -287,26 +224,26 @@ void gui_update() {
 }
 
 void gui_draw() {
-  mat4 model;
-  glm_mat4_identity(model);
+  shader_bind(gui_program);
 
   g_use_texture(gui_font->tex_handle, 0);
 
 #define GENERIC_PREDRAW()                                                      \
-  { glm_mat4_identity(model); }
+  { glm_mat4_identity(w->render->model); }
 
 #define APPLY_Z()                                                              \
-  { glm_translate(model, (vec3){0, 0, w->z_index}); }
+  { glm_translate(w->render->model, (vec3){0, 0, w->z_index}); }
 
 #define TEXT_SQUISH()                                                          \
   {                                                                            \
-    glm_translate(model, (vec3){w->aabb.center[0], w->aabb.center[1], 0});     \
-    glm_scale(model, (vec3){(w->aabb.extents[0] * 2) / w->buf_len,             \
-                            (w->aabb.extents[1] * 2), 1});                     \
+    glm_translate(w->render->model,                                            \
+                  (vec3){w->aabb.center[0], w->aabb.center[1], 0});            \
+    glm_scale(w->render->model, (vec3){(w->aabb.extents[0] * 2) / w->buf_len,  \
+                                       (w->aabb.extents[1] * 2), 1});          \
   }
 
-#define APPLY_MODEL()                                                          \
-  { shader_set_matrix4fv(gui_program, "u_model", (float *)model); }
+#define DRAW()                                                                 \
+  { g_draw_render(w->render); }
 
   WIDGET_MAP_FORALL(GUILabel, labels, {
     if (w->is_in_use) {
@@ -314,9 +251,7 @@ void gui_draw() {
       GENERIC_PREDRAW()
       TEXT_SQUISH()
       APPLY_Z()
-      APPLY_MODEL()
-      glBindVertexArray(w->vao);
-      glDrawElements(GL_TRIANGLES, w->n_idx, GL_UNSIGNED_INT, 0);
+      DRAW();
     }
   });
 
@@ -325,21 +260,19 @@ void gui_draw() {
       GENERIC_PREDRAW()
       TEXT_SQUISH()
       APPLY_Z()
-      APPLY_MODEL()
-      glBindVertexArray(w->vao);
-      glDrawElements(GL_TRIANGLES, w->n_idx, GL_UNSIGNED_INT, 0);
+      DRAW();
     }
   });
 
   WIDGET_MAP_FORALL(GUIDraggable, draggables, {
     if (w->is_in_use) {
       GENERIC_PREDRAW()
-      glm_translate(model, (vec3){w->aabb.center[0], w->aabb.center[1], 0});
-      glm_scale(model, (vec3){w->aabb.extents[0], w->aabb.extents[1], 1});
+      glm_translate(w->render->model,
+                    (vec3){w->aabb.center[0], w->aabb.center[1], 0});
+      glm_scale(w->render->model,
+                (vec3){w->aabb.extents[0], w->aabb.extents[1], 1});
       APPLY_Z()
-      APPLY_MODEL()
-      glBindVertexArray(w->vao);
-      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+      DRAW();
     }
   });
 

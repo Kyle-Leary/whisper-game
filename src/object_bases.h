@@ -10,7 +10,6 @@ typedef enum ObjectType {
   // hud
   OBJ_LABEL,
   OBJ_BUTTON,
-  OBJ_TEXTURE,
 
   // we need to be able to quickly discern whether an object is a physics
   // object, use a masking type pattern again.

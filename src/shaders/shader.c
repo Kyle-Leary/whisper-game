@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -5,10 +6,11 @@
 #include "shader.h"
 #include "size.h"
 #include "util.h"
+#include "whisper/colmap.h"
 #include "whisper/hashmap.h"
 #include "whisper/macros.h"
 
-#include "backends/ogl_includes.h"
+#include "ogl_includes.h"
 
 #define SOURCE_BUF_SZ KB(20)
 
@@ -25,12 +27,10 @@ typedef enum ShaderType {
 // allocate one buffer for each ShaderType index.
 static char source_buffers[SH_COUNT][SOURCE_BUF_SZ] = {0};
 
+#define UNIFORM_MAP_SLOTS 509
+
 void shader_general_setup(Shader *s) {
-  // clear the shader location table with dummy values that indicate there's no
-  // shader loc there.
-  for (int i = 0; i < HASHMAP_SIZE; i++) {
-    s->locs[i].as_int = -1;
-  }
+  w_create_cm(&(s->locs), sizeof(int), UNIFORM_MAP_SLOTS);
 }
 
 int make_shader(const char *shader_path) {
@@ -40,7 +40,7 @@ int make_shader(const char *shader_path) {
 
   { // read out all the different shader types into their proper buffer.
     FILE *file = fopen(shader_path, "r");
-    NULL_CHECK(file);
+    NULL_CHECK_STR_MSG(file, shader_path);
 
     ShaderType curr_type = SH_INVALID;
 
@@ -105,8 +105,8 @@ int make_shader(const char *shader_path) {
     fclose(file);
   }
 
-  GLint compiled;
-  GLchar infoLog[512];
+  int compiled;
+  char infoLog[512];
   // use the same buffer for both.
 
   // we NEED the argument to be const. or else the function call simply won't
@@ -178,109 +178,82 @@ int make_shader(const char *shader_path) {
 }
 
 // caching function over the hashmap.
-static GLint get_uniform_loc(Shader *shader, const char *uniform_name) {
-  int location = w_hm_get(shader->locs, (char *)uniform_name).as_int;
-  if (location == -1) {
+static int get_uniform_loc(Shader *shader, const char *uniform_name) {
+  int location = -1;
+  int *location_ptr = w_cm_get(&(shader->locs), uniform_name);
+  if (location_ptr == NULL) {
     // location not found, ask opengl
     location = glGetUniformLocation(shader->id, uniform_name);
     if (location == -1) {
       // it actually wasn't found properly through the api. print an error.
-      fprintf(stderr,
-              "ERROR: could not find the uniform with name %s, not found in "
-              "cache or OPENGL.\n",
-              uniform_name);
+      char buf[256];
+      sprintf(buf,
+              "Could not find the uniform with name %s (on shader %s), not "
+              "found in "
+              "cache or OPENGL.",
+              uniform_name, shader->name);
+      ERROR_FROM_BUF(buf);
     } else {
       // only set it in the hashmap if it's actually a non-sentinel value.
-      w_hm_put_direct_value(shader->locs, (char *)uniform_name,
-                            (WHashMapValue){.as_int = location});
+      w_cm_insert(&(shader->locs), (char *)uniform_name, &location);
     }
   }
   return location;
 }
 
-// the current program id, good for not doing unnecessary shader switches
-// since they need to be USEd in the uniform setter functions.
-Shader *curr_program = NULL;
-
-void shader_use(Shader *program) {
-  // skip the check if the curr_program is NULL and just set the pointer
-  // directly.
-  if (curr_program && program->id == curr_program->id)
-    return;
-
-  curr_program = program;
-  glUseProgram(curr_program->id);
-}
-
-void shader_use_name(const char *name) {
-  shader_use(w_hm_get(shader_map, name).as_ptr);
-}
-
 void shader_set_1f(Shader *shader, const char *uniform_name, float f0) {
-  shader_use(shader);
   glUniform1f(get_uniform_loc(shader, uniform_name), f0);
 }
 
 void shader_set_2f(Shader *shader, const char *uniform_name, float f0,
                    float f1) {
-  shader_use(shader);
   glUniform2f(get_uniform_loc(shader, uniform_name), f0, f1);
 }
 
 void shader_set_3f(Shader *shader, const char *uniform_name, float f0, float f1,
                    float f2) {
-  shader_use(shader);
   glUniform3f(get_uniform_loc(shader, uniform_name), f0, f1, f2);
 }
 
 void shader_set_4f(Shader *shader, const char *uniform_name, float f0, float f1,
                    float f2, float f3) {
-  shader_use(shader);
   glUniform4f(get_uniform_loc(shader, uniform_name), f0, f1, f2, f3);
 }
 
 void shader_set_1i(Shader *shader, const char *uniform_name, int i0) {
-  shader_use(shader);
   glUniform1i(get_uniform_loc(shader, uniform_name), i0);
 }
 
 void shader_set_2i(Shader *shader, const char *uniform_name, int i0, int i1) {
-  shader_use(shader);
   glUniform2i(get_uniform_loc(shader, uniform_name), i0, i1);
 }
 
 void shader_set_3i(Shader *shader, const char *uniform_name, int i0, int i1,
                    int i2) {
-  shader_use(shader);
   glUniform3i(get_uniform_loc(shader, uniform_name), i0, i1, i2);
 }
 
 void shader_set_4i(Shader *shader, const char *uniform_name, int i0, int i1,
                    int i2, int i3) {
-  shader_use(shader);
   glUniform4i(get_uniform_loc(shader, uniform_name), i0, i1, i2, i3);
 }
 
 void shader_set_matrix2fv(Shader *shader, const char *uniform_name,
                           const float *value) {
-  shader_use(shader);
   glUniformMatrix2fv(get_uniform_loc(shader, uniform_name), 1, GL_FALSE, value);
 }
 
 void shader_set_matrix3fv(Shader *shader, const char *uniform_name,
                           const float *value) {
-  shader_use(shader);
   glUniformMatrix3fv(get_uniform_loc(shader, uniform_name), 1, GL_FALSE, value);
 }
 
 void shader_set_matrix4fv(Shader *shader, const char *uniform_name,
                           const float *value) {
-  shader_use(shader);
   glUniformMatrix4fv(get_uniform_loc(shader, uniform_name), 1, GL_FALSE, value);
 }
 
 void shader_set_block(Shader *shader, const char *uniform_name,
                       const void *value) {
-  shader_use(shader);
   glUniformMatrix4fv(get_uniform_loc(shader, uniform_name), 1, GL_FALSE, value);
 }

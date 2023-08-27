@@ -3,6 +3,7 @@
 #include "core/area_server.h"
 #include "event_types.h"
 #include "global.h"
+#include "gui/gui.h"
 #include "meshing/font.h"
 #include "meshing/gltf_mesher.h"
 #include "object.h"
@@ -12,10 +13,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "backends/graphics_api.h"
 #include "physics/body/body.h"
 #include "physics/physics.h"
 #include "printers.h"
+#include "render/light.h"
 
 // can also handle light logic in the area object definitions.
 static uint16_t player_id;
@@ -87,4 +88,12 @@ void areas_level() {
   text_3d = font_mesh_string_3d(simple_font, "hello 3d space", 0.5, 0.5);
 }
 
-void areas_level_update() { glm_rotate(text_3d->model, 0.01, (vec3){0, 1, 0}); }
+void areas_level_update() {
+  glm_rotate(text_3d->model, 0.01, (vec3){0, 1, 0});
+
+  gui_label("hello", &(AABB){0.4, 0.8, 0.2, 0.45});
+  if (gui_button("helloworld", &(AABB){0.4, 0.2, 0.05, 0.02})) {
+    printf("hello\n");
+  }
+  gui_draggable("draggablestuff", &(AABB){0.3, 0.3, 0.1, 0.1});
+}

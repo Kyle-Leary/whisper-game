@@ -110,30 +110,6 @@ void print_model(const Model *model, int indent_offset) {
            model->nodes[i].num_children);
     indent_level--;
   }
-
-  print_graphics_render(model->render, indent_level);
-}
-
-const char *get_pipeline_configuration_name(PipelineConfiguration pc) {
-  switch (pc) {
-  case PC_BASIC:
-    return "PC_BASIC";
-  case PC_HUD:
-    return "PC_HUD";
-  case PC_SKYBOX:
-    return "PC_SKYBOX";
-  case PC_BLANK_GOURAUD:
-    return "PC_BLANK_GOURAUD";
-  case PC_PBR_GOURAUD:
-    return "PC_PBR_GOURAUD";
-  case PC_SOLID:
-    return "PC_SOLID";
-  case PC_MODEL:
-    return "PC_MODEL";
-  case PC_COUNT:
-    return "PC_COUNT";
-  }
-  return "UNKNOWN";
 }
 
 const char *get_render_configuration_name(RenderConfiguration rc) {
@@ -165,15 +141,14 @@ void print_graphics_render(const GraphicsRender *gr, int indent_offset) {
   INDENT
   printf("Model matrix: \n");
   indent_level++;
-  print_mat4(gr->model, indent_level);
+  print_mat4((vec4 *)gr->model, indent_level);
   indent_level--;
 
   INDENT
   printf("Render Configuration: %s\n", get_render_configuration_name(gr->conf));
 
   INDENT
-  printf("Pipeline Configuration: %s\n",
-         get_pipeline_configuration_name(gr->pc));
+  printf("Shader Name: %s\n", gr->shader->name);
 
   // Add more print statements for the other fields in GraphicsRender as needed
 }

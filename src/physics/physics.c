@@ -1,12 +1,10 @@
 #include "physics.h"
-#include "backends/graphics_api.h"
 #include "cglm/affine.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/vec3.h"
 #include "event.h"
 #include "global.h"
-#include "glprim.h"
 #include "helper_math.h"
 #include "object.h"
 #include "object_bases.h"
@@ -73,6 +71,8 @@ void physics_init() {
     }
   }
 #undef CALC_START_END
+
+  debug_shape_init();
 }
 
 void physics_update() {

@@ -1,7 +1,6 @@
 #include "gltf_parse.h"
 
 #include "animation/anim_struct.h"
-#include "backends/graphics_api.h"
 #include "cglm/vec3.h"
 #include "defines.h"
 #include "printers.h"

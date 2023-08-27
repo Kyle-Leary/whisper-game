@@ -11,9 +11,6 @@ int make_shader(const char *shader_path);
 
 void shader_general_setup(Shader *s);
 
-void shader_use(Shader *program);
-void shader_use_name(const char *name);
-
 void shader_set_1f(Shader *shader, const char *uniform_name, float f0);
 void shader_set_2f(Shader *shader, const char *uniform_name, float f0,
                    float f1);

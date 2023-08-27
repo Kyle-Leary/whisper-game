@@ -1,7 +1,7 @@
 #pragma once
 
-#include "backends/graphics_api.h"
 #include "parsers/gltf/gltf_parse.h"
+#include "render/model.h"
 
 Model *gltf_to_model(GLTFFile *file);
 

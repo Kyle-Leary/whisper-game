@@ -24,7 +24,6 @@ void object_remove_by_ptr(Object *o);
 void object_init();
 void object_update();
 void object_draw();
-void object_interact(InteractionEvent e, InteractionResponse *responses);
 void object_clean();
 
 #endif // !OBJECT_H

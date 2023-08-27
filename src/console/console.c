@@ -1,7 +1,4 @@
 #include "console.h"
-#include "backends/graphics/shader.h"
-#include "backends/graphics_api.h"
-#include "backends/ogl_includes.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
@@ -9,21 +6,25 @@
 #include "helper_math.h"
 #include "meshing/font.h"
 #include "path.h"
+#include "shaders/shader.h"
+#include "shaders/shader_binding.h"
+#include "shaders/shader_instances.h"
 #include "whisper/queue.h"
-#include <GL/gl.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 
+#include "ogl_includes.h"
+
 static bool has_control = false;
 
 void toggle_console() { has_control = !has_control; }
 
-Font *console_font;
-Shader *console_program;
-mat4 c_projection, c_model;
+static Font *console_font;
+static Shader *console_program;
+static mat4 c_projection, c_model;
 
 // in glfw
 #define NUM_KEYS 348
@@ -123,6 +124,10 @@ void console_string_render(ConsoleRender *cr,
 }
 
 void console_init() {
+  console_program = get_shader("console");
+  shader_bind(console_program);
+  shader_set_matrix4fv(console_program, "u_projection", (float *)c_projection);
+
   { // default settings
     c_graphics.line_height = 0.04;
   }
@@ -153,15 +158,6 @@ void console_init() {
     glm_mat4_mul(c_projection, private_view, c_projection);
 
     glm_mat4_identity(c_model);
-  }
-
-  // init shader w/ uniforms
-  {
-    console_program = make_shader(SHADER_PATH("console.shader"));
-    shader_set_1i(console_program, "u_tex_sampler", 0); // 0th slot
-    // fix the projection at shader-creation time.
-    shader_set_matrix4fv(console_program, "u_projection",
-                         (float *)c_projection);
   }
 }
 

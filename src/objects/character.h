@@ -5,11 +5,10 @@
 
 #include "../object.h"
 #include "animation/animator.h"
-#include "backends/graphics_api.h"
 #include "cglm/types.h"
 #include "core/area_server.h"
 #include "physics/component.h"
-#include "render.h"
+#include "render/render.h"
 
 typedef struct Character {
   OBJECT_FIELDS

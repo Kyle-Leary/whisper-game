@@ -2,7 +2,6 @@
 
 #include "../object.h"
 #include "animation/animator.h"
-#include "backends/graphics_api.h"
 #include "cglm/affine-pre.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
@@ -10,12 +9,12 @@
 #include "core/area_server.h"
 #include "event_types.h"
 #include "global.h"
-#include "glprim.h"
 #include "helper_math.h"
 #include "input_help.h"
 #include "mathdef.h"
 #include "object_lut.h"
 #include "path.h"
+#include "render/gr_prim.h"
 
 #include <stdint.h>
 #include <stdlib.h>

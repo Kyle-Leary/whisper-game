@@ -1,5 +1,4 @@
 #include "gltf_mesher.h"
-#include "backends/graphics_api.h"
 #include "cglm/affine.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
@@ -125,7 +124,7 @@ Model *gltf_to_model(GLTFFile *file) {
                                        uvs, converted_joints, weights},
       indices, n_idx);
 
-  gr->pc = PC_MODEL;
+  gr->shader = get_shader("model");
 
   { // more JSON parsing for Model data not explicitly related to vertex
     // attributes/data.

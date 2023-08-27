@@ -1,7 +1,6 @@
 #pragma once
 // container for dumb externs of global state.
 
-#include "backends/graphics_api.h"
 #include "cglm/cglm.h"
 #include "cglm/types.h"
 #include "main.h"

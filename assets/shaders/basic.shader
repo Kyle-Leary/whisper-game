@@ -8,16 +8,15 @@ layout (location = 2) in vec2 aTexCoord;
 out vec3 vertexNormal;
 out vec2 TexCoord;
 
-uniform mat4 model;
+uniform mat4 u_model;
 #include "mats.glinc"
-
 #include "light.glinc"
 
 uniform float u_time; // just overall useful to have a time parameter here. i don't think
 // that we can just grab this directly through glsl?
 
 void main() {
-	gl_Position = projection * view * model * (vec4(aPos, 1.0));
+	gl_Position = projection * view * u_model * (vec4(aPos, 1.0));
 	TexCoord = aTexCoord * (sin(u_time));
 	vertexNormal = aNormal;
 }

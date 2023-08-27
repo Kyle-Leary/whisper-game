@@ -1,15 +1,13 @@
 #include "camera.h"
 
 #include "../object.h"
-#include "backends/graphics_api.h"
-#include "backends/input_api.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/util.h"
 #include "cglm/vec3.h"
 #include "global.h"
-#include "glprim.h"
+#include "render/gr_prim.h"
 
 #include "helper_math.h"
 #include "input_help.h"

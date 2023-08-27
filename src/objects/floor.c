@@ -1,13 +1,11 @@
 #include "floor.h"
 
 #include "../object.h"
-#include "backends/graphics_api.h"
 #include "cglm/affine.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/vec3.h"
 #include "global.h"
-#include "glprim.h"
 
 #include "helper_math.h"
 #include "input_help.h"
@@ -15,7 +13,8 @@
 #include "physics/body/body.h"
 #include "physics/collider/collider.h"
 #include "printers.h"
-#include "render.h"
+
+#include "render/gr_prim.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -36,7 +35,7 @@ Floor *floor_build(vec3 position, float strength) {
   StaticBody *sb = (StaticBody *)p->phys->body;
 
   p->render =
-      make_rendercomp_from_graphicsrender(glprim_floor_plane(sb->position));
+      make_rendercomp_from_graphicsrender(gr_prim_floor_plane(sb->position));
   GraphicsRender *prim = (GraphicsRender *)p->render->data;
   glm_scale(prim->model, (vec3){100, 1, 100});
   glm_translate(prim->model, position);

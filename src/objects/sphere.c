@@ -1,12 +1,10 @@
 #include "sphere.h"
 
 #include "../object.h"
-#include "backends/graphics_api.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/vec3.h"
 #include "global.h"
-#include "glprim.h"
 
 #include "helper_math.h"
 #include "im_prims.h"
@@ -14,7 +12,7 @@
 #include "mathdef.h"
 #include "physics/detection.h"
 #include "printers.h"
-#include "render.h"
+#include "render/gr_prim.h"
 #include "transform.h"
 #include "util.h"
 
@@ -40,7 +38,7 @@ Sphere *sphere_build(vec3 position, float radius, unsigned int segments) {
 
   {
     p->render = make_rendercomp_from_graphicsrender(
-        glprim_sphere(p->phys->body->position, radius, segments));
+        gr_prim_sphere(p->phys->body->position, radius, segments));
   }
 
   return p;
