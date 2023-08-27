@@ -2,7 +2,6 @@
 layout (location = 0) in vec3 aPos;
 
 #include "mats.glinc"
-#include "light.glinc"
 
 out vec3 TexCoord;
 

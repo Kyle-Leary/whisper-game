@@ -29,6 +29,7 @@
 #include "physics/physics.h"
 #include "printers.h"
 #include "render.h"
+#include "shaders/shader_instances.h"
 #include "size.h"
 #include "timescale.h"
 #include "util.h"
@@ -56,7 +57,7 @@ int entry_point(int argc, char **argv) {
 
   // glm is general purpose math, this isn't gl-specific. everything uses
   // projection matrices!
-  glm_perspective(glm_rad(75.0f), (float)WIN_W / WIN_H, 0.1f, 100.0f,
+  glm_perspective(glm_rad(75.0f), (float)win_w / win_h, 0.1f, 100.0f,
                   m_projection);
   glm_mat4_identity(m_view);
   glm_mat4_identity(m_model);
@@ -79,6 +80,8 @@ int entry_point(int argc, char **argv) {
   i_init();
   g_init();
   a_init();
+
+  shader_instantiate_all();
 
   // core module init
   battle_init();
@@ -213,6 +216,8 @@ int entry_point(int argc, char **argv) {
 
   console_clean();
   gui_clean();
+
+  shader_destroy_all();
 
   i_clean();
   g_clean();

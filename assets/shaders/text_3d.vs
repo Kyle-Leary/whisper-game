@@ -8,7 +8,6 @@ out vec2 f_texcoord;
 
 uniform mat4 model;
 #include "mats.glinc"
-#include "light.glinc"
 
 void main() {
 	f_texcoord = a_texcoord;

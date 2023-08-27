@@ -57,7 +57,6 @@ void g_use_pipeline(PipelineConfiguration config) {
   } break;
   case PC_BASIC: {
     Shader *ptr = GETSH("basic");
-    shader_set_1f(ptr, "u_time", u_time);
   } break;
   case PC_HUD: {              // prepare for hud drawing.
     glDisable(GL_DEPTH_TEST); // dont embed and overlap the ui with other

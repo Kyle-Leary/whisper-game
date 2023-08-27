@@ -3,7 +3,7 @@ CC := gcc
 
 # there are some cases where we literally can't align a vec4 on a 16 byte boundary.
 # skip the CGLM check. https://cglm.readthedocs.io/en/stable/opt.html
-CFLAGS += -Wall -DCGLM_ALL_UNALIGNED=1
+CFLAGS += -Wall -DCGLM_ALL_UNALIGNED=1 -DDEBUG=1
 
 INCLUDES += -I. -Isrc -Ideps/wjson/api -Ideps -Ideps/stb -Ideps/libwhisper/api
 
@@ -49,11 +49,16 @@ TEST_SYMBOLS += $(SYMBOLS)
 
 SHADER_PATH := assets/shaders
 SHADERS := $(shell find $(SHADER_PATH) -type f)
+
 # target preprocessed shaders.
-SHADERS := $(patsubst %.vs,%.vs.pp,$(SHADERS))
-SHADERS := $(patsubst %.fs,%.fs.pp,$(SHADERS))
-# don't delete the common includes in make clean
+SHADERS := $(patsubst %.shader,%.shader.pp,$(SHADERS))
+
+# don't accidentally delete these in the make clean.
 SHADERS := $(filter-out %.glinc,$(SHADERS))
+SHADERS := $(filter-out %.vs,$(SHADERS))
+SHADERS := $(filter-out %.fs,$(SHADERS))
+# just in case, even though we're already patsubst'ing it.
+SHADERS := $(filter-out %.shader,$(SHADERS))
 
 REQUIREMENTS += $(SHADERS)
 REQUIREMENTS += $(GLPP)
@@ -93,17 +98,14 @@ $(TEST_TARGET): $(REQUIREMENTS) $(TEST_REQUIREMENTS) testmain.o
 testmain.c:
 	./extract_test_functions.sh > $@
 
-# note: right now, only vs and fs files are being directly glpp'd. this means that
-# the common includes themselves may not, so watch out for that.
-# with the -I, it'll automatically pick up on any shader includes in the $(SHADER_PATH)
-# directory.
-%.vs.pp: %.vs $(GLPP)
-	$(GLPP) $< -o $@ -I$(SHADER_PATH)
-%.fs.pp: %.fs $(GLPP)
+# with the -I, glpp will automatically pick up on any shader includes
+# in the $(SHADER_PATH) directory.
+%.shader.pp: %.shader $(GLPP)
 	$(GLPP) $< -o $@ -I$(SHADER_PATH)
 
 clean:
 	rm -f $(shell find . -name "*.o") $(TARGET) $(TEST_TARGET) $(WJSON) $(LIBWHISPER) $(GLPP) $(SHADERS)
 
 # always rebuild test.c
-.PHONY: clean testmain.c
+# always rebuild shaders, it's cheap.
+.PHONY: clean testmain.c %.shader.pp

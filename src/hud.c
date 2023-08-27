@@ -111,7 +111,7 @@ void hud_react_to_change(GameState new_state) {
 void hud_update() {
   // update the mouse cursor texture position to match the actual position, no
   // matter what game mode we're in.
-  memcpy(mouse_cursor->aabb.xy, i_state.pointer, sizeof(float) * 2);
+  memcpy(mouse_cursor->aabb.center, i_state.pointer, sizeof(float) * 2);
 
   switch (game_state) {
   case GS_WALKING:

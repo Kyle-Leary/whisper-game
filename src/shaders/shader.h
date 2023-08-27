@@ -1,18 +1,15 @@
 #pragma once
 
-#include "../ogl_includes.h"
-#include "whisper.h"
+// the actual internal logic on each shader type. the instance logic goes in
+// shader_instances.{c,h}
+
+#include "shaders/shader_instances.h"
 #include <stdbool.h>
 
-// apply a cache on top of the hashmap to store the locations, grabbing them
-// lazily when we need them.
-typedef struct Shader {
-  GLint id; // the whole program id, only complete programs have uniform id
-            // getters in opengl, not individual vert/frag/geo shaders etc.
-  WHashMap locs;
-} Shader;
+// return the shader id, not the Shader* structure.
+int make_shader(const char *shader_path);
 
-Shader *make_shader(const char *vs_path, const char *fs_path);
+void shader_general_setup(Shader *s);
 
 void shader_use(Shader *program);
 void shader_use_name(const char *name);

@@ -196,8 +196,8 @@ GraphicsRender *glprim_floor_plane(vec3 position) {
 }
 
 GraphicsRender *glprim_ui_rect(AABB aabb, bool centered) {
-  float half_w = aabb.wh[0] / 2;
-  float half_h = aabb.wh[1] / 2;
+  float half_w = aabb.extents[0] / 2;
+  float half_h = aabb.extents[1] / 2;
 
   float x_min, x_max, y_min, y_max;
 
@@ -208,9 +208,9 @@ GraphicsRender *glprim_ui_rect(AABB aabb, bool centered) {
     y_max = half_h;
   } else {
     x_min = 0;
-    x_max = aabb.wh[0];
+    x_max = aabb.extents[0];
     y_min = 0;
-    y_max = aabb.wh[1];
+    y_max = aabb.extents[1];
   }
 
   vec2 p1 = {x_min, y_min}; // Bottom-left corner

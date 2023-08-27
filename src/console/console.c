@@ -157,8 +157,7 @@ void console_init() {
 
   // init shader w/ uniforms
   {
-    console_program =
-        make_shader(SHADER_PATH("console.vs"), SHADER_PATH("console.fs"));
+    console_program = make_shader(SHADER_PATH("console.shader"));
     shader_set_1i(console_program, "u_tex_sampler", 0); // 0th slot
     // fix the projection at shader-creation time.
     shader_set_matrix4fv(console_program, "u_projection",

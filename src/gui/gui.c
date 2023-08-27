@@ -92,7 +92,7 @@ void gui_init() {
 
   // init shader w/ uniforms
   {
-    gui_program = make_shader(SHADER_PATH("gui.vs"), SHADER_PATH("gui.fs"));
+    gui_program = make_shader(SHADER_PATH("gui.shader"));
     shader_set_1i(gui_program, "u_tex_sampler", 0); // 0th slot
     // fix the projection at shader-creation time.
     shader_set_matrix4fv(gui_program, "u_projection", (float *)g_projection);
