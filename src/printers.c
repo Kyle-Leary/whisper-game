@@ -145,9 +145,6 @@ void print_graphics_render(const GraphicsRender *gr, int indent_offset) {
   indent_level--;
 
   INDENT
-  printf("Render Configuration: %s\n", get_render_configuration_name(gr->conf));
-
-  INDENT
   printf("Shader Name: %s\n", gr->shader->name);
 
   // Add more print statements for the other fields in GraphicsRender as needed

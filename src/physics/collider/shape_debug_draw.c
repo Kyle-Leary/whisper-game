@@ -55,14 +55,20 @@ static void update_sphere_render(Collider *c, GraphicsRender *gr) {
 }
 
 static GraphicsRender *create_floor_render(Collider *c) {
-  return gr_prim_floor_plane(c->body->position);
+  GraphicsRender *g = gr_prim_floor_plane(c->body->position);
+  g->shader = wireframe_program;
+  return g;
 }
 static GraphicsRender *create_rect_render(Collider *c) {
-  return gr_prim_rect(((RectCollider *)c)->extents);
+  GraphicsRender *g = gr_prim_rect(((RectCollider *)c)->extents);
+  g->shader = wireframe_program;
+  return g;
 }
 static GraphicsRender *create_sphere_render(Collider *c) {
   SphereCollider *sc = (SphereCollider *)c;
-  return gr_prim_sphere(c->body->position, sc->radius, 7);
+  GraphicsRender *g = gr_prim_sphere(c->body->position, sc->radius, 7);
+  g->shader = wireframe_program;
+  return g;
 }
 
 #define DEBUG_SHAPE_PASS(shape, array)                                         \

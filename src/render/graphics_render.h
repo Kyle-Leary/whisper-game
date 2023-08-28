@@ -9,12 +9,13 @@ typedef struct GraphicsRender {
 
   Shader *shader;
 
-  uint vao; // we only need to explicitly include the VAO, the rest of the
-            // buffers are bound to it.
-
+  uint vao;   // we only need to explicitly include the VAO, the rest of the
+              // buffers are bound to it.
   uint n_idx; // number of indices of the bound vbo to the vao that we'll
               // actually render from the bound ebo.
 } GraphicsRender;
+
+void graphics_render_init();
 
 /* pass the g_new_render function one of the *VertexData structure type
  * pointers. it will be resolved and matched based on the configuration. */

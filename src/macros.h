@@ -70,5 +70,26 @@
     }                                                                          \
   }
 
+#define RUNTIME_ASSERT(expr)                                                   \
+  {                                                                            \
+    if (!(expr)) {                                                             \
+      ERROR_NO_ARGS("assertion of " #expr " failed.");                         \
+    }                                                                          \
+  }
+
+#define RUNTIME_ASSERT_MSG(expr, msg)                                          \
+  {                                                                            \
+    if (!(expr)) {                                                             \
+      ERROR_NO_ARGS("assertion of " #expr " failed: " msg ".");                \
+    }                                                                          \
+  }
+
+#define RUNTIME_ASSERT_STR_MSG(expr, msg)                                      \
+  {                                                                            \
+    if (!(expr)) {                                                             \
+      ERROR("assertion of " #expr " failed: %s.", msg);                        \
+    }                                                                          \
+  }
+
 #define NOT_IMPLEMENTED                                                        \
   fprintf(stderr, "ERROR: %s not implemented.\n", __PRETTY_FUNCTION__)

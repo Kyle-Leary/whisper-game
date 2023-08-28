@@ -91,9 +91,14 @@ void areas_level() {
 void areas_level_update() {
   glm_rotate(text_3d->model, 0.01, (vec3){0, 1, 0});
 
-  gui_label("hello", &(AABB){0.4, 0.8, 0.2, 0.45});
-  if (gui_button("helloworld", &(AABB){0.4, 0.2, 0.05, 0.02})) {
+  if (gui_button("helloworldlabel", "goto static level",
+                 &(AABB){0.1, 0.1, 0.05, 0.01})) {
+    area_switch(AREA_STATIC);
+  }
+  if (gui_button("sldkfjlaskjdfhelloworldlabel", "helloworld",
+                 &(AABB){0.4, 0.8, 0.05, 0.02})) {
     printf("hello\n");
   }
-  gui_draggable("draggablestuff", &(AABB){0.3, 0.3, 0.1, 0.1});
+  gui_label("blah", "laksjdfhello", &(AABB){0.5, 0.8, 0.1, 0.1});
+  gui_draggable("draggablestuff", &(AABB){0.3, 0.3, 0.2, 0.2});
 }

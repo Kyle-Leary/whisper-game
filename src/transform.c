@@ -1,9 +1,18 @@
 #include "transform.h"
 #include "cglm/mat4.h"
 #include "cglm/quat.h"
+#include "cglm/vec2.h"
 #include "helper_math.h"
 #include "printers.h"
 #include "util.h"
+
+void aabb_apply_transform(AABB *to, AABB *by, AABB *dest) {
+  dest->center[0] = to->center[0] - (by->center[0] - 0.5);
+  dest->center[1] = to->center[1] - (by->center[1] - 0.5);
+
+  dest->extents[0] = to->extents[0] / (by->extents[0] * 2);
+  dest->extents[1] = to->extents[1] / (by->extents[1] * 2);
+}
 
 void m4_apply_transform(mat4 m4, vec3 position, float scale, versor rotation) {
   glm_mat4_identity(m4);

@@ -24,7 +24,7 @@ Animator *make_animator(Model *target) {
   a.target = target;
 
   // again, just like the components return a global index into the array.
-  return w_array_get(&animators, w_array_insert(&animators, &a));
+  return w_array_insert(&animators, &a);
 }
 
 static uint32_t murmur_hash3_32(const void *key, int len) {

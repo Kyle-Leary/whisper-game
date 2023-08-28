@@ -4,6 +4,7 @@
 
 #include "macros.h"
 #include "shader.h"
+#include "shaders/shader_binding.h"
 #include "size.h"
 #include "util.h"
 #include "whisper/colmap.h"
@@ -181,8 +182,7 @@ int make_shader(const char *shader_path) {
 static int get_uniform_loc(Shader *shader, const char *uniform_name) {
   int location = -1;
   int *location_ptr = w_cm_get(&(shader->locs), uniform_name);
-  if (location_ptr == NULL) {
-    // location not found, ask opengl
+  if (location_ptr == NULL) { // slot is not in use, no location found.
     location = glGetUniformLocation(shader->id, uniform_name);
     if (location == -1) {
       // it actually wasn't found properly through the api. print an error.
@@ -195,9 +195,12 @@ static int get_uniform_loc(Shader *shader, const char *uniform_name) {
       ERROR_FROM_BUF(buf);
     } else {
       // only set it in the hashmap if it's actually a non-sentinel value.
-      w_cm_insert(&(shader->locs), (char *)uniform_name, &location);
+      w_cm_insert(&(shader->locs), uniform_name, &location);
     }
+  } else {
+    location = *location_ptr;
   }
+
   return location;
 }
 

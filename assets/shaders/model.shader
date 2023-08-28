@@ -66,7 +66,6 @@ void main() {
 	oTexCoord = aTexCoord;
 }
 
-
 #fragment
 #version 330 core
 

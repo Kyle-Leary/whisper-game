@@ -1,6 +1,7 @@
 #include "render.h"
 #include "meshing/gltf_mesher.h"
 #include "parsers/gltf/gltf_parse.h"
+#include "render/graphics_render.h"
 #include "shaders/shader_instances.h"
 #include "whisper/array.h"
 
@@ -11,7 +12,7 @@ RenderComp *make_rendercomp(RenderType type, void *data) {
   rc.type = type;
   rc.data = data;
   rc.is_disabled = false;
-  return w_array_get(&render_comps, w_array_insert(&render_comps, &rc));
+  return w_array_insert(&render_comps, &rc);
 }
 
 RenderComp *make_rendercomp_from_glb(const char *path) {
@@ -19,7 +20,7 @@ RenderComp *make_rendercomp_from_glb(const char *path) {
   rc.type = RENDERTYPE_MODEL;
   rc.data = gltf_to_model(gltf_parse(path));
   rc.is_disabled = false;
-  return w_array_get(&render_comps, w_array_insert(&render_comps, &rc));
+  return w_array_insert(&render_comps, &rc);
 }
 
 RenderComp *make_rendercomp_from_graphicsrender(GraphicsRender *gr) {
@@ -27,11 +28,11 @@ RenderComp *make_rendercomp_from_graphicsrender(GraphicsRender *gr) {
   rc.type = RENDERTYPE_PRIMITIVE;
   rc.data = gr;
   rc.is_disabled = false;
-  return w_array_get(&render_comps, w_array_insert(&render_comps, &rc));
+  return w_array_insert(&render_comps, &rc);
 }
 
 void render_init() {
-
+  graphics_render_init();
   w_make_array(&(render_comps), sizeof(RenderComp), NUM_RENDER_COMPONENTS);
 }
 

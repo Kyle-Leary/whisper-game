@@ -125,9 +125,6 @@ void console_string_render(ConsoleRender *cr,
 
 void console_init() {
   console_program = get_shader("console");
-  shader_bind(console_program);
-  shader_set_matrix4fv(console_program, "u_projection", (float *)c_projection);
-
   { // default settings
     c_graphics.line_height = 0.04;
   }
@@ -156,6 +153,10 @@ void console_init() {
 
     glm_lookat(camera_pos, point_pos, up, private_view);
     glm_mat4_mul(c_projection, private_view, c_projection);
+
+    shader_bind(console_program);
+    shader_set_matrix4fv(console_program, "u_projection",
+                         (float *)c_projection);
 
     glm_mat4_identity(c_model);
   }

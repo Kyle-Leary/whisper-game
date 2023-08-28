@@ -31,4 +31,6 @@ void timescale_scale_by(float scale) {
   fps = BASE_FPS * time_scale;
   update_frame_time();
   sprintf(timescale_debug_str, timescale_format_string, time_scale, fps);
+  gui_label("timescale display", timescale_debug_str,
+            &(AABB){0.5, 0.5, 0.2, 0.03});
 }
