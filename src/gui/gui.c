@@ -1,4 +1,5 @@
 #include "gui.h"
+#include "cglm/affine-pre.h"
 #include "cglm/affine.h"
 #include "cglm/cam.h"
 #include "cglm/mat4.h"
@@ -221,26 +222,24 @@ static void gui_string_render(GUIRender *gui_render,
 }
 
 // add the last_added widget to the current parent in scope.
-static void gui_add_child() {
+static void gui_add_child(GUIWidget *last_added) {
   // grab a pointer to the actual parent on the stack, and deref the pointer so
   // that it's pointing to the actual element itself.
   GUIWidget *ptr =
       *(GUIWidget **)((uint8_t *)gui_state.window_stack.stack_pointer -
                       gui_state.window_stack.elm_sz);
 
-  RUNTIME_ASSERT(gui_state.last_added->num_children < MAX_CHILDREN);
-
   // doubly link the tree entries.
-  ptr->children[ptr->num_children] = gui_state.last_added;
+  ptr->children[ptr->num_children] = last_added;
   ptr->num_children++;
-  gui_state.last_added->parent = ptr;
+  last_added->parent = ptr;
 }
 
-static void gui_actual_push() {
-  NULL_CHECK(gui_state.last_added);
+static void gui_actual_push(GUIWidget *last_added) {
+  NULL_CHECK(last_added);
 
   GUIWidget **w = w_stack_push(&(gui_state.window_stack));
-  memcpy(w, &gui_state.last_added, sizeof(void *));
+  memcpy(w, &last_added, sizeof(void *));
   gui_state.is_pushing = false;
 }
 
@@ -251,10 +250,10 @@ static void gui_actual_push() {
   {                                                                            \
     ptr->is_in_use = true;                                                     \
     gui_state.last_added = (GUIWidget *)ptr;                                   \
+    gui_add_child((GUIWidget *)ptr);                                           \
     if (gui_state.is_pushing) {                                                \
-      gui_actual_push();                                                       \
+      gui_actual_push((GUIWidget *)ptr);                                       \
     }                                                                          \
-    gui_add_child();                                                           \
   }
 
 void gui_widget(const char *name, AABB *aabb) {
@@ -398,7 +397,7 @@ static void gui_clean_child_state_recursive(GUIWidget *ptr) {
   }
 }
 
-static void gui_draw_recursive(GUIWidget *ptr, AABB *transform) {
+static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
 #define CAST(T) T *widget = (T *)ptr;
 
 #define APPLY_Z()                                                              \
@@ -407,9 +406,9 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB *transform) {
 #define TEXT_SQUISH()                                                          \
   {                                                                            \
     glm_translate(model,                                                       \
-                  (vec3){transform->center[0], transform->center[1], 0});      \
-    glm_scale(model, (vec3){(transform->extents[0] * 2) / widget->buf_len,     \
-                            (transform->extents[1] * 2), 1});                  \
+                  (vec3){0.5 + temp.center[0], 0.5 + temp.center[1], 0});      \
+    glm_scale(model, (vec3){(temp.extents[0] * 2) / widget->buf_len,           \
+                            (temp.extents[1] * 2), 1});                        \
   }
 
 #define DRAW()                                                                 \
@@ -419,6 +418,12 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB *transform) {
     glDrawElements(GL_TRIANGLES, widget->render.n_idx, GL_UNSIGNED_INT, 0);    \
     glm_mat4_identity(model);                                                  \
   }
+
+  // wtf why do we need this? i thought passing the struct by value was enough
+  // to get a proper data copy, but i guess not.
+  AABB temp;
+  // apply then recursively propagate the temp through the tree.
+  aabb_apply_transform(&(ptr->aabb), &transform, &temp);
 
   glm_mat4_identity(model);
 
@@ -440,8 +445,9 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB *transform) {
   } break;
   case WT_DRAGGABLE: {
     CAST(GUIDraggable);
-    glm_translate(model, (vec3){transform->center[0], transform->center[1], 0});
-    glm_scale(model, (vec3){transform->extents[0], transform->extents[1], 1});
+    glm_translate(model, (vec3){0.5, 0.5, 0});
+    glm_translate(model, (vec3){temp.center[0], temp.center[1], 0});
+    glm_scale(model, (vec3){temp.extents[0], temp.extents[1], 1});
     APPLY_Z()
     DRAW();
   } break;
@@ -453,23 +459,13 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB *transform) {
   }
 
   int num_child_renders = ptr->num_children;
-  AABB temp[num_child_renders];
-
-  for (int i = 0; i < ptr->num_children; i++) {
-    GUIWidget *child_ptr = ptr->children[i];
-    NULL_CHECK(child_ptr)
-    // don't apply directly to the child transform, just pass it down through
-    // the args in an AABB buffer.
-    aabb_apply_transform(&(child_ptr->aabb), &(ptr->aabb), &(temp[i]));
-    print_vec4((float *)&(temp[i]), 0);
-  }
 
   // gui_draw_recursive will mutate the ptr->num_children, so we need to be
   // careful in saving all that data so that all children are drawn and iterated
   // through.
   for (int i = 0; i < num_child_renders; i++) {
     GUIWidget *child_ptr = ptr->children[i];
-    gui_draw_recursive(child_ptr, &(temp[i]));
+    gui_draw_recursive(child_ptr, temp);
   }
 
   if (ptr->num_children == 0) {
@@ -494,7 +490,7 @@ void gui_draw() {
   GUIWidget *base_case = gui_get_root();
   RUNTIME_ASSERT(base_case->parent == NULL);
 
-  gui_draw_recursive(base_case, &(base_case->aabb));
+  gui_draw_recursive(base_case, base_case->aabb);
 }
 
 void gui_clean() {

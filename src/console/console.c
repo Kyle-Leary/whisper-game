@@ -11,6 +11,7 @@
 #include "shaders/shader_instances.h"
 #include "whisper/queue.h"
 #include <ctype.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -86,7 +87,7 @@ void console_string_render(ConsoleRender *cr,
 
   cr->n_idx = num_indices;
 
-  font_mesh_string_raw(console_font, str, len, 0.04, c_graphics.line_height,
+  font_mesh_string_raw(console_font, str, len, 0.01, c_graphics.line_height,
                        positions, uvs, indices);
 
   { // init test render in opengl.
@@ -214,13 +215,66 @@ void console_print(char *text, int len) {
   int bytes_remaining = (CONSOLE_TEXT_ENTRY.buffer + LINE_BUF_SZ) -
                         (CONSOLE_TEXT_ENTRY.buffer + CONSOLE_TEXT_ENTRY.len);
   int safe_range = MIN(bytes_remaining, len);
-  // copy up to the rest of the buffer, or the nullterm in char* text.
-  strncpy(starting_point, text, safe_range);
+
+  int i = 0;
+  int buffer_index = CONSOLE_TEXT_ENTRY.len;
+  while (text[i] != '\0') {
+#define PEEK() (text[i + 1])
+#define PUT_CH(ch)                                                             \
+  { CONSOLE_TEXT_ENTRY.buffer[buffer_index] = ch; }
+#define NEWLINE()                                                              \
+  {                                                                            \
+    console_newline();                                                         \
+    buffer_index = 0;                                                          \
+  }
+
+    char ch = text[i];
+
+    // if we've run out of buffer space or hit a newline, flush the line.
+    if (ch == '\\') {
+      switch (PEEK()) {
+      case 'n': {
+        // escaped newline
+        NEWLINE();
+        i++;
+      } break;
+      default: {
+        PUT_CH(ch);
+      } break;
+      }
+    } else if (ch == '\n' || buffer_index >= safe_range) {
+      NEWLINE();
+    } else {
+      PUT_CH(ch);
+    }
+
+    i++;
+    buffer_index++;
+
+#undef PEEK
+#undef PUT_CH
+#undef NEWLINE
+  }
 }
 
 void console_println(char *line_text, int len) {
   console_print(line_text, len);
   console_newline();
+}
+
+void console_printf(const char *format, ...) {
+  char temp_buf[LINE_BUF_SZ];
+  va_list args;
+  va_start(args, format);
+
+  int formatted_len = vsnprintf(temp_buf, LINE_BUF_SZ, format, args);
+  if (formatted_len >= LINE_BUF_SZ) {
+    formatted_len = LINE_BUF_SZ - 1;
+  }
+  temp_buf[formatted_len] = '\0';
+
+  va_end(args);
+  console_print(temp_buf, formatted_len);
 }
 
 static void console_submit() {

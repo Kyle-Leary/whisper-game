@@ -15,3 +15,4 @@ void console_clean();
 void console_newline();
 void console_print(char *text, int len);
 void console_println(char *line_text, int len);
+void console_printf(const char *format, ...);

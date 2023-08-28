@@ -2,6 +2,10 @@
 #include "helper_math.h"
 #include "pragma.h"
 
+const char *str_to_int_underflow = "Error: Integer overflow or underflow.\n";
+const char *str_to_int_invalid_int = "Error: Not a valid integer.\n";
+const char *str_to_int_out_of_range = "Error: Out of `int` range.\n";
+
 size_t get_FILE_length(FILE *file) {
   fseek(file, 0, SEEK_END);
   size_t length = ftell(file);

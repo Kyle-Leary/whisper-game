@@ -2,6 +2,7 @@
 
 #include "ogl_includes.h"
 #include "shaders/shader.h"
+#include "shaders/shader_binding.h"
 #include "shaders/shader_instances.h"
 
 #include <assert.h>
@@ -73,6 +74,7 @@ static GLenum gl_mode_from_drawmode(IMDrawMode m) {
 }
 
 static void im_flush_one(IMDrawCall *call) {
+  shader_bind(im_3d_shader);
   shader_set_4f(im_3d_shader, "u_color", call->color[0], call->color[1],
                 call->color[2], call->color[3]);
   glBindVertexArray(im_buf.vaos[call->vao_idx]);

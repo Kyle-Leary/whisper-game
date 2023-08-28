@@ -15,7 +15,7 @@ TARGET:=whisper
 
 CFLAGS += 
 # modify the include variables AFTER config.mk.
-LIBS := -lGLEW -lGL -lglfw -lopenal -lalut -lm -g
+LIBS := -lGLEW -lGL -lglfw -lopenal -lalut -lm -lpthread -g
 
 BACKEND_DIR := linux
 

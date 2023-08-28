@@ -30,6 +30,8 @@
 #include "util.h"
 #include "window.h"
 
+#include "hot_reload/hot_reload.h"
+
 #include <malloc.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -45,8 +47,9 @@ Font *simple_font = NULL;
 int entry_point(int argc, char **argv) {
   srand(time(NULL));
 
-  // call the lifecycle init and give them control before ANYTHING else.
   window_init();
+
+  hot_reload_init();
 
   // delta_time is a global defined in global.h
   clock_t start_time, end_time; // Variables to store the clock cycles
@@ -90,7 +93,7 @@ int entry_point(int argc, char **argv) {
   render_init();
   im_init();
 
-  area_switch(AREA_LEVEL);
+  area_switch(AREA_STATIC);
 
   hud_init();
 
@@ -221,8 +224,12 @@ int entry_point(int argc, char **argv) {
   hud_clean();
   anim_clean();
 
+  hot_reload_clean();
+
   // LAST, clean up the main function in the backend.
   window_clean();
+
+  printf("Everything cleaned successfully.\n");
 
   return 0;
 }

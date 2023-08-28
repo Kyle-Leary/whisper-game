@@ -91,14 +91,27 @@ void areas_level() {
 void areas_level_update() {
   glm_rotate(text_3d->model, 0.01, (vec3){0, 1, 0});
 
-  if (gui_button("helloworldlabel", "goto static level",
-                 &(AABB){0.1, 0.1, 0.05, 0.01})) {
-    area_switch(AREA_STATIC);
+  {
+    // if (gui_button("helloworldlabel", "goto static level",
+    //                &(AABB){0.0, 0.0, 0.5, 0.5})) {
+    //   area_switch(AREA_STATIC);
+    // }
+
+    // if (gui_button("sldkfjlaskjdfhelloworldlabel", "helloworld",
+    //                &(AABB){0.4, 0.8, 0.05, 0.02})) {
+    //   printf("hello\n");
+    // }
+    // gui_label("blah", "laksjdfhello", &(AABB){0.5, 0.8, 0.1, 0.1});
+    // gui_draggable("draggablestuff", &(AABB){0.3, 0.3, 0.2, 0.2});
+    //
+    // {
+    //   gui_push();
+    //   gui_widget("subwindow", &(AABB){0.25, 0.5, 0.25, 0.5});
+    //
+    //   gui_label("sublabel", "sublabel", &(AABB){0.5, 0.5, 0.25, 0.25});
+    //   gui_label("sublabel more", "again", &(AABB){0.5, 0.5, 0.5, 0.25});
+    //
+    //   gui_pop();
+    // }
   }
-  if (gui_button("sldkfjlaskjdfhelloworldlabel", "helloworld",
-                 &(AABB){0.4, 0.8, 0.05, 0.02})) {
-    printf("hello\n");
-  }
-  gui_label("blah", "laksjdfhello", &(AABB){0.5, 0.8, 0.1, 0.1});
-  gui_draggable("draggablestuff", &(AABB){0.3, 0.3, 0.2, 0.2});
 }

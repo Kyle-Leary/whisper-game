@@ -7,13 +7,10 @@
 
 layout (location = 0) in vec3 aPos;
 
-out vec3 oPos;
-
 #include "mats.glinc"
 
 void main() {
-	oPos = aPos;
-	gl_PointSize = 5.0;
+	gl_PointSize = 10.0;
 	gl_Position = projection * view * (vec4(aPos, 1.0));
 }
 
@@ -25,11 +22,9 @@ void main() {
 
 layout (location = 0) out vec4 color;
 
-in vec3 oPos;
-
 // allow the uniform to also decide alpha.
 uniform vec4 u_color;
 
 void main() {
-	color = u_color + (vec4(oPos, 1) / 200);
+	color = u_color;
 }

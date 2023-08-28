@@ -7,11 +7,14 @@
 #include "util.h"
 
 void aabb_apply_transform(AABB *to, AABB *by, AABB *dest) {
-  dest->center[0] = to->center[0] - (by->center[0] - 0.5);
-  dest->center[1] = to->center[1] - (by->center[1] - 0.5);
+  // Translating and scaling the child's center based on the parent's center and
+  // extents
+  dest->center[0] = by->center[0] + (to->center[0] - 0.5) * by->extents[0];
+  dest->center[1] = by->center[1] + (to->center[1] - 0.5) * by->extents[1];
 
-  dest->extents[0] = to->extents[0] / (by->extents[0] * 2);
-  dest->extents[1] = to->extents[1] / (by->extents[1] * 2);
+  // Scaling the child's extents based on the parent's extents
+  dest->extents[0] = to->extents[0] * by->extents[0];
+  dest->extents[1] = to->extents[1] * by->extents[1];
 }
 
 void m4_apply_transform(mat4 m4, vec3 position, float scale, versor rotation) {
