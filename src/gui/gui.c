@@ -5,6 +5,9 @@
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/util.h"
+#include "gui/gui_layouts.h"
+#include "gui/gui_renders.h"
+#include "gui/widgets.h"
 #include "helper_math.h"
 #include "input/input.h"
 #include "meshing/font.h"
@@ -31,87 +34,7 @@
 #include "ogl_includes.h"
 #include "whisper/stack.h"
 
-typedef enum GUIInputMouseButton {
-  MOUSE_LEFT,
-  MOUSE_MIDDLE,
-  MOUSE_RIGHT,
-  MOUSE_COUNT,
-} GUIInputMouseButton;
-
-// this will bubble up throughout the gui widget tree, and be passed to parents
-// to have a "child consumes parent input" type gui.
-typedef struct GUIInputState {
-  bool mouse_button[MOUSE_COUNT];
-} GUIInputState;
-
-typedef struct GUIRender {
-  uint vao;
-  uint n_idx;
-} GUIRender;
-
-// tree of gui widgets. the memory layout is just a hashmap, but they're linked
-// through child pointer lists.
-typedef struct GUIWidget GUIWidget;
-
-typedef enum WidgetType {
-  WT_INVALID = 0,
-  WT_WIDGET,
-  WT_LABEL,
-  WT_DRAGGABLE,
-  WT_BUTTON,
-
-  WT_COUNT,
-} WidgetType;
-
-#define MAX_CHILDREN 10
-
-// highest z_index is on the top.
-#define WIDGET_COMMON                                                          \
-  WidgetType type;                                                             \
-  GUIRender render;                                                            \
-  bool is_in_use;                                                              \
-  int z_index;                                                                 \
-  GUIWidget *parent;                                                           \
-  GUIWidget *children[MAX_CHILDREN];                                           \
-  uint num_children;                                                           \
-  AABB aabb;                                                                   \
-  AABB global_aabb;
-
-typedef struct GUIWidget {
-  WIDGET_COMMON
-} GUIWidget;
-
-typedef struct GUILabel {
-  WIDGET_COMMON
-  char buffer[256];
-  int buf_len;
-} GUILabel;
-
-// just a draggable quad. this always has 6 indices.
-typedef struct GUIDraggable {
-  WIDGET_COMMON
-} GUIDraggable;
-
-typedef struct GUIButton {
-  WIDGET_COMMON
-  char buffer[256];
-  int buf_len;
-} GUIButton;
-
-typedef struct GUIState {
-  WColMap widgets;
-  WColMap labels;
-  WColMap buttons;
-  WColMap draggables;
-
-  WStack window_stack;
-  GUIWidget *last_added;
-  bool is_pushing; // should we push on the next gui widget add?
-} GUIState;
-
-static GUIState gui_state = {0};
-
-static int default_z_index = 0;
+GUIState gui_state = {0};
 
 // execute "block" with the widget context ptr "w".
 #define WIDGET_MAP_FORALL(widget_t, widget_colmap, ...)                        \
@@ -134,20 +57,16 @@ static int default_z_index = 0;
     WIDGET_MAP_FORALL(GUIDraggable, draggables, block);                        \
   }
 
-static Font *gui_font;
-static Shader *gui_program;
-static mat4 g_projection;
-
 void gui_init() {
-  w_create_cm(&(gui_state.widgets), sizeof(GUIWidget), 256);
-  w_create_cm(&(gui_state.labels), sizeof(GUILabel), 256);
-  w_create_cm(&(gui_state.buttons), sizeof(GUIButton), 256);
-  w_create_cm(&(gui_state.draggables), sizeof(GUIDraggable), 256);
+  gui_render_init();
+  gui_widget_types_init();
+  layout_init();
 
   // specify max window depth here. we're making a stack of pointers, nothing
   // will actually be stored in the stack itself. it's just a context
   // organizational structure.
-  w_stack_create(&(gui_state.window_stack), sizeof(GUIWidget *), 16);
+  w_stack_create(&(gui_state.window_stack), sizeof(GUIWidget *),
+                 MAX_WINDOW_DEPTH);
 
   { // make the root widget element.
     GUIWidget **root_ptr_ptr =
@@ -162,80 +81,19 @@ void gui_init() {
         w_cm_insert(&(gui_state.widgets), "root widget", &stack_root);
     memcpy(root_ptr_ptr, &root_widget_slot, sizeof(void *));
   }
-
-  gui_font = font_init(16, 16, g_load_texture(TEXTURE_PATH("ui_font.png")));
-
-  { // init mats/global shader ref from the shader subsystem.
-    glm_ortho(0, 1, 0, 1, 0.01, 100, g_projection);
-
-    gui_program = get_shader("gui");
-    shader_bind(gui_program);
-    shader_set_matrix4fv(gui_program, "u_projection", (float *)g_projection);
-  }
 }
 
-static void gui_make_render(GUIRender *gui_render, float *positions, float *uvs,
-                            unsigned int *indices, uint num_indices,
-                            uint num_verts) { // init test render in opengl.
-  gui_render->n_idx = num_indices;
-  gui_render->vao = make_vao();
-  make_ebo(indices, num_indices);
+void gui_clean() {
+  w_clean_array(&(gui_state.widgets));
+  w_clean_array(&(gui_state.buttons));
+  w_clean_array(&(gui_state.labels));
+  w_clean_array(&(gui_state.draggables));
 
-  make_vbo(positions, num_verts, sizeof(float) * 2);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void *)0);
-  glEnableVertexAttribArray(0);
-
-  make_vbo(uvs, num_verts, sizeof(float) * 2);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void *)0);
-  glEnableVertexAttribArray(1);
-
-  glBindVertexArray(0);
-}
-
-static void gui_quad_render(GUIRender *gui_render) {
-  // Vertex positions (x, y)
-  float positions[8] = {
-      -0.5f, -0.5f, // Bottom-left corner
-      0.5f,  -0.5f, // Bottom-right corner
-      0.5f,  0.5f,  // Top-right corner
-      -0.5f, 0.5f   // Top-left corner
-  };
-
-  // UV coordinates (u, v)
-  float uvs[8] = {
-      0.0f, 0.0f, // Bottom-left corner
-      1.0f, 0.0f, // Bottom-right corner
-      1.0f, 1.0f, // Top-right corner
-      0.0f, 1.0f  // Top-left corner
-  };
-
-  // Indices for the quad
-  uint indices[6] = {
-      0, 1, 2, // First triangle (bottom-left -> bottom-right -> top-right)
-      2, 3, 0  // Second triangle (top-right -> top-left -> bottom-left)
-  };
-
-  gui_make_render(gui_render, positions, uvs, indices, 6, 4);
-}
-
-static void gui_string_render(GUIRender *gui_render,
-                              const char *str) { // init test render.
-  uint len = strlen(str);
-
-  int num_verts = len * 4;
-  int num_indices = len * 6;
-
-  float positions[num_verts * 2];
-  float uvs[num_verts * 2];
-  uint indices[num_indices];
-
-  font_mesh_string_raw(gui_font, str, len, 1, 1, positions, uvs, indices);
-
-  gui_make_render(gui_render, positions, uvs, indices, num_indices, num_verts);
+  w_stack_clean(&(gui_state.window_stack));
 }
 
 // add the last_added widget to the current parent in scope.
-static void gui_add_child(GUIWidget *last_added) {
+void gui_internal_add_child(GUIWidget *last_added) {
   // grab a pointer to the actual parent on the stack, and deref the pointer so
   // that it's pointing to the actual element itself.
   GUIWidget *ptr =
@@ -246,132 +104,27 @@ static void gui_add_child(GUIWidget *last_added) {
   ptr->children[ptr->num_children] = last_added;
   ptr->num_children++;
   last_added->parent = ptr;
+
+  // specifically accept the LOCAL transform.
+  layout_accept_new(&(last_added->aabb));
 }
 
-static void gui_actual_push(GUIWidget *last_added) {
+void gui_internal_push(GUIWidget *last_added) {
   NULL_CHECK(last_added);
 
   GUIWidget **w = w_stack_push(&(gui_state.window_stack));
   memcpy(w, &last_added, sizeof(void *));
   gui_state.is_pushing = false;
+
+  layout_internal_push();
 }
-
-#define DEFAULT_Z_INDEX()                                                      \
-  {                                                                            \
-    ptr->z_index = default_z_index;                                            \
-    default_z_index++;                                                         \
-  }
-
-#define END_WIDGET()                                                           \
-  {                                                                            \
-    ptr->is_in_use = true;                                                     \
-    gui_state.last_added = (GUIWidget *)ptr;                                   \
-    gui_add_child((GUIWidget *)ptr);                                           \
-    if (gui_state.is_pushing) {                                                \
-      gui_actual_push((GUIWidget *)ptr);                                       \
-    }                                                                          \
-  }
-
-void gui_widget(const char *name, AABB *aabb) {
-  GUIWidget *ptr = w_cm_return_slot(&(gui_state.widgets), name);
-
-  if (ptr) {
-    // first time init
-    ptr->type = WT_WIDGET;
-    DEFAULT_Z_INDEX();
-    memcpy(&(ptr->aabb), aabb, sizeof(AABB));
-  } else {
-    // else, it's returned NULL and we need to grab the slot ourselves.
-    ptr = w_cm_get(&(gui_state.widgets), name);
-  }
-
-  END_WIDGET();
-}
-
-void gui_label(const char *name, const char *text, AABB *aabb) {
-#define LABEL_RERENDER()                                                       \
-  {                                                                            \
-    gui_string_render(&(ptr->render), text);                                   \
-    int len = strlen(text);                                                    \
-    memcpy(ptr->buffer, text, len);                                            \
-    ptr->buf_len = len;                                                        \
-  }
-
-  GUILabel *ptr = w_cm_return_slot(&(gui_state.labels), name);
-
-  if (ptr) {
-    ptr->type = WT_LABEL;
-    DEFAULT_Z_INDEX();
-    LABEL_RERENDER();
-    memcpy(&(ptr->aabb), aabb, sizeof(AABB));
-  } else {
-    ptr = w_cm_get(&(gui_state.labels), name);
-
-    if (strncmp(text, ptr->buffer, ptr->buf_len) != 0) {
-      // the text has changed.
-      LABEL_RERENDER();
-    }
-  }
-
-  END_WIDGET();
-
-#undef LABEL_RERENDER
-}
-
-bool gui_button(const char *name, const char *text, AABB *aabb) {
-  GUIButton *ptr = w_cm_return_slot(&(gui_state.buttons), name);
-
-  if (ptr) {
-    ptr->type = WT_BUTTON;
-
-    // new insertion.
-    gui_string_render(&(ptr->render), text);
-
-    int len = strlen(text);
-    memcpy(ptr->buffer, text, len);
-    DEFAULT_Z_INDEX();
-    ptr->buf_len = len;
-    memcpy(&(ptr->aabb), aabb, sizeof(AABB));
-
-  } else {
-
-    ptr = w_cm_get(&(gui_state.buttons), name);
-  }
-
-  END_WIDGET();
-
-  if (i_state.act_just_pressed[ACT_HUD_INTERACT]) {
-    return (is_point_inside(ptr->aabb, (vec2){(float)i_state.pointer[0],
-                                              (float)i_state.pointer[1]}));
-  } else {
-    return false;
-  }
-}
-
-void gui_draggable(const char *name, AABB *aabb) {
-  GUIDraggable *ptr = w_cm_return_slot(&(gui_state.draggables), name);
-
-  if (ptr) {
-    ptr->type = WT_DRAGGABLE;
-
-    // new insertion.
-    DEFAULT_Z_INDEX();
-    gui_quad_render(&(ptr->render));
-    memcpy(&(ptr->aabb), aabb, sizeof(AABB));
-  } else {
-    ptr = w_cm_get(&(gui_state.draggables), name);
-  }
-
-  END_WIDGET();
-}
-
-#undef DEFAULT_Z_INDEX
 
 inline static GUIWidget *gui_get_root() {
   return *(GUIWidget **)gui_state.window_stack.base_pointer;
 }
 
-// call gui functions after the gui update.
+// call gui functions after the gui update. the gui_update function basically
+// serves as a state reset for the immediate mode context.
 void gui_update() {
   ALL_WIDGETS_DO({ w->is_in_use = false; })
 
@@ -385,16 +138,23 @@ void gui_update() {
   gui_state.window_stack.stack_pointer =
       (void *)((uint8_t *)gui_state.window_stack.base_pointer +
                gui_state.window_stack.elm_sz);
+
+  // then, reset the layout stack.
+  layout_reset();
 }
 
-void gui_push() { gui_state.is_pushing = true; }
+// TODO: set the layout on a push. store layout data on the stack.
+void gui_push(Layout *layout) {
+  gui_state.is_pushing = true;
+  layout_push(layout);
+}
 
 void gui_pop() {
   gui_state.last_added = w_stack_pop(&(gui_state.window_stack));
   NULL_CHECK(gui_state.last_added);
+  layout_pop();
 }
 
-static mat4 model;
 // after drawing and handling all the widget states, we need to clean the child
 // arrays in each widget so that the next frame can be processed and setup
 // seperately all over again. we'll recurse downward for the drawing/transform
@@ -406,29 +166,17 @@ static void gui_bubble_up(GUIWidget *ptr, GUIInputState *gui_input) {
 
   bool is_clicking = false;
 
-  bool mouse_inside = is_point_inside(ptr->global_aabb, i_state.pointer);
-  if (local_gui_input.mouse_button[MOUSE_LEFT] && mouse_inside) {
-    is_clicking = true;
-  }
+  local_gui_input.mouse_inside =
+      is_point_inside(ptr->global_aabb, i_state.pointer);
 
-  switch (ptr->type) {
-  case WT_WIDGET: {
-  } break;
-  case WT_LABEL: {
-    gui_input->mouse_button[MOUSE_LEFT] = false;
-  } break;
-  case WT_BUTTON: {
-  } break;
-  case WT_DRAGGABLE: {
-    if (is_clicking) {
-      memcpy(&(ptr->aabb.center), i_state.pointer, sizeof(float) * 2);
-    }
-  } break;
-  default: {
+  WidgetType t = ptr->type;
+  if (IS_VALID_WIDGET_TYPE(t)) {
     char buf[256];
-    sprintf(buf, "invalid widget type in the draw switch, found %d", ptr->type);
+    sprintf(buf, "invalid widget type in the update switch, found %d",
+            ptr->type);
     ERROR_FROM_BUF(buf);
-  } break;
+  } else {
+    widget_handlers[t].update(ptr, &local_gui_input);
   }
 
   ptr->num_children = 0;
@@ -468,69 +216,24 @@ static void apply_transform(AABB *to, AABB *by, AABB *dest) {
 }
 
 static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
-#define CAST(T) T *widget = (T *)ptr;
-
-#define APPLY_Z()                                                              \
-  { glm_translate(model, (vec3){0, 0, widget->z_index}); }
-
-#define TEXT_SQUISH()                                                          \
-  {                                                                            \
-    glm_translate(model, (vec3){ptr->global_aabb.center[0],                    \
-                                ptr->global_aabb.center[1], 0});               \
-    glm_scale(model,                                                           \
-              (vec3){(ptr->global_aabb.extents[0] * 2) / widget->buf_len,      \
-                     (ptr->global_aabb.extents[1] * 2), 1});                   \
-  }
-
-#define DRAW()                                                                 \
-  {                                                                            \
-    shader_set_matrix4fv(gui_program, "u_model", (float *)model);              \
-    glBindVertexArray(widget->render.vao);                                     \
-    glDrawElements(GL_TRIANGLES, widget->render.n_idx, GL_UNSIGNED_INT, 0);    \
-  }
 
   // apply then recursively propagate the temp through the tree.
   apply_transform(&(ptr->aabb), &transform, &(ptr->global_aabb));
 
-  glm_mat4_identity(model);
-
-  switch (ptr->type) {
-  case WT_WIDGET: {
-  } break;
-  case WT_LABEL: {
-    // keep the u_model updated in a loop.
-    CAST(GUILabel)
-    TEXT_SQUISH()
-    APPLY_Z()
-    DRAW();
-  } break;
-  case WT_BUTTON: {
-    CAST(GUIButton)
-    TEXT_SQUISH()
-    APPLY_Z()
-    DRAW();
-  } break;
-  case WT_DRAGGABLE: {
-    CAST(GUIDraggable);
-    glm_translate(model, (vec3){ptr->global_aabb.center[0],
-                                ptr->global_aabb.center[1], 0});
-    glm_scale(model, (vec3){ptr->global_aabb.extents[0] * 2,
-                            ptr->global_aabb.extents[1] * 2, 1});
-    APPLY_Z()
-    DRAW();
-  } break;
-  default: {
+  WidgetType t = ptr->type;
+  if (IS_VALID_WIDGET_TYPE(t)) {
     char buf[256];
     sprintf(buf, "invalid widget type in the draw switch, found %d", ptr->type);
     ERROR_FROM_BUF(buf);
-  } break;
+  } else {
+    widget_handlers[t].draw(ptr);
   }
 
   int num_child_renders = ptr->num_children;
 
   // gui_draw_recursive will mutate the ptr->num_children, so we need to be
-  // careful in saving all that data so that all children are drawn and iterated
-  // through.
+  // careful in saving all that data so that all children are drawn and
+  // iterated through.
   for (int i = 0; i < num_child_renders; i++) {
     GUIWidget *child_ptr = ptr->children[i];
     gui_draw_recursive(child_ptr, ptr->global_aabb);
@@ -538,35 +241,22 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
 
   if (ptr->num_children == 0) {
     // leaf node of the tree.
-    GUIInputState gui_input = {{i_state.act_held[ACT_HUD_INTERACT], 0, 0}};
+    GUIInputState gui_input = {
+        .mouse_button = {i_state.act_held[ACT_HUD_INTERACT], false, false},
+        .mouse_button_just_clicked = {
+            i_state.act_just_pressed[ACT_HUD_INTERACT], false, false}};
     gui_bubble_up(ptr, &gui_input);
   }
-
-#undef CAST
-#undef APPLY_Z
-#undef DRAW
-#undef TEXT_SQUISH
 }
 
 void gui_draw() {
   mat4 model;
   glm_mat4_identity(model);
 
-  shader_bind(gui_program);
-
-  g_use_texture(gui_font->tex_handle, 0);
+  shader_bind(render_state.shader);
 
   GUIWidget *base_case = gui_get_root();
   RUNTIME_ASSERT(base_case->parent == NULL);
 
   gui_draw_recursive(base_case, base_case->aabb);
-}
-
-void gui_clean() {
-  w_clean_array(&(gui_state.widgets));
-  w_clean_array(&(gui_state.buttons));
-  w_clean_array(&(gui_state.labels));
-  w_clean_array(&(gui_state.draggables));
-
-  w_stack_clean(&(gui_state.window_stack));
 }

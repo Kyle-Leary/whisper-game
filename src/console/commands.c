@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "window.h"
+
 #define MAX_WORDS 16
 #define MAX_WORD_SIZE 256
 
@@ -93,6 +95,8 @@ void command_run(CommandResponse *response, char *command, int len) {
     console_printf("\n\n");
   } else if (strncmp(command, "clear", 5) == 0) {
     console_printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+  } else if (strncmp(command, "quit", 4) == 0) {
+    window_force_close();
   } else {
     console_printf("'%s' is not a valid command.\n", command);
   }

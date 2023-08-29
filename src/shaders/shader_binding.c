@@ -1,4 +1,5 @@
 #include "shader_binding.h"
+#include "macros.h"
 #include "shaders/shader.h"
 
 #include "ogl_includes.h"
@@ -9,6 +10,8 @@
 static Shader *curr_sh = NULL;
 
 void shader_bind(Shader *s) {
+  NULL_CHECK(s);
+
   if (s != curr_sh) {
     // new shader, so unbind the old one.
     if (curr_sh && curr_sh->unbind)

@@ -1,6 +1,9 @@
 #include "cglm/types.h"
 #include "cglm/vec3.h"
 #include "gui/gui.h"
+#include "gui/gui_layouts.h"
+#include "gui/gui_prim.h"
+#include "gui/widgets.h"
 #include "im_prims.h"
 #include "immediate.h"
 #include "objects/camera.h"
@@ -19,6 +22,10 @@ void areas_static() {
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);
 }
 
+void function_one() { printf("function_one\n"); }
+
+void function_two() { printf("function_two\n"); }
+
 void areas_static_update() {
   im_cube((vec3){0}, 1);
   im_cube((vec3){0, 8, 0}, 1);
@@ -28,15 +35,39 @@ void areas_static_update() {
     im_point((vec3){0, i, 0});
   }
 
-  gui_draggable("some text", &(AABB){0.1, 0.1, 0.1, 0.1});
+  gui_push((Layout *)&(LayoutVertical){
+      .type = LAYOUT_VERTICAL, .margin = 0.01, .padding = 0.09});
+  gui_draggable("v");
 
-  {
-    gui_push();
-    gui_draggable("subwindow", &(AABB){0.1, 0.2, 0.1, 0.1});
-    gui_label("top left", "top left", &(AABB){0.25, 0.75, 0.24, 0.24});
-    gui_label("top right", "top right", &(AABB){0.75, 0.75, 0.24, 0.24});
-    gui_label("bottom left", "bottom left", &(AABB){0.25, 0.25, 0.24, 0.24});
-    gui_label("bottom right", "bottom right", &(AABB){0.75, 0.25, 0.24, 0.24});
-    gui_pop();
-  }
+  gui_draggable("h");
+  gui_draggable("k");
+
+  gui_push(NULL);
+  gui_draggable("w");
+
+  GUIFunctionListInput input = {
+      .num_inputs = 5,
+      .inputs =
+          {
+              {function_one, "function one"},
+              {function_two, "function two"},
+              {function_two, "function twoo"},
+              {function_two, "function twooo"},
+              {function_two, "function twoooo"},
+          },
+  };
+  gui_function_list(&input);
+
+  gui_pop();
+  gui_pop();
+
+  // {
+  //   gui_push(NULL);
+  //   gui_draggable("subwindow");
+  //   gui_label("top left", "top left");
+  //   gui_label("top right", "top right");
+  //   gui_label("bottom left", "bottom left");
+  //   gui_label("bottom right", "bottom right");
+  //   gui_pop();
+  // }
 }

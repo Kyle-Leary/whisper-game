@@ -116,6 +116,7 @@ void i_init() {
               [KEY_RIGHT] = ACT_CAMERA_CCW,
               [KEY_UP] = ACT_CAMERA_RAISE,
               [KEY_DOWN] = ACT_CAMERA_LOWER,
+              [MOUSE_LEFT] = ACT_HUD_INTERACT,
           },
       [MOD_CONTROL] =
           {

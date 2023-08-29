@@ -16,6 +16,8 @@
 
 GLFWwindow *window = NULL;
 
+void window_force_close() { glfwSetWindowShouldClose(window, GLFW_TRUE); }
+
 static void framebuffer_size_callback(GLFWwindow *window, int width,
                                       int height) {
   // Set the OpenGL viewport to cover the entire window

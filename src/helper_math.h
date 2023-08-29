@@ -8,9 +8,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-// the difference between a macro and an inline is that macros are generic and
-// have meta-programming possibilities.
 #define MIN(a, b) ((a < b) ? (a) : (b))
+#define MAX(a, b) ((a > b) ? (a) : (b))
 
 #define BETWEEN(float_position, min, max)                                      \
   (float_position > min && float_position < max)
