@@ -1,4 +1,3 @@
-#include "static.h"
 #include "cglm/types.h"
 #include "cglm/vec3.h"
 #include "gui/gui.h"
@@ -24,16 +23,21 @@ void areas_static_update() {
   //   im_draw((float *)positions, 3, (vec4){1, 1, 1, 1}, IM_TRIANGLES);
   // }
 
-  // if (gui_button("helloworldlabel", "helloworld",
-  //                &(AABB){0.4, 0.2, 0.05, 0.02})) {
-  //   printf("hello\n");
-  // }
-  //
-  // if (gui_button("sldkfjlaskjdfhelloworldlabel", "helloworld",
-  //                &(AABB){0.4, 0.8, 0.05, 0.02})) {
-  //   printf("hello\n");
-  // }
-  //
-  // gui_label("blah", "laksjdfhello", &(AABB){0.5, 0.8, 0.1, 0.1});
-  // gui_draggable("draggablestuff", &(AABB){0.3, 0.3, 0.2, 0.2});
+  // gui_draggable("subwindow", &(AABB){0.5, 0.5, 0.5, 0.5});
+
+  {
+    gui_push();
+    gui_draggable("subwindow", &(AABB){0.5, 0.5, 0.25, 0.5});
+
+    gui_label("top left", "top left", &(AABB){0.25, 0.75, 0.24, 0.24});
+    gui_label("top right", "top right", &(AABB){0.75, 0.75, 0.24, 0.24});
+
+    gui_label("bottom left", "bottom left", &(AABB){0.25, 0.25, 0.24, 0.24});
+    gui_label("bottom right", "bottom right", &(AABB){0.75, 0.25, 0.24, 0.24});
+
+    gui_pop();
+  }
 }
+
+// comment
+// comment

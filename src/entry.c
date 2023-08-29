@@ -1,13 +1,11 @@
 #include "animation/animator.h"
-#include "areas/areas.h"
+#include "areas/area_server.h"
 #include "audio/audio.h"
 #include "cglm/cglm.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/util.h"
 #include "console/console.h"
-#include "core/area_server.h"
-#include "core/battle.h"
 #include "event_types.h"
 #include "global.h"
 #include "gui/gui.h"
@@ -86,14 +84,14 @@ int entry_point(int argc, char **argv) {
   a_init();
 
   // core module init
-  battle_init();
   physics_init();
   object_init();
   anim_init();
   render_init();
   im_init();
 
-  area_switch(AREA_STATIC);
+  area_init();
+  area_switch("static.c");
 
   hud_init();
 
@@ -171,7 +169,6 @@ int entry_point(int argc, char **argv) {
     }
 
     // tick
-    battle_update();
     physics_update();
     object_update();
     anim_update();
@@ -224,10 +221,12 @@ int entry_point(int argc, char **argv) {
   hud_clean();
   anim_clean();
 
-  hot_reload_clean();
+  area_clean();
 
   // LAST, clean up the main function in the backend.
   window_clean();
+
+  hot_reload_clean();
 
   printf("Everything cleaned successfully.\n");
 

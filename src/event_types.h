@@ -3,7 +3,6 @@
 //// DEFINE EVENT TYPES
 // objects should push themselves back on a collision.
 #include "cglm/types.h"
-#include "core/area_defines.h"
 #include <stdint.h>
 
 // interaction - when you bump/interact with something on the map.

@@ -78,13 +78,13 @@ void i_init();
 void i_update();
 void i_clean();
 
-// replay a series of serialized InputState structures, frame by frame.
-// there's only one possible replay active at a time, so we don't need an ID
-// mechanism passed in here to specify.
-void i_start_replay(const char *inputs_path, bool does_loop);
-void i_toggle_replay();
-void i_pause_replay();
-void i_unpause_replay();
-void i_stop_replay();
+// // replay a series of serialized InputState structures, frame by frame.
+// // there's only one possible replay active at a time, so we don't need an ID
+// // mechanism passed in here to specify.
+// void i_start_replay(const char *inputs_path, bool does_loop);
+// void i_toggle_replay();
+// void i_pause_replay();
+// void i_unpause_replay();
+// void i_stop_replay();
 
 #endif

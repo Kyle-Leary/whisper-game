@@ -6,7 +6,6 @@
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/vec3.h"
-#include "core/area_server.h"
 #include "event_types.h"
 #include "global.h"
 #include "helper_math.h"

@@ -10,9 +10,6 @@
 #include "cglm/util.h"
 #include "cglm/vec2.h"
 #include "cglm/vec3.h"
-#include "core/area_defines.h"
-#include "core/area_server.h"
-#include "core/battle.h"
 #include "event.h"
 #include "event_types.h"
 #include "global.h"
@@ -104,7 +101,7 @@ void player_init(void *p) {}
 // Update player's mats and movement
 static void update_player_mats_movement(Player *player) {}
 
-static void player_handle_interactions(Player *player) { Position p; }
+static void player_handle_interactions(Player *player) {}
 
 // The main function
 static void player_handle_walking_state(Player *player) {
@@ -149,22 +146,6 @@ static void player_handle_walking_state(Player *player) {
       glm_vec3_add(player->ghost_step, b.right, player->ghost_step);
       glm_vec3_add(player->ghost_step, b.forward, player->ghost_step);
     }
-  }
-}
-
-static void handle_encounter_swing(Player *player) {
-  if (BETWEEN(i_state.pointer[0], 0.3, 0.7)) {
-    // we're swinging around the middle of the screen, check for damage.
-    float magnitude = glm_vec2_distance(
-        (vec2){0, 0},
-        i_state.pointer_velocity); // compare with zero for length check
-    battle_attack_enemy(magnitude);
-  }
-}
-
-static void player_handle_encounter(Player *player) {
-  if (i_state.act_held[ACT_IS_SWINGING]) {
-    handle_encounter_swing(player);
   }
 }
 
@@ -213,7 +194,6 @@ void player_update(void *p) {
     player_handle_walking_state(player);
     break;
   case GS_ENCOUNTER:
-    player_handle_encounter(player);
     break;
   default:
     break;

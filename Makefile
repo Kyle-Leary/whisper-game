@@ -3,7 +3,8 @@ CC := gcc
 
 # there are some cases where we literally can't align a vec4 on a 16 byte boundary.
 # skip the CGLM check. https://cglm.readthedocs.io/en/stable/opt.html
-CFLAGS += -Wall -DCGLM_ALL_UNALIGNED=1 -DDEBUG=1
+CFLAGS += -DCGLM_ALL_UNALIGNED=1 -DDEBUG=1 -DAREA_HOT_RELOAD=1
+CFLAGS += -Wall -Wno-missing-braces -Wno-unused-variable
 
 INCLUDES += -I. -Isrc -Ideps/wjson/api -Ideps -Ideps/stb -Ideps/libwhisper/api
 

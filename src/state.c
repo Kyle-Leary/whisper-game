@@ -1,8 +1,9 @@
 #include "state.h"
-#include "core/battle.h"
 #include "hud.h"
 #include <stdio.h>
 #include <sys/types.h>
+
+// TODO: wtf is this shit
 
 // initial state
 GameState game_state = GS_WALKING;
@@ -16,7 +17,6 @@ typedef void (*StateCallback)(
 
 static const StateCallback callbacks[] = {
     hud_react_to_change,
-    battle_handle_state_change,
 };
 
 static const uint callback_len = sizeof(callbacks) / sizeof(StateCallback);

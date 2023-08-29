@@ -15,4 +15,4 @@
 // general purpose resources, like random area file-formats that we'll parse and
 // use on the fly.
 #define RESOURCE_PATH ASSET_PATH "resources/"
-#define AREA_PATH(base_path) RESOURCE_PATH "areas/" base_path
+#define AREA_PATH(base_path) "src/areas/instances/" base_path

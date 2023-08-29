@@ -6,7 +6,6 @@
 #include "../object.h"
 #include "animation/animator.h"
 #include "cglm/types.h"
-#include "core/area_server.h"
 #include "physics/component.h"
 #include "render/render.h"
 

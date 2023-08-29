@@ -5,3 +5,4 @@
 -I.
 -Isrc
 -DDEBUG=1
+-DAREA_HOT_RELOAD=1

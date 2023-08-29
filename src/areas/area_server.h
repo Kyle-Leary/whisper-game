@@ -1,10 +1,12 @@
 #pragma once
 
-#include "areas/areas.h"
 #include "cglm/types.h"
-#include "core/area_defines.h"
-#include "whisper/hashmap.h"
+
 #include <stdbool.h>
+
+typedef void (*AreaFn)();
+typedef void (*AreaUpdateFn)();
+typedef void (*AreaCleanFn)();
 
 typedef struct AreaEntry {
   // each game area/level has its own arbitrary lifecycle methods.
@@ -13,11 +15,7 @@ typedef struct AreaEntry {
   AreaCleanFn cleaner;
 } AreaEntry;
 
-typedef struct AreaState {
-  AreaID curr;
-} AreaState;
-
-extern AreaState area_state;
-
-void area_switch(AreaID id);
+void area_init();
+void area_clean();
+void area_switch(const char *path);
 void area_update();

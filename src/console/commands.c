@@ -84,25 +84,21 @@ void command_run(CommandResponse *response, char *command, int len) {
     console_printf("%s", cmd_buf.joined_argv);
 
   } else if (strncmp(command, "load", 4) == 0) {
-    int len = MIN(LINE_BUF_SZ, strlen(command + 4));
-    char area_buf[32];
-    strncpy(area_buf, command + 5, MIN(len, 32));
-
-    console_printf("trying to load area: %s...", area_buf);
+    console_printf("trying to load area: %s...\n", cmd_buf.joined_argv);
 
     int area_num = 0;
-    {
-      STR_TO_INT(area_buf);
-      if (err_ptr)
-        console_printf("conversion error: %s", err_ptr);
+    STR_TO_INT(cmd_buf.joined_argv);
+    if (err_ptr) {
+      console_printf("conversion error: %s\n", err_ptr);
+    } else {
       area_num = str_to_int_return;
+      area_switch(area_num);
     }
-
   } else if (strncmp(command, "newline", 7) == 0) {
     console_printf("\n\n");
   } else if (strncmp(command, "clear", 5) == 0) {
     console_printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
   } else {
-    console_printf("there's no command starting with '%c'.\n", command[0]);
+    console_printf("'%s' is not a valid command.", command);
   }
 }

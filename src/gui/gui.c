@@ -244,7 +244,10 @@ static void gui_actual_push(GUIWidget *last_added) {
 }
 
 #define DEFAULT_Z_INDEX()                                                      \
-  { ptr->z_index = 0; }
+  {                                                                            \
+    ptr->z_index = default_z_index;                                            \
+    default_z_index++;                                                         \
+  }
 
 #define END_WIDGET()                                                           \
   {                                                                            \
@@ -397,6 +400,37 @@ static void gui_clean_child_state_recursive(GUIWidget *ptr) {
   }
 }
 
+static float get_center_axis(AABB *to, AABB *by, int index) {
+  float a = (by->center[index] - by->extents[index]);
+  float b = (by->center[index] + by->extents[index]);
+  float t = to->center[index];
+
+  float lerp = ((1 - t) * a) + (t * b);
+
+  PRINT_FLOAT(a);
+  PRINT_FLOAT(b);
+  PRINT_FLOAT(t);
+  PRINT_FLOAT(lerp);
+
+  return lerp;
+}
+
+static float get_extent_axis(AABB *to, AABB *by, int index) {
+  float new_extent = (by->extents[index] * 2) * (to->extents[index]);
+  PRINT_FLOAT(new_extent);
+  return new_extent;
+}
+
+static void apply_transform(AABB *to, AABB *by, AABB *dest) {
+  dest->center[0] = get_center_axis(to, by, 0);
+  dest->center[1] = get_center_axis(to, by, 1);
+
+  dest->extents[0] = get_extent_axis(to, by, 0);
+  dest->extents[1] = get_extent_axis(to, by, 1);
+
+#undef CENTER_AXIS
+}
+
 static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
 #define CAST(T) T *widget = (T *)ptr;
 
@@ -405,8 +439,7 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
 
 #define TEXT_SQUISH()                                                          \
   {                                                                            \
-    glm_translate(model,                                                       \
-                  (vec3){0.5 + temp.center[0], 0.5 + temp.center[1], 0});      \
+    glm_translate(model, (vec3){temp.center[0], temp.center[1], 0});           \
     glm_scale(model, (vec3){(temp.extents[0] * 2) / widget->buf_len,           \
                             (temp.extents[1] * 2), 1});                        \
   }
@@ -416,14 +449,14 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
     shader_set_matrix4fv(gui_program, "u_model", (float *)model);              \
     glBindVertexArray(widget->render.vao);                                     \
     glDrawElements(GL_TRIANGLES, widget->render.n_idx, GL_UNSIGNED_INT, 0);    \
-    glm_mat4_identity(model);                                                  \
   }
 
   // wtf why do we need this? i thought passing the struct by value was enough
   // to get a proper data copy, but i guess not.
   AABB temp;
   // apply then recursively propagate the temp through the tree.
-  aabb_apply_transform(&(ptr->aabb), &transform, &temp);
+  apply_transform(&(ptr->aabb), &transform, &temp);
+  print_vec4(&(temp), 0);
 
   glm_mat4_identity(model);
 
@@ -445,9 +478,8 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
   } break;
   case WT_DRAGGABLE: {
     CAST(GUIDraggable);
-    glm_translate(model, (vec3){0.5, 0.5, 0});
     glm_translate(model, (vec3){temp.center[0], temp.center[1], 0});
-    glm_scale(model, (vec3){temp.extents[0], temp.extents[1], 1});
+    glm_scale(model, (vec3){temp.extents[0] * 2, temp.extents[1] * 2, 1});
     APPLY_Z()
     DRAW();
   } break;

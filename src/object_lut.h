@@ -5,8 +5,6 @@
 
 #include "cglm/cglm.h"
 #include "cglm/types.h"
-#include "core/area_defines.h"
-#include "event_types.h"
 #include "object.h"
 
 // lots of things are going to be reaching into the object_lut, since it also

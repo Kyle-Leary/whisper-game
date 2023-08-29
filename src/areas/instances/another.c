@@ -1,4 +1,3 @@
-#include "areas.h"
 #include "event_types.h"
 #include "meshing/gltf_mesher.h"
 #include "object_bases.h"

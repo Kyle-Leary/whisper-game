@@ -125,7 +125,6 @@ void console_string_render(ConsoleRender *cr,
 }
 
 void console_init() {
-  console_program = get_shader("console");
   { // default settings
     c_graphics.line_height = 0.04;
   }
@@ -155,6 +154,7 @@ void console_init() {
     glm_lookat(camera_pos, point_pos, up, private_view);
     glm_mat4_mul(c_projection, private_view, c_projection);
 
+    console_program = get_shader("console");
     shader_bind(console_program);
     shader_set_matrix4fv(console_program, "u_projection",
                          (float *)c_projection);
@@ -168,7 +168,11 @@ void console_handle_input(int key, int scancode, int action, int mods) {
     return;
 
 #define IS_SHIFT (mods & GLFW_MOD_SHIFT)
-#define IS_CTRL (mods & GLFW_MOD_CTRL)
+#define IS_CTRL (mods & GLFW_MOD_CONTROL)
+
+  // don't handle any input when we're pressing ctrl.
+  if (IS_CTRL)
+    return;
 
   switch (action) {
   case GLFW_PRESS:
