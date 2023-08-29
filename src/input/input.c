@@ -1,5 +1,7 @@
 #include "input.h"
 
+#include "macros.h"
+
 #include "console/console.h"
 #include "defines.h"
 #include "global.h"
@@ -20,55 +22,49 @@
 
 InputState i_state = {0};
 
-static void handle_generic_input(int key, int action, int mods) {
-#define MAP(key, input_action)                                                 \
-  case key: {                                                                  \
-    switch (action) {                                                          \
-    case GLFW_PRESS:                                                           \
-      if (!i_state.last_act_state[input_action]) {                             \
-        i_state.act_just_pressed[input_action] = 1;                            \
-      }                                                                        \
-      i_state.act_held[input_action] = 1;                                      \
-      break;                                                                   \
-    case GLFW_RELEASE:                                                         \
-      if (i_state.last_act_state[input_action]) {                              \
-        i_state.act_just_released[input_action] = 1;                           \
-      }                                                                        \
-      i_state.act_held[input_action] = 0;                                      \
-      break;                                                                   \
-    default:                                                                   \
-      break;                                                                   \
-    }                                                                          \
-    i_state.last_act_state[input_action] = i_state.act_held[input_action];     \
+typedef enum GLFWInputType {
+  INPUT_TYPE_KEYBOARD,
+  INPUT_TYPE_MOUSE,
+  INPUT_TYPE_COUNT,
+} GLFWInputType;
+
+static Input glfw_map_into_input(int key, GLFWInputType type) {
+  switch (type) {
+  case INPUT_TYPE_KEYBOARD: {
+    // this is ID-mapped with glfw inputs.
+    return key;
+  } break;
+  case INPUT_TYPE_MOUSE: {
+    return key + MOUSE_LEFT; // map at an offset.
+  } break;
+  default: {
+    ERROR_NO_ARGS("passed invalid GLFWInputType.");
+  } break;
   }
+}
 
-#define IS_SHIFT (mods & GLFW_MOD_SHIFT)
-#define IS_CTRL (mods & GLFW_MOD_CONTROL)
+static void handle_generic_input(int key, int action, int mods,
+                                 GLFWInputType type) {
+  ActionType input_action =
+      i_state.action_mapping[mods][glfw_map_into_input(key, type)];
 
-  switch (key) {
-    MAP(GLFW_KEY_W, ACT_UP);
-    MAP(GLFW_KEY_S, ACT_DOWN);
-    MAP(GLFW_KEY_A, ACT_LEFT);
-    MAP(GLFW_KEY_D, ACT_RIGHT);
-    MAP(GLFW_KEY_SPACE, ACT_JUMP);
-    MAP(GLFW_MOUSE_BUTTON_LEFT, ACT_HUD_INTERACT);
-    MAP(GLFW_KEY_LEFT, ACT_CAMERA_CW);
-    MAP(GLFW_KEY_RIGHT, ACT_CAMERA_CCW);
-    MAP(GLFW_KEY_UP, ACT_CAMERA_RAISE);
-    MAP(GLFW_KEY_DOWN, ACT_CAMERA_LOWER);
-  }
-
-  if (IS_CTRL) {
-    switch (key) {
-      MAP(GLFW_KEY_D, ACT_TOGGLE_DEBUG_DRAW);
-      MAP(GLFW_KEY_C, ACT_TOGGLE_DEBUG_CONSOLE);
+  switch (action) {
+  case GLFW_PRESS:
+    if (!i_state.last_act_state[input_action]) {
+      i_state.act_just_pressed[input_action] = 1;
     }
+    i_state.act_held[input_action] = 1;
+    break;
+  case GLFW_RELEASE:
+    if (i_state.last_act_state[input_action]) {
+      i_state.act_just_released[input_action] = 1;
+    }
+    i_state.act_held[input_action] = 0;
+    break;
+  default:
+    break;
   }
-
-#undef IS_CTRL
-#undef IS_SHIFT
-
-#undef MAP
+  i_state.last_act_state[input_action] = i_state.act_held[input_action];
 }
 
 static void input_key_callback(GLFWwindow *window, int key, int scancode,
@@ -79,12 +75,12 @@ static void input_key_callback(GLFWwindow *window, int key, int scancode,
     glfwSetWindowShouldClose(window, GLFW_TRUE);
   }
 
-  handle_generic_input(key, action, mods);
+  handle_generic_input(key, action, mods, INPUT_TYPE_KEYBOARD);
 }
 
 static void input_mouse_button_callback(GLFWwindow *window, int button,
                                         int action, int mods) {
-  handle_generic_input(button, action, mods);
+  handle_generic_input(button, action, mods, INPUT_TYPE_MOUSE);
 }
 
 static void input_cursor_position_callback(GLFWwindow *window, double xpos,
@@ -106,6 +102,31 @@ static void input_cursor_position_callback(GLFWwindow *window, double xpos,
 }
 
 void i_init() {
+  // how can i zero-init this everywhere else?
+  ActionType action_mapping[NUM_MODIFIER_PERMUTATIONS][INPUT_COUNT] = {
+      [0] =
+          {
+              [KEY_W] = ACT_UP,
+              [KEY_S] = ACT_DOWN,
+              [KEY_D] = ACT_RIGHT,
+              [KEY_A] = ACT_LEFT,
+              [KEY_LEFT] = ACT_CAMERA_CW,
+              [KEY_RIGHT] = ACT_CAMERA_CCW,
+              [KEY_UP] = ACT_CAMERA_RAISE,
+              [KEY_DOWN] = ACT_CAMERA_LOWER,
+          },
+      [MOD_CONTROL] =
+          {
+              [KEY_C] = ACT_TOGGLE_DEBUG_CONSOLE,
+              [KEY_D] = ACT_TOGGLE_DEBUG_DRAW,
+          },
+      [MOD_ALT] = {},
+      [MOD_SUPER] = {},
+  };
+
+  // copy in the init mapping. TODO: maybe load this from a file at some point.
+  memcpy(&(i_state.action_mapping), &action_mapping, sizeof(action_mapping));
+
   glfwSetKeyCallback(window, input_key_callback);
   glfwSetMouseButtonCallback(window, input_mouse_button_callback);
   glfwSetCursorPosCallback(window, input_cursor_position_callback);
