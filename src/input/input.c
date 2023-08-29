@@ -51,6 +51,11 @@ static void handle_generic_input(int key, int action, int mods) {
     MAP(GLFW_KEY_A, ACT_LEFT);
     MAP(GLFW_KEY_D, ACT_RIGHT);
     MAP(GLFW_KEY_SPACE, ACT_JUMP);
+    MAP(GLFW_MOUSE_BUTTON_LEFT, ACT_HUD_INTERACT);
+    MAP(GLFW_KEY_LEFT, ACT_CAMERA_CW);
+    MAP(GLFW_KEY_RIGHT, ACT_CAMERA_CCW);
+    MAP(GLFW_KEY_UP, ACT_CAMERA_RAISE);
+    MAP(GLFW_KEY_DOWN, ACT_CAMERA_LOWER);
   }
 
   if (IS_CTRL) {

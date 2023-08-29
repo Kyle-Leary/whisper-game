@@ -20,7 +20,7 @@ typedef struct IMDrawCall {
   uint num_vertices;
   uint vao_idx; // the index into the buffer's vao array.
   IMDrawMode mode;
-  vec3 color;
+  vec4 color;
 } IMDrawCall;
 
 typedef struct IMBuffer {

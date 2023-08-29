@@ -13,8 +13,8 @@ layout(std140) uniform ViewProjection {
 };
 
 void main() {
-	gl_PointSize = 10.0;
 	gl_Position = projection * view * (vec4(aPos, 1.0));
+	gl_PointSize = 500.0;
 }
 
 

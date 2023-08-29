@@ -148,14 +148,12 @@ static void init_text_3d() {
 }
 
 static void skybox_bind(Shader *s) {
-  shader_set_1i(s, "u_cube_tex", SKYBOX_TEX_SLOT);
-
   glDisable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
 }
 static void skybox_unbind(Shader *s) {
-  glDepthFunc(GL_LESS);
   glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
 }
 // do nothing.
 static void skybox_handle_model(Shader *s, mat4 model) {}
@@ -164,7 +162,7 @@ static void init_skybox() {
   SHADER_SETUP("skybox", "skybox.shader");
   shader_set_1i(s, "u_cube_tex", SKYBOX_TEX_SLOT);
   s->bind = skybox_bind;
-  s->unbind = NULL;
+  s->unbind = skybox_unbind;
   s->handle_model = skybox_handle_model;
   BIND_MATRICES();
 }

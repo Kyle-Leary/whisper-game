@@ -64,9 +64,9 @@ int entry_point(int argc, char **argv) {
     // 16 x 9 font characters means each letter fits in a 16x16 px square, or on
     // a 512 double-size texture, a 32x32px square.
     simple_font = font_init(16, 16,
-                            textures[g_load_texture(TEXTURE_PATH(
-                                "ui_font.png"))]); // make sure the tex size
-                                                   // ends up as a power of two.
+                            g_load_texture(TEXTURE_PATH(
+                                "ui_font.png"))); // make sure the tex size
+                                                  // ends up as a power of two.
     // 16 * 9 = 96 cells, which is the num of printable ascii characters.
   }
 
@@ -105,29 +105,16 @@ int entry_point(int argc, char **argv) {
   double fps_timer = 0.0;
 
   // setup textures
-  TextureHandle nepeta = textures[g_load_texture(TEXTURE_PATH("nepeta.jpg"))];
-  TextureHandle character =
-      textures[g_load_texture(TEXTURE_PATH("character.png"))];
+  TextureHandle nepeta = g_load_texture(TEXTURE_PATH("nepeta.jpg"));
+  TextureHandle character = g_load_texture(TEXTURE_PATH("character.png"));
 
   GraphicsRender *skybox_render = gr_prim_skybox_cube();
-  { // setup skybox, bind the texture at the start and on each skybox switch to
-    // avoid redundancy.
-    char *cubemap_paths[6] = {TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png"),
-                              TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png"),
-                              TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png")};
+  char *cubemap_paths[6] = {TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png"),
+                            TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png"),
+                            TEXTURE_PATH("sky.png"), TEXTURE_PATH("sky.png")};
 
-    TextureHandle skybox_tex = textures[g_load_cubemap(cubemap_paths)];
-
-    // this also means that you can effectively change the whole skybox without
-    // much CPU overhead by simply changing the cubemap texture bound to
-    // SKYBOX_TEX_SLOT.
-    g_use_cubemap(
-        skybox_tex,
-        SKYBOX_TEX_SLOT); // the cubemap and texture_2d textures are in the same
-                          // texture slot space. binding a texture2d over the
-                          // cubemap will overwrite it, so just put the skybox
-                          // in it's own special slot.
-  }
+  TextureHandle skybox_tex = g_load_cubemap(cubemap_paths);
+  skybox_render->shader = get_shader("skybox");
 
   bool debug_drawing = false;
 
@@ -153,17 +140,13 @@ int entry_point(int argc, char **argv) {
 
     area_update();
 
-    i_update(); // clear the temporary input state
-
     window_update(); // potentially poll for events?
     a_update();
 
     {
       if (i_state.act_just_pressed[ACT_TOGGLE_DEBUG_DRAW]) {
         debug_drawing = !debug_drawing;
-      }
-
-      if (i_state.act_just_pressed[ACT_TOGGLE_DEBUG_CONSOLE]) {
+      } else if (i_state.act_just_pressed[ACT_TOGGLE_DEBUG_CONSOLE]) {
         toggle_console();
       }
     }
@@ -184,7 +167,8 @@ int entry_point(int argc, char **argv) {
     { // draw the 3d scene (YES, ORDER MATTERS HERE)
       // our top-level, default pipeline.
       { // render skybox
-        // g_draw_render(skybox_render);
+        g_use_cubemap(skybox_tex, SKYBOX_TEX_SLOT);
+        g_draw_render(skybox_render);
       }
       g_use_texture(nepeta, 0);
       render_draw();
@@ -201,6 +185,8 @@ int entry_point(int argc, char **argv) {
     }
 
     window_end_draw();
+
+    i_update(); // clear the temporary input state
 
     // Update start_time for the next iteration
     clock_t end_time = clock();

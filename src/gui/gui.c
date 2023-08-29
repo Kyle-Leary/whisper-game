@@ -31,6 +31,19 @@
 #include "ogl_includes.h"
 #include "whisper/stack.h"
 
+typedef enum GUIInputMouseButton {
+  MOUSE_LEFT,
+  MOUSE_MIDDLE,
+  MOUSE_RIGHT,
+  MOUSE_COUNT,
+} GUIInputMouseButton;
+
+// this will bubble up throughout the gui widget tree, and be passed to parents
+// to have a "child consumes parent input" type gui.
+typedef struct GUIInputState {
+  bool mouse_button[MOUSE_COUNT];
+} GUIInputState;
+
 typedef struct GUIRender {
   uint vao;
   uint n_idx;
@@ -61,7 +74,8 @@ typedef enum WidgetType {
   GUIWidget *parent;                                                           \
   GUIWidget *children[MAX_CHILDREN];                                           \
   uint num_children;                                                           \
-  AABB aabb;
+  AABB aabb;                                                                   \
+  AABB global_aabb;
 
 typedef struct GUIWidget {
   WIDGET_COMMON
@@ -149,8 +163,7 @@ void gui_init() {
     memcpy(root_ptr_ptr, &root_widget_slot, sizeof(void *));
   }
 
-  gui_font =
-      font_init(16, 16, textures[g_load_texture(TEXTURE_PATH("ui_font.png"))]);
+  gui_font = font_init(16, 16, g_load_texture(TEXTURE_PATH("ui_font.png")));
 
   { // init mats/global shader ref from the shader subsystem.
     glm_ortho(0, 1, 0, 1, 0.01, 100, g_projection);
@@ -349,12 +362,6 @@ void gui_draggable(const char *name, AABB *aabb) {
     ptr = w_cm_get(&(gui_state.draggables), name);
   }
 
-  if (i_state.act_held[ACT_HUD_INTERACT]) {
-    if (is_point_inside(ptr->aabb, i_state.pointer)) {
-      memcpy(&(ptr->aabb.center), i_state.pointer, sizeof(float) * 2);
-    }
-  }
-
   END_WIDGET();
 }
 
@@ -393,40 +400,69 @@ static mat4 model;
 // seperately all over again. we'll recurse downward for the drawing/transform
 // composition pass, and then once we reach the leaves, we'll recurse upward
 // until we don't find another parent.
-static void gui_clean_child_state_recursive(GUIWidget *ptr) {
+static void gui_bubble_up(GUIWidget *ptr, GUIInputState *gui_input) {
+  GUIInputState local_gui_input;
+  memcpy(&local_gui_input, gui_input, sizeof(GUIInputState));
+
+  bool is_clicking = false;
+
+  bool mouse_inside = is_point_inside(ptr->global_aabb, i_state.pointer);
+  if (local_gui_input.mouse_button[MOUSE_LEFT] && mouse_inside) {
+    is_clicking = true;
+  }
+
+  switch (ptr->type) {
+  case WT_WIDGET: {
+  } break;
+  case WT_LABEL: {
+    gui_input->mouse_button[MOUSE_LEFT] = false;
+  } break;
+  case WT_BUTTON: {
+  } break;
+  case WT_DRAGGABLE: {
+    if (is_clicking) {
+      memcpy(&(ptr->aabb.center), i_state.pointer, sizeof(float) * 2);
+    }
+  } break;
+  default: {
+    char buf[256];
+    sprintf(buf, "invalid widget type in the draw switch, found %d", ptr->type);
+    ERROR_FROM_BUF(buf);
+  } break;
+  }
+
   ptr->num_children = 0;
-  if (ptr->parent) {
-    gui_clean_child_state_recursive(ptr->parent);
+  if (ptr->parent && ptr->parent->num_children != 0) {
+    gui_bubble_up(ptr->parent, gui_input);
   }
 }
 
-static float get_center_axis(AABB *to, AABB *by, int index) {
+static float get_center_axis(vec2 to_center, AABB *by, int index) {
   float a = (by->center[index] - by->extents[index]);
   float b = (by->center[index] + by->extents[index]);
-  float t = to->center[index];
+  float t = to_center[index];
 
   float lerp = ((1 - t) * a) + (t * b);
-
-  PRINT_FLOAT(a);
-  PRINT_FLOAT(b);
-  PRINT_FLOAT(t);
-  PRINT_FLOAT(lerp);
 
   return lerp;
 }
 
-static float get_extent_axis(AABB *to, AABB *by, int index) {
-  float new_extent = (by->extents[index] * 2) * (to->extents[index]);
-  PRINT_FLOAT(new_extent);
+static float get_extent_axis(vec2 to_extents, vec2 by_extents, int index) {
+  float new_extent = (by_extents[index] * 2) * (to_extents[index]);
   return new_extent;
 }
 
-static void apply_transform(AABB *to, AABB *by, AABB *dest) {
-  dest->center[0] = get_center_axis(to, by, 0);
-  dest->center[1] = get_center_axis(to, by, 1);
+static void get_new_center(AABB *by, vec2 to, vec2 dest) {
+  dest[0] = to[0] * by->extents[0];
+  dest[1] = to[1] * by->extents[1];
+}
 
-  dest->extents[0] = get_extent_axis(to, by, 0);
-  dest->extents[1] = get_extent_axis(to, by, 1);
+static void apply_transform(AABB *to, AABB *by, AABB *dest) {
+  dest->center[0] = get_center_axis(to->center, by, 0);
+  dest->center[1] = get_center_axis(to->center, by, 1);
+
+  dest->extents[0] = get_extent_axis(to->extents, by->extents, 0);
+  dest->extents[1] = get_extent_axis(to->extents, by->extents, 1);
 
 #undef CENTER_AXIS
 }
@@ -439,9 +475,11 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
 
 #define TEXT_SQUISH()                                                          \
   {                                                                            \
-    glm_translate(model, (vec3){temp.center[0], temp.center[1], 0});           \
-    glm_scale(model, (vec3){(temp.extents[0] * 2) / widget->buf_len,           \
-                            (temp.extents[1] * 2), 1});                        \
+    glm_translate(model, (vec3){ptr->global_aabb.center[0],                    \
+                                ptr->global_aabb.center[1], 0});               \
+    glm_scale(model,                                                           \
+              (vec3){(ptr->global_aabb.extents[0] * 2) / widget->buf_len,      \
+                     (ptr->global_aabb.extents[1] * 2), 1});                   \
   }
 
 #define DRAW()                                                                 \
@@ -451,12 +489,8 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
     glDrawElements(GL_TRIANGLES, widget->render.n_idx, GL_UNSIGNED_INT, 0);    \
   }
 
-  // wtf why do we need this? i thought passing the struct by value was enough
-  // to get a proper data copy, but i guess not.
-  AABB temp;
   // apply then recursively propagate the temp through the tree.
-  apply_transform(&(ptr->aabb), &transform, &temp);
-  print_vec4(&(temp), 0);
+  apply_transform(&(ptr->aabb), &transform, &(ptr->global_aabb));
 
   glm_mat4_identity(model);
 
@@ -478,8 +512,10 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
   } break;
   case WT_DRAGGABLE: {
     CAST(GUIDraggable);
-    glm_translate(model, (vec3){temp.center[0], temp.center[1], 0});
-    glm_scale(model, (vec3){temp.extents[0] * 2, temp.extents[1] * 2, 1});
+    glm_translate(model, (vec3){ptr->global_aabb.center[0],
+                                ptr->global_aabb.center[1], 0});
+    glm_scale(model, (vec3){ptr->global_aabb.extents[0] * 2,
+                            ptr->global_aabb.extents[1] * 2, 1});
     APPLY_Z()
     DRAW();
   } break;
@@ -497,12 +533,13 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
   // through.
   for (int i = 0; i < num_child_renders; i++) {
     GUIWidget *child_ptr = ptr->children[i];
-    gui_draw_recursive(child_ptr, temp);
+    gui_draw_recursive(child_ptr, ptr->global_aabb);
   }
 
   if (ptr->num_children == 0) {
     // leaf node of the tree.
-    gui_clean_child_state_recursive(ptr);
+    GUIInputState gui_input = {{i_state.act_held[ACT_HUD_INTERACT], 0, 0}};
+    gui_bubble_up(ptr, &gui_input);
   }
 
 #undef CAST

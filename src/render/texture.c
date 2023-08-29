@@ -9,13 +9,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-// use 0 sentinel for unused textures.
-TextureHandle textures[NUM_TEXTURES] = {0};
-
 // just for keeping the same texture bound in the g_load_texture() function.
-static TextureHandle curr_bound_texture = 0;
+static uint curr_bound_texture = 0;
 
-// returns an index into the global textures array.
 uint g_load_texture(const char *filepath) {
   int width, height, channels;
 
@@ -48,20 +44,7 @@ uint g_load_texture(const char *filepath) {
   // Free the image data after it has been loaded into the texture
   stbi_image_free(image_data);
 
-  for (int i = 0; i < NUM_TEXTURES; i++) {
-    TextureHandle *t = &textures[i];
-    if (*t == 0) {
-      *t = textureID;
-      glBindTexture(
-          GL_TEXTURE_2D,
-          curr_bound_texture); // rebind the old texture we were using.
-      return i;
-    }
-  }
-
-  fprintf(stderr, "Too many textures in the textures array.");
-  exit(1);
-  return 0;
+  return textureID;
 }
 
 uint g_load_cubemap(char *faces[6]) {

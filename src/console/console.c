@@ -134,8 +134,7 @@ void console_init() {
                  MAX_CONSOLE_INPUT_EVENTS);
   }
 
-  console_font =
-      font_init(16, 16, textures[g_load_texture(TEXTURE_PATH("ui_font.png"))]);
+  console_font = font_init(16, 16, g_load_texture(TEXTURE_PATH("ui_font.png")));
 
   // init mats
   {

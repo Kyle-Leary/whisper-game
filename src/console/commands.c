@@ -1,4 +1,5 @@
 #include "commands.h"
+#include "areas/area_server.h"
 #include "console/console.h"
 #include "helper_math.h"
 #include "util.h"
@@ -83,22 +84,16 @@ void command_run(CommandResponse *response, char *command, int len) {
   if (strncmp(base_cmd, "print", 5) == 0) {
     console_printf("%s", cmd_buf.joined_argv);
 
-  } else if (strncmp(command, "load", 4) == 0) {
+  } else if (strncmp(command, "area", 4) == 0) {
     console_printf("trying to load area: %s...\n", cmd_buf.joined_argv);
 
     int area_num = 0;
-    STR_TO_INT(cmd_buf.joined_argv);
-    if (err_ptr) {
-      console_printf("conversion error: %s\n", err_ptr);
-    } else {
-      area_num = str_to_int_return;
-      area_switch(area_num);
-    }
+    area_switch(cmd_buf.joined_argv);
   } else if (strncmp(command, "newline", 7) == 0) {
     console_printf("\n\n");
   } else if (strncmp(command, "clear", 5) == 0) {
     console_printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
   } else {
-    console_printf("'%s' is not a valid command.", command);
+    console_printf("'%s' is not a valid command.\n", command);
   }
 }

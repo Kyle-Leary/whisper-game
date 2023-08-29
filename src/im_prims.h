@@ -6,4 +6,5 @@
 // object.
 void im_velocity(RigidBody *rb);
 void im_acceleration(RigidBody *rb);
+void im_cube(vec3 center, float side_length);
 void im_point(vec3 point);

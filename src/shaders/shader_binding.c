@@ -10,19 +10,17 @@ static Shader *curr_sh = NULL;
 
 void shader_bind(Shader *s) {
   if (s != curr_sh) {
-    { // new shader, so unbind the old one.
-      if (curr_sh && curr_sh->unbind)
-        curr_sh->unbind(s);
-    }
+    // new shader, so unbind the old one.
+    if (curr_sh && curr_sh->unbind)
+      curr_sh->unbind(s);
 
-    { // new shader.
-      // use the shader before calling the bind function, since it might set
-      // uniforms that depend on the shader being active to set properly.
-      glUseProgram(s->id);
-      if (s->bind)
-        s->bind(s);
-      curr_sh = s;
-    }
+    // new shader.
+    // use the shader before calling the bind function, since it might set
+    // uniforms that depend on the shader being active to set properly.
+    glUseProgram(s->id);
+    if (s->bind)
+      s->bind(s);
+    curr_sh = s;
   }
 }
 
