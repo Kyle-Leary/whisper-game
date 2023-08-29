@@ -1,4 +1,5 @@
 #include "input.h"
+#include "path.h"
 
 #include "macros.h"
 
@@ -50,13 +51,13 @@ static void handle_generic_input(int key, int action, int mods,
 
   switch (action) {
   case GLFW_PRESS:
-    if (!i_state.last_act_state[input_action]) {
+    if (!i_state.act_held[input_action]) {
       i_state.act_just_pressed[input_action] = 1;
     }
     i_state.act_held[input_action] = 1;
     break;
   case GLFW_RELEASE:
-    if (i_state.last_act_state[input_action]) {
+    if (i_state.act_held[input_action]) {
       i_state.act_just_released[input_action] = 1;
     }
     i_state.act_held[input_action] = 0;
@@ -64,7 +65,6 @@ static void handle_generic_input(int key, int action, int mods,
   default:
     break;
   }
-  i_state.last_act_state[input_action] = i_state.act_held[input_action];
 }
 
 static void input_key_callback(GLFWwindow *window, int key, int scancode,
@@ -100,6 +100,8 @@ static void input_cursor_position_callback(GLFWwindow *window, double xpos,
   i_state.pointer[0] = xpos / win_w;
   i_state.pointer[1] = 1 - (ypos / win_h);
 }
+
+#define INPUT_MAPPING_PATH CONFIG_PATH("input.map")
 
 void i_init() {
   // how can i zero-init this everywhere else?
@@ -138,3 +140,10 @@ void i_update() {
 }
 
 void i_clean() {}
+
+// NOTE: add the mods together.
+// for example, if i want CTRL+SHIFT+x as a command, i do
+// map_input(KEY_X, MOD_CONTROL + MOD_SHIFT, ACT_BLAH);
+void map_input(Input input, int mods, ActionType action) {
+  i_state.action_mapping[mods][input] = action;
+}

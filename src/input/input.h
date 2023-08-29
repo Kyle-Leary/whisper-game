@@ -213,9 +213,6 @@ typedef struct InputState {
   u8 act_just_pressed[ACT_COUNT];
   u8 act_just_released[ACT_COUNT];
 
-  u8 last_act_state[ACT_COUNT]; // We need to remember the last state for each
-                                // button
-
   // the 0th array is no modifier, the MOD_CONTROL'th array is the control
   // modifier mapping, etc.
   // for fast access, we keep a seperate list for all the modifier permutations.
@@ -228,13 +225,6 @@ void i_init();
 void i_update();
 void i_clean();
 
-// // replay a series of serialized InputState structures, frame by frame.
-// // there's only one possible replay active at a time, so we don't need an ID
-// // mechanism passed in here to specify.
-// void i_start_replay(const char *inputs_path, bool does_loop);
-// void i_toggle_replay();
-// void i_pause_replay();
-// void i_unpause_replay();
-// void i_stop_replay();
+void map_input(Input input, int mods, ActionType action);
 
 #endif

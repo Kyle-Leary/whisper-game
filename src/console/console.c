@@ -398,6 +398,8 @@ void console_draw() {
   if (!has_control)
     return;
 
+  shader_bind(console_program);
+
   // batch all the console renders with the same texture.
   g_use_texture(console_font->tex_handle, 0);
 

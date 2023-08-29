@@ -12,7 +12,7 @@ uniform mat4 u_projection;
 
 void main() {
 	TexCoords = aTexCoords;
-	float z = -0.9;
+	float z = -0.5;
 	float x_factor = aPosition.x - 0.5; 
 	float y_factor = aPosition.y - 0.5; 
 	XPos = x_factor;
@@ -39,8 +39,13 @@ layout (location = 0) out vec4 color;
 uniform sampler2D u_tex_sampler;
 
 void main() {
+	vec4 tex_color = texture(u_tex_sampler, TexCoords);
 	float scale = 0.3;
 	float color_offset = scale * XPos;
 	vec4 color_offset_vec = vec4(0.1 + color_offset, 0.1 + color_offset, 0.1, 0.1);
-	color = (texture(u_tex_sampler, TexCoords) * 2) + color_offset_vec;
+	if (tex_color.w < 0.5) {
+		color_offset_vec.w += 0.5;
+		color_offset_vec.x += 1;
+	} 
+	color = (tex_color * 2) + color_offset_vec;
 }
