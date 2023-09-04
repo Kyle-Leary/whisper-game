@@ -22,6 +22,9 @@ typedef struct Camera {
   float rotation;       // in radians, around the player.
   float rotation_speed; // how fast does the camera swing around the player?
 
+  float distance; // how far should we stay from the target in the circle?
+  float zoom_speed;
+
   float height; // how far above the player is the camera?
   float rising_speed;
 } Camera;

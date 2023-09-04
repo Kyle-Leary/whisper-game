@@ -2,10 +2,12 @@
 
 #include "animation/anim_struct.h"
 #include "cglm/types.h"
+#include "defines.h"
 #include "render/graphics_render.h"
 #include "render/material.h"
 #include "render/rigging.h"
 #include <stdint.h>
+#include <sys/types.h>
 
 typedef enum NodeType {
   NT_INVALID = 0,
@@ -40,6 +42,21 @@ typedef struct Node {
 
 #define INVALID_NODE -1
 
+#define MAX_IMAGES 32
+#define MAX_TEXTURES 32
+#define MAX_PRIMITIVES 32
+
+typedef struct Image {
+  byte *buf;
+  int len;
+} Image;
+
+typedef struct Primitive {
+  GraphicsRender *render;
+  int material_idx; // the index into the model's materials array that this prim
+                    // is using.
+} Primitive;
+
 // assuming a typical glb with one scene in it.
 typedef struct Model {
   Animation *animations;
@@ -63,8 +80,17 @@ typedef struct Model {
   int num_materials;
 
   // a model can render in multiple different segments with different shaders.
-  GraphicsRender **render;
-  int num_renders;
+  Primitive primitives[MAX_PRIMITIVES];
+  int num_primitives;
+
+  // point to a list of image buffers.
+  Image images[MAX_IMAGES];
+  int num_images;
+
+  // textures are just loaded images with samplers applied. they're a layer
+  // between image data and its representation in the 3d world.
+  uint textures[MAX_TEXTURES];
+  int num_textures;
 
   // a general purpose transform applied to all the child transforms of the
   // primitives rendered by this Model.

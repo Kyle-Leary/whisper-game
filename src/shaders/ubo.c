@@ -67,11 +67,7 @@ void ubo_push_material(MaterialData *mat) {
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(MaterialData), mat);
 }
 
-void ubo_push_bones(mat4 *bones, mat4 *ibms, int num_bones) {
+void ubo_push_bones(BoneData *bones) {
   glBindBuffer(GL_UNIFORM_BUFFER, ubo_ids[BONE_BLOCK]);
-  int bone_sz = sizeof(float) * 16 * BONE_LIMIT;
-  int ibm_sz = bone_sz;
-  glBufferSubData(GL_UNIFORM_BUFFER, 0, bone_sz, bones);
-  glBufferSubData(GL_UNIFORM_BUFFER, bone_sz, ibm_sz, ibms);
-  glBufferSubData(GL_UNIFORM_BUFFER, bone_sz + ibm_sz, sizeof(int), &num_bones);
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(BoneData), bones);
 }

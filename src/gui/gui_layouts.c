@@ -14,7 +14,9 @@ static LayoutHorizontal default_layout = {LAYOUT_HORIZONTAL, 0, 0};
 
 // this is a buffer that represents ANY layout. cast this to Layout* and check
 // the type when you're ready to use it.
-uint8_t curr_layout[LAYOUT_BUF_SZ] = {0};
+uint8_t layout_buf[2][LAYOUT_BUF_SZ] = {0};
+// alias the buffer for easy access.
+Layout *curr_layout = (Layout *)&(layout_buf[1]);
 
 typedef struct LayoutState {
   // all of the transforms, in order, currently being laid out by the layout
@@ -70,12 +72,14 @@ layout_fn layout_handlers[LAYOUT_COUNT] = {
     [LAYOUT_HORIZONTAL] = horizontal_handler,
 };
 
+// push into the first buffer, then load into the actual second buffer after the
+// next gui widget has been added.
 void layout_push(Layout *layout) {
   if (layout) {
-    memcpy(&curr_layout, layout, layout_sizes[layout->type]);
+    memcpy(&(layout_buf[0]), layout, layout_sizes[layout->type]);
   } else {
     // use a default layout when NULL.
-    memcpy(&curr_layout, &default_layout, sizeof(LayoutHorizontal));
+    memcpy(&(layout_buf[0]), &default_layout, sizeof(LayoutHorizontal));
   }
 }
 
@@ -89,6 +93,8 @@ void layout_internal_push() {
   // make a new layout stack frame.
   LayoutState *new = w_stack_push(&layout_stack);
   new->num_layout_subjects = 0;
+  memcpy(&(layout_buf[0]), &(layout_buf[1]),
+         layout_sizes[((Layout *)(&layout_buf[0]))->type]);
 }
 
 // how can we restore the previous context? should this entire subsystem store
@@ -109,13 +115,13 @@ void layout_accept_new(AABB *aabb) {
   curr->num_layout_subjects++;
   RUNTIME_ASSERT(curr->num_layout_subjects < MAX_CHILDREN);
   // now, reorganize all the transforms based on the new information.
-  layout_handlers[((Layout *)&curr_layout)->type](
-      curr->layout_subjects, curr->num_layout_subjects, (Layout *)curr_layout);
+  layout_handlers[curr_layout->type](curr->layout_subjects,
+                                     curr->num_layout_subjects, curr_layout);
 }
 
 void layout_init() {
   w_stack_create(&layout_stack, sizeof(LayoutState), MAX_WINDOW_DEPTH);
-  memcpy(&curr_layout, &default_layout, sizeof(default_layout));
+  memcpy(curr_layout, &default_layout, sizeof(default_layout));
 }
 
 void layout_clean() { w_stack_clean(&layout_stack); }

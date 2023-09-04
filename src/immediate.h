@@ -3,7 +3,7 @@
 #include "cglm/types.h"
 #include <sys/types.h>
 
-#define MAX_IM_DRAWS 200
+#define MAX_IM_DRAWS 2048
 
 typedef enum IMDrawMode {
   IM_INVALID = 0,

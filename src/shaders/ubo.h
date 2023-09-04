@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render/material.h"
+#include "render/rigging.h"
 
 // management, lifecycle and modification for UBOs.
 
@@ -22,4 +23,4 @@ void ubo_update();
 
 // some need to be manually pushed at certain points in the rendering pipeline.
 void ubo_push_material(MaterialData *mat);
-void ubo_push_bones(mat4 *bones, mat4 *ibms, int num_bones);
+void ubo_push_bones(BoneData *bones);

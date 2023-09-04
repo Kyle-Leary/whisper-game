@@ -181,13 +181,14 @@ static void init_model() {
 
 // in the immediate mode renderer, point positions are decided entirely by their
 // vertex positions and the viewprojection ubo. they ignore the model matrix.
-static void im_3d_bind(Shader *s) {}
+static void im_3d_bind(Shader *s) { glDisable(GL_DEPTH_TEST); }
+static void im_3d_unbind(Shader *s) { glEnable(GL_DEPTH_TEST); }
 static void im_3d_handle_model(Shader *s, mat4 model) {}
 
 static void init_im_3d() {
   SHADER_SETUP("im_3d", "im_3d.shader");
   s->bind = im_3d_bind;
-  s->unbind = NULL;
+  s->unbind = im_3d_unbind;
   s->handle_model = im_3d_handle_model;
   BIND_MATRICES();
 }

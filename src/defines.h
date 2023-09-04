@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+typedef uint8_t byte;
+
 // stdint typenames suck
 // make them better
 typedef uint8_t u8;

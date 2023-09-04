@@ -7,6 +7,7 @@
 #include "cglm/util.h"
 #include "cglm/vec3.h"
 #include "global.h"
+#include "input/input.h"
 #include "render/gr_prim.h"
 
 #include "helper_math.h"
@@ -39,8 +40,11 @@ Camera *camera_build(vec3 position, vec3 *target) {
   p->rotation = 0;
   p->rotation_speed = 0.01;
 
-  p->height = 5;
-  p->rising_speed = 0.1;
+  p->distance = 1;
+  p->zoom_speed = 0.01;
+
+  p->height = 1;
+  p->rising_speed = 0.01;
 
   p->type = OBJ_CAMERA;
   return p;
@@ -79,20 +83,26 @@ void camera_update(void *p) {
     camera->rotation -= camera->rotation_speed;
   }
 
-  if (i_state.act_held[ACT_CAMERA_RAISE]) {
-    camera->height += camera->rising_speed;
-  } else if (i_state.act_held[ACT_CAMERA_LOWER]) {
-    camera->height -= camera->rising_speed;
+  if (i_state.act_held[ACT_CAMERA_ZOOM]) {
+    camera->distance += camera->zoom_speed * camera->distance;
+  } else if (i_state.act_held[ACT_CAMERA_UNZOOM]) {
+    camera->distance -= camera->zoom_speed * camera->distance;
   }
 
-  camera->height = glm_clamp(camera->height, 1, 20);
+  if (i_state.act_held[ACT_CAMERA_RAISE]) {
+    camera->height += camera->rising_speed * camera->height;
+  } else if (i_state.act_held[ACT_CAMERA_LOWER]) {
+    camera->height -= camera->rising_speed * camera->height;
+  }
+
+  camera->height = glm_clamp(camera->height, 0.1, 20);
 
   { // calc the camera position from the target
     // TODO: lerping and rotation with the mouse?
     vec3 offset;
     memcpy(offset,
-           (vec3){13 * sin(camera->rotation), camera->height,
-                  13 * cos(camera->rotation)},
+           (vec3){camera->distance * sin(camera->rotation), camera->height,
+                  camera->distance * cos(camera->rotation)},
            sizeof(float) * 3);
     glm_vec3_add(*camera->target, offset, ab->position);
   }

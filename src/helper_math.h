@@ -37,6 +37,14 @@ bool is_point_inside(AABB aabb, vec2 v);
 
 // interpolation/animation helpers.
 float lerp(float a, float b, float t);
+float exp_interp(float a, float b, float t, float pow);
+float quad_interp(float a, float b, float t);
+float cubic_interp(float a, float b, float t);
+float sin_interp(float a, float b, float t);
+float elastic_interp(float a, float b, float t);
+float bounce_interp(float a, float b, float t);
+float smooth_step(float a, float b, float t);
+
 void lerp_vec3(vec3 a, vec3 b, float t, vec3 dest);
 
 void mat4_lookat_point(mat4 mat, vec3 target);

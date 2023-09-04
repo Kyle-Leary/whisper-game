@@ -5,6 +5,8 @@
 #include "cglm/types.h"
 #include "cglm/vec3.h"
 
+#include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 Basis get_basis(mat4 m) {
@@ -23,6 +25,39 @@ bool is_point_inside(AABB aabb, vec2 v) {
 }
 
 float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
+
+float exp_interp(float a, float b, float t, float pow) {
+  t = powf(t, pow);
+  return lerp(a, b, t);
+}
+
+float quad_interp(float a, float b, float t) {
+  return (1 - t) * (1 - t) * a + 2 * (1 - t) * t * a + t * t * b;
+}
+
+float cubic_interp(float a, float b, float t) {
+  float t2 = t * t;
+  float t3 = t2 * t;
+  return (1 - t3) * a + t3 * b;
+}
+
+float sin_interp(float a, float b, float t) {
+  return lerp(a, b, sin(t * M_PI_2));
+}
+
+float elastic_interp(float a, float b, float t) {
+  float scale = 1.001f; // Adjust for the desired elasticity
+  return lerp(a, b, sin(13.0f * M_PI_2 * t) * powf(2.0f, -10.0f * t));
+}
+
+float bounce_interp(float a, float b, float t) {
+  return a + (b - a) * fabs(sin((2 * M_PI) * (t - 0.5)));
+}
+
+float smooth_step(float a, float b, float t) {
+  float scale = t * t * (3 - 2 * t);
+  return lerp(a, b, scale);
+}
 
 // lerping a -> b, add a by t * (b - a)
 // lerping is the same equation, even for vectors.

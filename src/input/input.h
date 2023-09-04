@@ -169,6 +169,9 @@ typedef enum ActionType {
   ACT_CAMERA_CW,  // swing cw around the player
   ACT_CAMERA_CCW, // swing ccw around the player
 
+  ACT_CAMERA_ZOOM,
+  ACT_CAMERA_UNZOOM,
+
   ACT_CAMERA_RAISE,
   ACT_CAMERA_LOWER,
 

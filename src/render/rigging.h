@@ -6,7 +6,6 @@
 
 // the data that will be sent directly to the GPU.
 typedef struct BoneData {
-  mat4 ibms[BONE_LIMIT];
   mat4 bones[BONE_LIMIT];
   // similarly, fill up the bones contiguously and dictate the maximum to the
   // gpu.
@@ -25,4 +24,4 @@ typedef struct Skin {
   int num_joints;
 } Skin;
 
-void rig_use_bones(mat4 *bones, mat4 *ibms, int num_bones);
+void rig_use_bones(BoneData *bones);

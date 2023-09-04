@@ -24,18 +24,17 @@ void main() {
 	mat4 skin = mat4(0.0);
 
 	for (int i = 0; i < 4; i++) {
-	    float weight = aWeights[i];
-	    int bone_index = aJoints[i];
+		float weight = aWeights[i];
+		int bone_index = aJoints[i];
 
-	    mat4 bone_transform = bones[bone_index]; // current bone transformation
-	    mat4 inverse_bind_matrix = inverse_binds[bone_index]; // inverse bind matrix for this bone
+		mat4 bone_transform = bones[bone_index]; // current bone transformation
+		mat4 transformation = bone_transform;
 
-	    mat4 transformation = bone_transform * inverse_bind_matrix;
-	    // linearly weight the full transformation in object space, then add that into the total skin modifier on this vertex.
-	    skin += (transformation * weight);
+		skin += (transformation * weight);
 	}
 
-	gl_Position = skin * vec4(aPos, 1.0); // Apply the combined skinning transformation
+	gl_Position = vec4(aPos, 1.0); // Apply the combined skinning transformation
+	gl_Position = skin * gl_Position;
 	gl_Position = u_model * gl_Position;
 	gl_Position = view * gl_Position;
 	gl_Position = projection * gl_Position;
@@ -74,10 +73,12 @@ layout (location = 0) out vec4 color;
 in vec3 lightColor;
 in vec2 oTexCoord;
 
+// pass in the baseColorTexture here, or some other equivalent.
+// we'll assume that most of the models going into this shader are under some kind of PBR material.
 uniform sampler2D tex_sampler;
 
 void main()
 {
-	vec4 texColor = texture(tex_sampler, oTexCoord);
-	color = texColor * vec4(lightColor, 1); 
+	color = texture(tex_sampler, oTexCoord);
+	color = color * vec4(lightColor, 1); 
 }

@@ -1,9 +1,14 @@
 #include "gltf_parse.h"
 
 #include "animation/anim_struct.h"
+#include "cglm/types.h"
 #include "cglm/vec3.h"
 #include "defines.h"
+#include "meshing/gltf_mesher.h"
+#include "parsers/gltf/wjson_help.h"
 #include "printers.h"
+#include "render/model.h"
+#include "render/texture.h"
 #include "size.h"
 #include "util.h"
 #include "wjson.h"
@@ -11,6 +16,8 @@
 #include "wjson/src/util.h"
 #include <stdint.h>
 #include <string.h>
+
+#include "ogl_includes.h"
 
 #define MAX_GLTF_SZ (MB(5))
 
@@ -159,7 +166,7 @@ int gltf_bv_get_len(GLTFFile *file, int index) {
   return length;
 }
 
-void gltf_bv_parse(GLTFFile *file, int index, void *dest, int dest_sz) {
+void gltf_bv_parse(GLTFFile *file, int index, void *dest) {
   WJSONValue *bv = wjson_index(file->bufferViews, index);
   u32 buf_idx = wjson_number(wjson_get(bv, "buffer"));
   u32 byte_len = wjson_number(wjson_get(bv, "byteLength"));
@@ -179,7 +186,7 @@ void gltf_bv_parse(GLTFFile *file, int index, void *dest, int dest_sz) {
     *n_elms = wjson_number(wjson_get(accessor, "count"));                      \
     uint bv_idx = (uint)wjson_number(wjson_get(accessor, "bufferView"));       \
     int bv_len = gltf_bv_get_len(file, bv_idx);                                \
-    gltf_bv_parse(file, bv_idx, buffer, bv_len);                               \
+    gltf_bv_parse(file, bv_idx, buffer);                                       \
     return bv_len;                                                             \
   }
 
@@ -291,7 +298,7 @@ void gltf_node_parse(GLTFFile *file, Model *model, NodeIndex n_idx) {
         target_node->rotation[i] = wjson_number(wjson_index(v_rotation, i));
       }
     } else {
-      glm_vec4_zero(target_node->rotation);
+      memcpy(&(target_node->rotation), (versor){0, 0, 0, 1}, sizeof(float) * 4);
     }
 
     WJSONValue *v_scale = wjson_get(v_node, "scale");
@@ -300,13 +307,12 @@ void gltf_node_parse(GLTFFile *file, Model *model, NodeIndex n_idx) {
         target_node->scale[i] = wjson_number(wjson_index(v_scale, i));
       }
     } else {
-      glm_vec3_zero(target_node->scale);
+      glm_vec3_one(target_node->scale);
     }
   }
 }
 
-// TODO: i hate this strncmp bullshit and the compiler absolutely tears it up.
-// make this better.
+// TODO: fix this strncmp bullshit!!!
 InterpolationType gltf_interpolation_type_parse(const char *interp_name) {
   if (strncmp(interp_name, "LINEAR", 6) == 0) {
     return IP_LINEAR;
@@ -382,6 +388,16 @@ void gltf_materials_parse(GLTFFile *file, Model *model) {
     ModelMaterial *curr_mat = &(model->materials[i]);
     WJSONValue *v_material = wjson_index(v_materials, i);
 
+    // try to parse out the baseColorTexture nested ID from the material.
+    JSON_TRY_GET(pbrMetallicRoughness, v_material, {
+      JSON_TRY_GET(baseColorTexture, v_pbrMetallicRoughness,
+                   {JSON_TRY_GET(index, v_baseColorTexture, {
+                     JSON_NUMBER(v_index);
+                     curr_mat->base_color_texture =
+                         model->textures[(int)num_v_index];
+                   })});
+    });
+
     curr_mat->double_sided =
         (wjson_get(v_material, "doubleSided")->data.value.boolean);
   }
@@ -427,6 +443,89 @@ void gltf_animations_parse(GLTFFile *file, Model *model) {
       gltf_channels_parse(file, v_channels, curr_anim->samplers,
                           curr_anim->channels, curr_anim->num_channels);
     }
+  }
+}
+
+void gltf_images_parse(GLTFFile *file, Model *model) {
+  WJSONValue *v_images = file->images;
+  int num_images = v_images->data.length.array_len;
+
+  RUNTIME_ASSERT_MSG(
+      num_images < MAX_IMAGES,
+      "increase MAX_IMAGES, or maybe something just went wrong.");
+
+  model->num_images = num_images;
+
+  for (int i = 0; i < num_images; i++) {
+    WJSONValue *v_image = wjson_index(v_images, i);
+    WJSONValue *v_bufview = wjson_get(v_image, "bufferView");
+    int image_data_idx = (int)v_bufview->data.value.number;
+
+    int len = gltf_bv_get_len(file, image_data_idx);
+    u8 *buf = malloc(len);
+    // write directly from the bv into the buffer, now we have the image data.
+    gltf_bv_parse(file, image_data_idx, buf);
+
+    // store the POINTER in the model, there's no real way to store the data
+    // directly when it's this variable-length.
+    model->images[i].buf = buf;
+    model->images[i].len = len;
+  }
+}
+
+void gltf_textures_parse(GLTFFile *file, Model *model) {
+  WJSONValue *v_textures = file->textures;
+  int num_textures = v_textures->data.length.array_len;
+
+  RUNTIME_ASSERT_MSG(
+      num_textures < MAX_TEXTURES,
+      "increase MAX_TEXTURES, or maybe something just went wrong.");
+
+  model->num_textures = num_textures;
+
+  for (int i = 0; i < num_textures; i++) {
+    WJSONValue *v_texture = wjson_index(v_textures, i);
+    // how should we modify the texture's loading? sampler turns directly into
+    // opengl texture sampling attribute calls
+    WJSONValue *v_sampler = wjson_get(v_texture, "sampler");
+    // where should the png image buffer come from?
+    WJSONValue *v_source = wjson_get(v_texture, "source");
+
+    int sampler_idx = (int)wjson_number(v_sampler);
+    int source_idx = (int)wjson_number(v_source);
+
+    // take a copy, we just need the source param to read this.
+    Image im = model->images[source_idx];
+    model->textures[i] = g_load_texture_from_png_buf(im.buf, im.len);
+
+    {
+      // then, parse the sampler into gl texture attrib calls.
+      // the texture should still be bound from the above g_load_texture_...
+      // call.
+      JSON_INDEX(sampler_idx, file->samplers);
+      JSON_TRY_GET(magFilter, v_sampler_idx, {
+        JSON_NUMBER(v_magFilter);
+        // glb encodes the opengl enum variants directly, so we can just dump
+        // them directly into the call.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, num_v_magFilter);
+      });
+
+      JSON_TRY_GET(minFilter, v_sampler_idx, {
+        JSON_NUMBER(v_minFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, num_v_minFilter);
+      });
+
+      JSON_TRY_GET(wrapS, v_sampler_idx, {
+        JSON_NUMBER(v_wrapS);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, num_v_wrapS);
+      });
+
+      JSON_TRY_GET(wrapT, v_sampler_idx, {
+        JSON_NUMBER(v_wrapT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, num_v_wrapT);
+      });
+    }
+    // by now, the texture should be ready for use in other materials.
   }
 }
 

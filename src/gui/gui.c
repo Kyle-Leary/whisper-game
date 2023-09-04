@@ -143,11 +143,7 @@ void gui_update() {
   layout_reset();
 }
 
-// TODO: set the layout on a push. store layout data on the stack.
-void gui_push(Layout *layout) {
-  gui_state.is_pushing = true;
-  layout_push(layout);
-}
+void gui_push(Layout *layout) { gui_state.is_pushing = true; }
 
 void gui_pop() {
   gui_state.last_added = w_stack_pop(&(gui_state.window_stack));

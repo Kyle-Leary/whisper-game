@@ -1,5 +1,6 @@
 #pragma once
 
+#include "defines.h"
 #include <sys/types.h>
 
 #define NUM_TEXTURES 16
@@ -25,6 +26,9 @@ void g_use_pbr_texture(TextureType type, TextureHandle tex);
 // returns an index into the global textures array, after loading it into the
 // graphics backend.
 uint g_load_texture(const char *filepath);
+uint g_load_texture_from_png_buf(byte *png_buf, int len);
+uint g_load_texture_from_buf(byte *img_buf, int width, int height,
+                             int channels);
 
 uint g_load_cubemap(char *faces[6]);
 // "activates" the texture, using it for further draw calls.

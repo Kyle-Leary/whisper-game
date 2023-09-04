@@ -33,8 +33,6 @@ extern int layout_sizes[LAYOUT_COUNT];
 #define LAYOUT_BUF_SZ                                                          \
   (MAX(MAX(sizeof(Layout), sizeof(LayoutVertical)), sizeof(LayoutHorizontal)))
 
-extern uint8_t curr_layout[LAYOUT_BUF_SZ];
-
 // don't call these directly if you're using the gui subsystem. these are
 // internal.
 void layout_push(Layout *layout);

@@ -1,4 +1,5 @@
 #include "texture.h"
+#include "defines.h"
 #include "main.h"
 
 #include "../ogl_includes.h"
@@ -12,6 +13,9 @@
 // just for keeping the same texture bound in the g_load_texture() function.
 static uint curr_bound_texture = 0;
 
+// i think that we can call this function, then call modifiers after and still
+// modify the image texture properties properly. so, we don't need any function
+// pointer bullshit of "what params should i set on this texture?"
 uint g_load_texture(const char *filepath) {
   int width, height, channels;
 
@@ -25,6 +29,36 @@ uint g_load_texture(const char *filepath) {
     return 0;
   }
 
+  uint textureID = g_load_texture_from_buf(image_data, width, height, channels);
+
+  // Free the image data after it has been loaded into the texture
+  stbi_image_free(image_data);
+
+  return textureID;
+}
+
+uint g_load_texture_from_png_buf(byte *png_buf, int len) {
+  int width, height, channels;
+
+  stbi_set_flip_vertically_on_load(true);
+
+  unsigned char *image_data =
+      stbi_load_from_memory(png_buf, len, &width, &height, &channels, 0);
+  if (!image_data) {
+    printf("Error loading the image: %s\n", stbi_failure_reason());
+    return 0;
+  }
+
+  uint textureID = g_load_texture_from_buf(image_data, width, height, channels);
+
+  // Free the image data after it has been loaded into the texture
+  stbi_image_free(image_data);
+
+  return textureID;
+}
+
+uint g_load_texture_from_buf(byte *img_buf, int width, int height,
+                             int channels) {
   uint textureID;
   glGenTextures(1, &textureID);
   glBindTexture(GL_TEXTURE_2D, textureID);
@@ -38,11 +72,8 @@ uint g_load_texture(const char *filepath) {
   // Load the image data into the texture
   GLenum format = channels == 4 ? GL_RGBA : GL_RGB;
   glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
-               GL_UNSIGNED_BYTE, image_data);
+               GL_UNSIGNED_BYTE, img_buf);
   glGenerateMipmap(GL_TEXTURE_2D);
-
-  // Free the image data after it has been loaded into the texture
-  stbi_image_free(image_data);
 
   return textureID;
 }

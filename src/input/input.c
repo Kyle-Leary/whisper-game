@@ -112,6 +112,8 @@ void i_init() {
               [KEY_S] = ACT_DOWN,
               [KEY_D] = ACT_RIGHT,
               [KEY_A] = ACT_LEFT,
+              [KEY_E] = ACT_CAMERA_ZOOM,
+              [KEY_R] = ACT_CAMERA_UNZOOM,
               [KEY_LEFT] = ACT_CAMERA_CW,
               [KEY_RIGHT] = ACT_CAMERA_CCW,
               [KEY_UP] = ACT_CAMERA_RAISE,

@@ -2,9 +2,17 @@
 #include "cglm/affine.h"
 #include "cglm/mat4.h"
 #include "cglm/quat.h"
+#include "im_prims.h"
+#include "printers.h"
+#include "render/graphics_render.h"
+#include "render/material.h"
 #include "render/rigging.h"
 
 #include "macros.h"
+#include "render/texture.h"
+#include "shaders/shader_instances.h"
+#include "whisper/macros.h"
+#include <sys/types.h>
 
 // search, ideally from the root of the model recursively for the first Armature
 // node type we find. in this Node design, an "Armature"-type node is just one
@@ -53,9 +61,9 @@ void g_draw_model(Model *m) {
       }
     }
 
-    Skin *skin = m->nodes[arm].data.skin;
+    BoneData bones;
 
-    mat4 tfs[BONE_LIMIT];
+    Skin *skin = m->nodes[arm].data.skin;
 
     int num_bones = skin->num_joints;
 
@@ -69,26 +77,61 @@ void g_draw_model(Model *m) {
       Node *bone_node = &(m->nodes[joint_node_index]);
 
       // generate the transform cpu-side for now from the bone Node* structure.
-      glm_translate(bone_tf, bone_node->translation);
       glm_scale(bone_tf, bone_node->scale);
       glm_quat_rotate(bone_tf, bone_node->rotation, bone_tf);
+      glm_translate(bone_tf, bone_node->translation);
+
+      glm_mat4_mul(bone_tf, skin->ibms[i], bone_tf);
+
+      im_transform(bone_tf);
+
+      {
+        vec3 tr;
+        tr[0] = bone_tf[0][3];
+        tr[1] = bone_tf[1][3];
+        tr[2] = bone_tf[2][3];
+        im_point(tr);
+      }
+
+      // {
+      //   vec3 tr;
+      //   tr[0] = bone_tf[3][0]; // x
+      //   tr[1] = bone_tf[3][1]; // y
+      //   tr[2] = bone_tf[3][2];
+      //   im_point(tr);
+      // }
 
       // then copy the transform into the slot.
-      memcpy(&tfs[i], bone_tf, sizeof(float) * 16);
+      memcpy(&(bones.bones[i]), bone_tf, sizeof(float) * 16);
     }
 
-    rig_use_bones(tfs, skin->ibms, num_bones);
+    rig_use_bones(&bones);
   }
-
-  {} // TODO: materials
 
   mat4 temp_modelmat;
 
-  for (int i = 0; i < m->num_renders; i++) {
-    GraphicsRender *curr_render = m->render[i];
+  for (int i = 0; i < m->num_primitives; i++) {
+    Primitive prim = m->primitives[i];
+    int mat_idx = prim.material_idx;
+    if (mat_idx != -1) {
+      // if the prim is associated with a material, set that material up before
+      // rendering.
+      ModelMaterial mat = m->materials[mat_idx];
+
+      // set the render up with the external material context.
+      uint texture_id = mat.base_color_texture;
+      g_use_texture(texture_id, 0);
+    }
+
+    GraphicsRender *curr_render = prim.render;
+
+    // then setup the model matrix, offset it by the model's absolute transform.
     glm_mat4_copy(curr_render->model, temp_modelmat);
     glm_mat4_mul(curr_render->model, m->transform, curr_render->model);
+
+    // then render it.
     g_draw_render(curr_render);
+
     // restore the state of the old matrix before the transformation.
     glm_mat4_copy(temp_modelmat, curr_render->model);
   }

@@ -9,6 +9,7 @@
 #include "event_types.h"
 #include "global.h"
 #include "gui/gui.h"
+#include "gui/widgets.h"
 #include "helper_math.h"
 #include "hud.h"
 #include "immediate.h"
@@ -167,8 +168,8 @@ int entry_point(int argc, char **argv) {
     { // draw the 3d scene (YES, ORDER MATTERS HERE)
       // our top-level, default pipeline.
       { // render skybox
-        g_use_cubemap(skybox_tex, SKYBOX_TEX_SLOT);
-        g_draw_render(skybox_render);
+        // g_use_cubemap(skybox_tex, SKYBOX_TEX_SLOT);
+        // g_draw_render(skybox_render);
       }
       g_use_texture(nepeta, 0);
       render_draw();

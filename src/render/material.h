@@ -4,6 +4,7 @@
 // data.
 #include "cglm/types.h"
 #include <stdbool.h>
+#include <sys/types.h>
 
 typedef struct MaterialData {
   // goes by the PBR spec generally laid out by the glb format.
@@ -23,7 +24,9 @@ typedef struct MaterialData {
 // structure back together.
 typedef struct ModelMaterial {
   MaterialData inner;
-
+  // if a texture has an id of 0, it'll simply unbind the current texture. this
+  // is fine.
+  uint base_color_texture;
   bool double_sided;
 } ModelMaterial;
 

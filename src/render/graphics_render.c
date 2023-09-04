@@ -1,5 +1,6 @@
 #include "graphics_render.h"
 #include "cglm/mat4.h"
+#include "im_prims.h"
 #include "macros.h"
 #include "render/gl_util.h"
 #include "render/render_configuration.h"
@@ -40,6 +41,8 @@ void g_draw_render(GraphicsRender *graphics_render) {
 
   shader_bind(graphics_render->shader);
   shader_handle_model(graphics_render->shader, graphics_render->model);
+
+  im_transform(graphics_render->model);
 
   glBindVertexArray(graphics_render->vao);
   glDrawElements(GL_TRIANGLES, graphics_render->n_idx, GL_UNSIGNED_INT, 0);

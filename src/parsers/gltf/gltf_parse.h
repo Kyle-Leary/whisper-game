@@ -60,7 +60,7 @@ GLTFFile *gltf_parse(const char *file_path);
 void gltf_file_free(GLTFFile *file);
 
 int gltf_bv_get_len(GLTFFile *file, int index);
-void gltf_bv_parse(GLTFFile *file, int index, void *dest, int dest_sz);
+void gltf_bv_parse(GLTFFile *file, int index, void *dest);
 
 // all of these functions additonally return the size of the
 // buffer created.
@@ -78,5 +78,9 @@ DEFINE_DUMP_TYPE_HEADER(int, int)
 void gltf_node_parse(GLTFFile *file, Model *model, NodeIndex n_idx);
 void gltf_materials_parse(GLTFFile *file, Model *model);
 void gltf_animations_parse(GLTFFile *file, Model *model);
+// parse directly into a list of buffer pointers on the model.
+void gltf_images_parse(GLTFFile *file, Model *model);
+// parse into a list of opengl texture ids with the right sampler applied.
+void gltf_textures_parse(GLTFFile *file, Model *model);
 
 GLTF_ComponentType gltf_get_accessor_ct(GLTFFile *file, int accessor_index);
