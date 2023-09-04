@@ -71,7 +71,7 @@ void im_cube(vec3 center, float side_length) {
 
 void im_point(vec3 point) { im_cube(point, 0.04); }
 
-void im_transform(mat4 m) {
+void im_transform(mat4 m, float saturation) {
   vec3 origin, x_axis, y_axis, z_axis;
 
   // Extract origin (translation)
@@ -112,10 +112,11 @@ void im_transform(mat4 m) {
   glm_vec3_copy(z_axis, lines[5]);
 
   // Render lines
-  im_draw((float *)lines, 2, (vec4){1, 0, 0, 1}, IM_LINES); // X-axis in red
-  im_draw((float *)lines + 6, 2, (vec4){0, 1, 0, 1},
+  im_draw((float *)lines, 2, (vec4){saturation, 0, 0, 1},
+          IM_LINES); // X-axis in red
+  im_draw((float *)lines + 6, 2, (vec4){0, saturation, 0, 1},
           IM_LINES); // Y-axis in green
-  im_draw((float *)lines + 12, 2, (vec4){0, 0, 1, 1},
+  im_draw((float *)lines + 12, 2, (vec4){0, 0, saturation, 1},
           IM_LINES); // Z-axis in blue
 }
 

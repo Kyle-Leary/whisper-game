@@ -35,6 +35,10 @@ typedef struct Node {
   vec3 translation;
   vec4 rotation;
   vec3 scale;
+
+  mat4 transform_calc; // space to calculate the transform. don't rely on this
+                       // to be updated.
+
   union {
     Skin *skin; // for the armature type.
   } data;

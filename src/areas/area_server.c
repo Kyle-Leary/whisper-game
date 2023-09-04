@@ -45,6 +45,9 @@ void areas_level_update();
 void areas_static();
 void areas_static_update();
 
+void areas_bone_test();
+void areas_bone_test_update();
+
 void areas_another();
 
 void area_init() {
@@ -67,6 +70,12 @@ void area_init() {
   {
     AreaEntry *area = w_cm_return_slot(&(areas), "another.c");
     memcpy(area, &(AreaEntry){areas_another, NULL, NULL}, sizeof(AreaEntry));
+  }
+
+  {
+    AreaEntry *area = w_cm_return_slot(&(areas), "bone_test.c");
+    memcpy(area, &(AreaEntry){areas_bone_test, areas_bone_test_update, NULL},
+           sizeof(AreaEntry));
   }
 }
 

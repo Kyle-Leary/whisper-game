@@ -1,3 +1,4 @@
+#include "animation/anim_struct.h"
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/util.h"
@@ -58,55 +59,88 @@ void areas_static() {
       w_ca_add_PointLight(&g_light_data.point_light_ca, &pl);
     }
   }
+
+  mat4_identity(model);
 }
 
-void function_one() { printf("function_one\n"); }
+typedef enum AnimationSetting {
+  AS_GROW,
+  AS_SHRINK,
+  AS_IDENTITY,
+  AS_SHEAR,
+  AS_COUNT,
+} AnimationSetting;
 
-void function_two() { printf("function_two\n"); }
+static AnimationSetting setting = AS_GROW;
+
+void inc_anim() {
+  mat4_identity(model);
+  setting++;
+  setting %= AS_COUNT;
+}
 
 void areas_static_update() {
-
-  // glm_rotate(model, glm_rad(1), (vec3){0, 1, 0});
-  // glm_translate(model, (vec3){0, 0.01, 0});
-
   float t = u_time - floorf(u_time);
 
-  glm_mat4_identity(model);
-  mat4 shear = {{1, bounce_interp(0, 1, t), 0, 0},
-                {0, 1, 0, 0},
-                {0, 0, 1, 0},
-                {0, 0, 0, 1}};
-  mat4_mul(shear, model, model);
+  int grid_sz = 2;
 
-  im_identity_grid(2, 0.2);
-  im_grid(model, 2, 0.5);
+  im_identity_grid(grid_sz, 0.2);
 
-  // gui_push((Layout *)&(LayoutVertical){
-  //     .type = LAYOUT_VERTICAL, .margin = 0.01, .padding = 0.09});
-  // gui_draggable("v");
-  //
-  // gui_draggable("h");
-  // gui_draggable("k");
-  //
-  // gui_push(NULL);
-  // gui_draggable("w");
-  //
-  // GUIFunctionListInput input = {
-  //     .num_inputs = 5,
-  //     .inputs =
-  //         {
-  //             {function_one, "function one"},
-  //             {function_two, "function two"},
-  //             {function_two, "function twoo"},
-  //             {function_two, "function twooo"},
-  //             {function_two, "function twoooo"},
-  //         },
-  // };
-  // gui_function_list(&input);
-  //
-  // gui_pop();
-  // gui_pop();
-  //
+  switch (setting) {
+  case AS_GROW: {
+    mat4_scale(model, 1.001, model);
+    im_grid(model, grid_sz, 0.5);
+  } break;
+
+  case AS_SHRINK: {
+    mat4_scale(model, 0.999, model);
+    im_grid(model, grid_sz, 0.5);
+  } break;
+
+  case AS_IDENTITY: {
+    glm_mat4_identity(model);
+    im_grid(model, grid_sz, 0.5);
+  } break;
+
+  case AS_SHEAR: {
+    glm_mat4_identity(model);
+    mat4 shear = {{1, bounce_interp(0, 1, t), 0, 0},
+                  {0, 1, 0, 0},
+                  {0, 0, 1, 0},
+                  {0, 0, 0, 1}};
+    mat4_mul(shear, model, model);
+    im_grid(model, grid_sz, 0.5);
+  } break;
+
+  default: {
+  } break;
+  }
+
+  gui_push((Layout *)&(LayoutVertical){
+      .type = LAYOUT_VERTICAL, .margin = 0.01, .padding = 0.09});
+  gui_widget("v");
+
+  gui_widget("h");
+  gui_widget("k");
+  gui_widget("a");
+  gui_widget("b");
+  gui_widget("c");
+
+  gui_push(NULL);
+  gui_draggable("w");
+
+  GUIFunctionListInput input = {
+      .num_inputs = 1,
+      .inputs =
+          {
+              {inc_anim, "next anim"},
+          },
+  };
+  gui_function_list(&input);
+
+  gui_pop();
+  gui_pop();
+
   // {
   //   gui_push(NULL);
   //   gui_draggable("subwindow");

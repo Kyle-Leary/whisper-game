@@ -2,7 +2,9 @@
 #include "cglm/affine.h"
 #include "cglm/mat4.h"
 #include "cglm/quat.h"
+#include "global.h"
 #include "im_prims.h"
+#include "math/mat.h"
 #include "printers.h"
 #include "render/graphics_render.h"
 #include "render/material.h"
@@ -12,12 +14,13 @@
 #include "render/texture.h"
 #include "shaders/shader_instances.h"
 #include "whisper/macros.h"
+#include <string.h>
 #include <sys/types.h>
 
 // search, ideally from the root of the model recursively for the first Armature
 // node type we find. in this Node design, an "Armature"-type node is just one
 // that happens to have a "skin" field in the node description.
-static NodeIndex arm_search(Model *m, NodeIndex idx) {
+static NodeIndex _arm_search(Model *m, NodeIndex idx) {
   NodeIndex arm_idx = INVALID_NODE;
   Node *node = &(m->nodes[idx]);
 
@@ -31,7 +34,7 @@ static NodeIndex arm_search(Model *m, NodeIndex idx) {
     }
     // iter through all the children of this node, and check for armatures.
     for (int i = 0; i < node->num_children; i++) {
-      arm_idx = arm_search(m, node->children[i]);
+      arm_idx = _arm_search(m, node->children[i]);
       if (arm_idx != INVALID_NODE) {
         return arm_idx;
       }
@@ -42,15 +45,40 @@ static NodeIndex arm_search(Model *m, NodeIndex idx) {
   return INVALID_NODE;
 }
 
+// this is generic, update the internal transform of this node and all child
+// nodes. call the base case with tf as the identity matrix, probably for some
+// dumbass reason i made the Node structure hold its children in indices, not
+// pointers so we also need to pass in the whole list here to get child node
+// references.
+static void _update_node_tf(Node *node_list, NodeIndex root_idx, mat4 tf) {
+  Node *node_root = &node_list[root_idx];
+
+  mat4_identity(node_root->transform_calc);
+  // then compose this transform with the parent's transform.
+  glm_mat4_mul(node_root->transform_calc, tf, node_root->transform_calc);
+
+  // generate the transform cpu-side for now from the node Node* structure.
+  glm_translate(node_root->transform_calc, node_root->translation);
+  glm_quat_rotate(node_root->transform_calc, node_root->rotation,
+                  node_root->transform_calc);
+  glm_scale(node_root->transform_calc, node_root->scale);
+
+  for (int i = 0; i < node_root->num_children; i++) {
+    _update_node_tf(node_list, node_root->children[i],
+                    node_root->transform_calc);
+  }
+}
+
 // go through and update the bone data, find the right materials and update
 // those, THEN render the internal graphics render after binding the right
 // model rendering shader.
 void g_draw_model(Model *m) {
   { // update bone data based on the Model's new bone positions.
     NodeIndex arm = INVALID_NODE;
+
     { // hacky, just try to find the first armature in the node hierarchy.
       for (int i = 0; i < m->num_roots; i++) {
-        arm = arm_search(m, m->roots[i]);
+        arm = _arm_search(m, m->roots[i]);
         if (arm != INVALID_NODE) {
           break;
         }
@@ -67,43 +95,72 @@ void g_draw_model(Model *m) {
 
     int num_bones = skin->num_joints;
 
-    for (int i = 0; i < num_bones; i++) {
-      mat4 bone_tf;
-      glm_mat4_identity(bone_tf);
+    {
+      mat4 id;
+      for (int i = 0; i < m->num_roots; i++) {
+        mat4_identity(id); // just in case, make sure its identity every root.
+        // update each root, since we're about to use some node transform data.
+        _update_node_tf(m->nodes, m->roots[i], id);
+      }
+    }
 
+    vec3 last_tr;
+
+    for (int i = 0; i < num_bones; i++) {
       int joint_node_index = skin->joints[i];
       // copy the ith joint into the ith transform slot, setting up the BoneData
       // transforms to be sent over to the GPU.
       Node *bone_node = &(m->nodes[joint_node_index]);
 
-      // generate the transform cpu-side for now from the bone Node* structure.
-      glm_scale(bone_tf, bone_node->scale);
-      glm_quat_rotate(bone_tf, bone_node->rotation, bone_tf);
-      glm_translate(bone_tf, bone_node->translation);
+      // glm_mat4_mul(bone_node->transform_calc, skin->ibms[i],
+      //              bone_node->transform_calc);
 
-      glm_mat4_mul(bone_tf, skin->ibms[i], bone_tf);
+      mat4 tf;
+      glm_mat4_identity(tf);
 
-      im_transform(bone_tf);
+      glm_mat4_mul(tf, skin->ibms[i], tf);
+      glm_mat4_mul(tf, bone_node->transform_calc, tf);
 
-      {
-        vec3 tr;
-        tr[0] = bone_tf[0][3];
-        tr[1] = bone_tf[1][3];
-        tr[2] = bone_tf[2][3];
-        im_point(tr);
-      }
+      printf("=== (IBM) %d\n", i);
+      print_mat4(skin->ibms[i], 0);
+      printf("===\n");
 
-      // {
-      //   vec3 tr;
-      //   tr[0] = bone_tf[3][0]; // x
-      //   tr[1] = bone_tf[3][1]; // y
-      //   tr[2] = bone_tf[3][2];
-      //   im_point(tr);
+      printf("=== %d\n", i);
+      print_mat4(tf, 0);
+      printf("===\n");
+
+      // if (i == 1) {
+      //   glm_vec3_add(bone_node->translation, (vec3){-0.001, 0, 0},
+      //                bone_node->translation);
+      //   // bone_node->scale[1] += 0.001;
+      // }
+      // if (i == 7) {
+      //   glm_vec3_add(bone_node->translation, (vec3){0.005, 0, 0},
+      //                bone_node->translation);
       // }
 
+      im_transform(skin->ibms[i], 0.2);
+      im_transform(bone_node->transform_calc, 1);
+
+      { // column major, extract tx ty and tz.
+        vec3 tr;
+        tr[0] = bone_node->transform_calc[3][0]; // x
+        tr[1] = bone_node->transform_calc[3][1]; // y
+        tr[2] = bone_node->transform_calc[3][2];
+        im_point(tr);
+
+        if (i > 0) {
+          im_vector(last_tr, tr, (vec4){1, 1, 1, 1});
+        }
+
+        memcpy(last_tr, tr, 12);
+      }
+
       // then copy the transform into the slot.
-      memcpy(&(bones.bones[i]), bone_tf, sizeof(float) * 16);
+      memcpy(&(bones.bones[i]), tf, sizeof(float) * 16);
     }
+
+    bones.num_bones = num_bones;
 
     rig_use_bones(&bones);
   }

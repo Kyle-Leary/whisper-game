@@ -99,20 +99,21 @@ layout(std140) uniform MaterialBlock {
 #define EMISSIVE_TEXTURE_SLOT 4
 
 void main() {
-	mat4 skin = mat4(0.0);
+	vec4 final_anim_pos = vec4(0);
 
 	for (int i = 0; i < 4; i++) {
 		float weight = aWeights[i];
 		int bone_index = aJoints[i];
 
 		mat4 bone_transform = bones[bone_index]; // current bone transformation
-		mat4 transformation = bone_transform;
+		vec4 animated_position = bone_transform * vec4(aPos, 1.0);
 
-		skin += (transformation * weight);
+		final_anim_pos += (animated_position * weight);
 	}
 
-	gl_Position = vec4(aPos, 1.0); // Apply the combined skinning transformation
-	gl_Position = skin * gl_Position;
+	// final_anim_pos = vec4(aPos, 1);
+
+	gl_Position = final_anim_pos;
 	gl_Position = u_model * gl_Position;
 	gl_Position = view * gl_Position;
 	gl_Position = projection * gl_Position;

@@ -92,7 +92,7 @@ int entry_point(int argc, char **argv) {
   im_init();
 
   area_init();
-  area_switch("static.c");
+  area_switch("bone_test.c");
 
   hud_init();
 

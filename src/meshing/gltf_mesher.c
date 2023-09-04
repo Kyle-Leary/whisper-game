@@ -56,65 +56,6 @@ static WJSONValue *parse_basic_attrs(GLTFFile *file, WJSONValue *v_prim,
   return attributes;
 }
 
-Model *gltf_to_model(GLTFFile *file) {
-  Model *model = malloc(sizeof(Model));
-
-  // grab the first mesh.
-  WJSONValue *v_mesh = wjson_index(file->meshes, 0);
-  WJSONValue *v_prims = wjson_get(v_mesh, "primitives");
-  gltf_primitives_parse(file, v_prims, model);
-
-  { // more JSON parsing for Model data not explicitly related to vertex
-    // attributes/data.
-
-    { // parse all of the nodes on their own.
-      WJSONValue *v_nodes = file->nodes;
-      int num_nodes = v_nodes->data.length.array_len;
-      model->nodes = malloc(sizeof(Node) * num_nodes);
-      model->num_nodes = num_nodes;
-
-      // iterate through the nodes and parse each of them.
-      for (int i = 0; i < num_nodes; i++) {
-        // parse the node at the current index INTO the Model* structure.
-        gltf_node_parse(file, model, i);
-      }
-    }
-
-    { // parse all the top-level root nodes out of the 0th scene. assume the GLB
-      // file won't use another scene, for now.
-      WJSONValue *v_scene_zero = wjson_index(file->scenes, 0);
-      WJSONValue *v_scene_zero_nodes = wjson_get(v_scene_zero, "nodes");
-      model->num_roots = v_scene_zero_nodes->data.length.array_len;
-      model->roots = malloc(sizeof(int) * model->num_roots);
-
-      for (int i = 0; i < model->num_roots; i++) {
-        // get all the top level node indices in the first scene.
-
-        NodeIndex root_index =
-            (NodeIndex)wjson_number(wjson_index(v_scene_zero_nodes, i));
-        model->roots[i] = root_index;
-        // set top level nodes to have an INVALID parent.
-        model->nodes[root_index].parent = INVALID_NODE;
-      }
-    }
-
-    model->num_animations = file->animations->data.length.array_len;
-
-    gltf_animations_parse(file, model);
-    // images BEFORE textures.
-    gltf_images_parse(file, model);
-    gltf_textures_parse(file, model);
-    // then, parse the textures into the materials.
-    gltf_materials_parse(file, model);
-  }
-
-  free(file);
-
-  glm_mat4_identity(model->transform);
-
-  return model;
-}
-
 void gltf_primitives_parse(GLTFFile *file, WJSONValue *v_prims, Model *model) {
   int num_prims = v_prims->data.length.array_len;
 
@@ -201,6 +142,68 @@ void gltf_primitives_parse(GLTFFile *file, WJSONValue *v_prims, Model *model) {
       prim->material_idx = -1;
     }
   }
+}
+
+Model *gltf_to_model(GLTFFile *file) {
+  Model *model = malloc(sizeof(Model));
+
+  for (int i = 0; i < file->meshes->data.length.array_len; i++) {
+    // file may not contain a mesh. try to parse all of them into
+    // graphicsrenders and put them into the list anyway.
+    WJSONValue *v_mesh = wjson_index(file->meshes, i);
+    WJSONValue *v_prims = wjson_get(v_mesh, "primitives");
+    gltf_primitives_parse(file, v_prims, model);
+  }
+
+  { // more JSON parsing for Model data not explicitly related to vertex
+    // attributes/data.
+
+    { // parse all of the nodes on their own.
+      WJSONValue *v_nodes = file->nodes;
+      int num_nodes = v_nodes->data.length.array_len;
+      model->nodes = malloc(sizeof(Node) * num_nodes);
+      model->num_nodes = num_nodes;
+
+      // iterate through the nodes and parse each of them.
+      for (int i = 0; i < num_nodes; i++) {
+        // parse the node at the current index INTO the Model* structure.
+        gltf_node_parse(file, model, i);
+      }
+    }
+
+    { // parse all the top-level root nodes out of the 0th scene. assume the GLB
+      // file won't use another scene, for now.
+      WJSONValue *v_scene_zero = wjson_index(file->scenes, 0);
+      WJSONValue *v_scene_zero_nodes = wjson_get(v_scene_zero, "nodes");
+      model->num_roots = v_scene_zero_nodes->data.length.array_len;
+      model->roots = malloc(sizeof(int) * model->num_roots);
+
+      for (int i = 0; i < model->num_roots; i++) {
+        // get all the top level node indices in the first scene.
+
+        NodeIndex root_index =
+            (NodeIndex)wjson_number(wjson_index(v_scene_zero_nodes, i));
+        model->roots[i] = root_index;
+        // set top level nodes to have an INVALID parent.
+        model->nodes[root_index].parent = INVALID_NODE;
+      }
+    }
+
+    model->num_animations = file->animations->data.length.array_len;
+
+    gltf_animations_parse(file, model);
+    // images BEFORE textures.
+    gltf_images_parse(file, model);
+    gltf_textures_parse(file, model);
+    // then, parse the textures into the materials.
+    gltf_materials_parse(file, model);
+  }
+
+  free(file);
+
+  glm_mat4_identity(model->transform);
+
+  return model;
 }
 
 // hardcode this to return a RC_BASIC, most default exports from 3d software

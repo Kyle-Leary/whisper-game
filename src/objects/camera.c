@@ -40,7 +40,7 @@ Camera *camera_build(vec3 position, vec3 *target) {
   p->rotation = 0;
   p->rotation_speed = 0.01;
 
-  p->distance = 1;
+  p->distance = 6;
   p->zoom_speed = 0.01;
 
   p->height = 1;
