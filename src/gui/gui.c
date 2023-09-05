@@ -36,6 +36,10 @@
 
 GUIState gui_state = {0};
 
+static int gui_visible = 1;
+
+void gui_toggle_visibility() { gui_visible = !gui_visible; }
+
 // execute "block" with the widget context ptr "w".
 #define WIDGET_MAP_FORALL(widget_t, widget_colmap, ...)                        \
   {                                                                            \
@@ -105,8 +109,10 @@ void gui_internal_add_child(GUIWidget *last_added) {
   ptr->num_children++;
   last_added->parent = ptr;
 
+  RUNTIME_ASSERT(last_added->type < WT_COUNT);
+
   // specifically accept the LOCAL transform.
-  layout_accept_new(&(last_added->aabb));
+  layout_accept_new(last_added);
 }
 
 void gui_internal_push(GUIWidget *last_added) {
@@ -132,6 +138,7 @@ void gui_update() {
 
   GUIWidget *base_case = gui_get_root();
   RUNTIME_ASSERT(base_case->parent == NULL);
+  RUNTIME_ASSERT(base_case->type == WT_WIDGET);
 
   // offset the stack pointer one above the root, so that everything uses the
   // root as a direct parent.
@@ -143,7 +150,20 @@ void gui_update() {
   layout_reset();
 }
 
-void gui_push(Layout *layout) { gui_state.is_pushing = true; }
+void gui_push(Layout *layout) {
+  layout_push(layout);
+  gui_state.is_pushing = true;
+}
+
+void gui_vert_push(float margin, float padding) {
+  gui_push((Layout *)&(LayoutVertical){
+      .type = LAYOUT_VERTICAL, .margin = margin, .padding = padding});
+}
+
+void gui_horiz_push(float margin, float padding) {
+  gui_push((Layout *)&(LayoutHorizontal){
+      .type = LAYOUT_HORIZONTAL, .margin = margin, .padding = padding});
+}
 
 void gui_pop() {
   gui_state.last_added = w_stack_pop(&(gui_state.window_stack));
@@ -222,7 +242,9 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
     sprintf(buf, "invalid widget type in the draw switch, found %d", ptr->type);
     ERROR_FROM_BUF(buf);
   } else {
-    widget_handlers[t].draw(ptr);
+    if (gui_visible) {
+      widget_handlers[t].draw(ptr);
+    }
   }
 
   int num_child_renders = ptr->num_children;
@@ -248,6 +270,8 @@ static void gui_draw_recursive(GUIWidget *ptr, AABB transform) {
 void gui_draw() {
   mat4 model;
   glm_mat4_identity(model);
+
+  render_state.shader->is_wireframe = 0;
 
   shader_bind(render_state.shader);
 

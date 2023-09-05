@@ -1,11 +1,13 @@
 #include "commands.h"
 #include "areas/area_server.h"
 #include "console/console.h"
+#include "gui/gui.h"
 #include "helper_math.h"
 #include "util.h"
 #include <stdio.h>
 #include <string.h>
 
+#include "whisper/colmap.h"
 #include "window.h"
 
 #define MAX_WORDS 16
@@ -18,6 +20,15 @@ typedef struct CommandInput {
 } CommandInput;
 
 static CommandInput cmd_buf;
+
+typedef void (*command_fn)(CommandInput *);
+
+// map over these in a hashtable to do really fast keyword matching.
+typedef struct Command {
+  command_fn fn;
+} Command;
+
+static WColMap command_map;
 
 // fill in the provided buffer based on the string input. input should be null
 // termed.
@@ -83,21 +94,55 @@ void command_run(CommandResponse *response, char *command, int len) {
 
   char *base_cmd = cmd_buf.argv[0];
 
-  if (strncmp(base_cmd, "print", 5) == 0) {
-    console_printf("%s", cmd_buf.joined_argv);
-
-  } else if (strncmp(command, "area", 4) == 0) {
-    console_printf("trying to load area: %s...\n", cmd_buf.joined_argv);
-
-    int area_num = 0;
-    area_switch(cmd_buf.joined_argv);
-  } else if (strncmp(command, "newline", 7) == 0) {
-    console_printf("\n\n");
-  } else if (strncmp(command, "clear", 5) == 0) {
-    console_printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-  } else if (strncmp(command, "quit", 4) == 0) {
-    window_force_close();
+  Command *c = w_cm_get(&command_map, base_cmd);
+  if (c) {
+    if (c->fn) {
+      c->fn(&cmd_buf);
+    }
   } else {
     console_printf("'%s' is not a valid command.\n", command);
   }
 }
+
+void print(CommandInput *cmd) { console_printf("%s", cmd->joined_argv); }
+void area(CommandInput *cmd) {
+  console_printf("trying to load area: %s...\n", cmd->joined_argv);
+  int area_num = 0;
+  area_switch(cmd->joined_argv);
+  toggle_console();
+}
+void quit(CommandInput *cmd) { window_force_close(); }
+void clear(CommandInput *cmd) {
+  console_printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+}
+
+void gui(CommandInput *cmd) {
+  if (strncmp(cmd->argv[1], "toggle", 6) == 0) {
+    gui_toggle_visibility();
+  } else {
+    console_printf("Invalid gui subcommand.\n");
+  }
+}
+
+#define INSERT(name, func)                                                     \
+  {                                                                            \
+    void *com_ptr = w_cm_insert(&command_map, name, &(Command){.fn = func});   \
+    if (com_ptr == NULL) {                                                     \
+      fprintf(stderr,                                                          \
+              "Warning: collision in the command name hashmap [name: %s].\n",  \
+              name);                                                           \
+    }                                                                          \
+  }
+
+void init_commands() {
+  w_create_cm(&command_map, sizeof(Command), 509);
+
+  INSERT("print", print);
+  INSERT("clear", clear);
+  INSERT("area", area);
+  INSERT("q", quit);
+  INSERT("quit", quit);
+  INSERT("gui", gui);
+}
+
+void clean_commands() { w_free_cm(&command_map); }

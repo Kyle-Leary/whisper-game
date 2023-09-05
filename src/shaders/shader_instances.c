@@ -194,12 +194,13 @@ static void init_im_3d() {
 }
 
 static void gui_bind(Shader *s) {}
+static void gui_unbind(Shader *s) {}
 
 static void init_gui() {
   SHADER_SETUP("gui", "gui.shader");
   shader_set_1i(s, "u_tex_sampler", 0); // 0th slot
   s->bind = gui_bind;
-  s->unbind = NULL;
+  s->unbind = gui_unbind;
 }
 
 static void wireframe_bind(Shader *s) {

@@ -33,11 +33,13 @@ extern int layout_sizes[LAYOUT_COUNT];
 #define LAYOUT_BUF_SZ                                                          \
   (MAX(MAX(sizeof(Layout), sizeof(LayoutVertical)), sizeof(LayoutHorizontal)))
 
+typedef struct GUIWidget GUIWidget;
+
 // don't call these directly if you're using the gui subsystem. these are
 // internal.
 void layout_push(Layout *layout);
 void layout_pop();
-void layout_accept_new(AABB *aabb);
+void layout_accept_new(GUIWidget *new_widget);
 void layout_reset();
 void layout_internal_push();
 

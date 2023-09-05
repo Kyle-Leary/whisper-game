@@ -13,3 +13,5 @@ typedef struct CommandResponse {
 } CommandResponse;
 
 void command_run(CommandResponse *response, char *command, int len);
+void init_commands();
+void clean_commands();

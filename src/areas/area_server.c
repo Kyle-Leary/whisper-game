@@ -48,6 +48,12 @@ void areas_static_update();
 void areas_bone_test();
 void areas_bone_test_update();
 
+void areas_animation();
+void areas_animation_update();
+
+void areas_gui();
+void areas_gui_update();
+
 void areas_another();
 
 void area_init() {
@@ -75,6 +81,18 @@ void area_init() {
   {
     AreaEntry *area = w_cm_return_slot(&(areas), "bone_test.c");
     memcpy(area, &(AreaEntry){areas_bone_test, areas_bone_test_update, NULL},
+           sizeof(AreaEntry));
+  }
+
+  {
+    AreaEntry *area = w_cm_return_slot(&(areas), "animation.c");
+    memcpy(area, &(AreaEntry){areas_animation, areas_animation_update, NULL},
+           sizeof(AreaEntry));
+  }
+
+  {
+    AreaEntry *area = w_cm_return_slot(&(areas), "gui.c");
+    memcpy(area, &(AreaEntry){areas_gui, areas_gui_update, NULL},
            sizeof(AreaEntry));
   }
 }

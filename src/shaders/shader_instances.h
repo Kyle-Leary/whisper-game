@@ -16,6 +16,8 @@ typedef struct Shader {
           // getters in opengl, not individual vert/frag/geo shaders etc.
   WColMap locs;
 
+  int is_wireframe; // turn on wireframe for this shader.
+
   void (*bind)(Shader *);
   void (*unbind)(Shader *);
   // allow the shader to handle the model polymorphically. if this is NULL, the

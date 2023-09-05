@@ -158,7 +158,7 @@ static void animation_update(Animator *animator, AnimEntry *entry) {
   // tick the channel from the time at the old frame to the time in the new
   // frame.
   float old_time = entry->curr_time;
-  entry->curr_time += delta_time / 150;
+  entry->curr_time += delta_time / 10;
   float new_time = entry->curr_time;
 
   Animation a = animator->target->animations[entry->model_anim_index];

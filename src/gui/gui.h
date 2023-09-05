@@ -80,6 +80,10 @@ typedef struct GUILabel {
 // just a draggable quad. this always has 6 indices.
 typedef struct GUIDraggable {
   WIDGET_COMMON
+
+  // store where it was last clicked. this is to get the right dragging offset.
+  vec2 last_mouse_pos;
+  int has_moved;
 } GUIDraggable;
 
 typedef struct GUIButton {
@@ -108,6 +112,8 @@ extern GUIState gui_state;
 
 // pass NULL to use a default layout.
 void gui_push(Layout *layout);
+void gui_vert_push(float margin, float padding);
+void gui_horiz_push(float margin, float padding);
 void gui_pop();
 
 void gui_internal_push(GUIWidget *last_added);
@@ -118,3 +124,5 @@ void gui_init();
 void gui_update();
 void gui_draw();
 void gui_clean();
+
+void gui_toggle_visibility();

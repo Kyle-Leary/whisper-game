@@ -15,13 +15,14 @@ static LayoutHorizontal default_layout = {LAYOUT_HORIZONTAL, 0, 0};
 // this is a buffer that represents ANY layout. cast this to Layout* and check
 // the type when you're ready to use it.
 uint8_t layout_buf[2][LAYOUT_BUF_SZ] = {0};
-// alias the buffer for easy access.
+// alias the buffer for easy access. this is safe since the buffer pointer
+// location won't change.
 Layout *curr_layout = (Layout *)&(layout_buf[1]);
 
 typedef struct LayoutState {
   // all of the transforms, in order, currently being laid out by the layout
   // subsystem.
-  AABB *layout_subjects[MAX_CHILDREN];
+  GUIWidget *layout_subjects[MAX_CHILDREN];
   int num_layout_subjects;
 } LayoutState;
 
@@ -29,11 +30,12 @@ typedef struct LayoutState {
 // window stack.
 static WStack layout_stack;
 
-typedef void (*layout_fn)(AABB *children[MAX_CHILDREN], int num_children,
+typedef void (*layout_fn)(GUIWidget *children[MAX_CHILDREN], int num_children,
                           Layout *layout);
 
-void vertical_handler(AABB *children[MAX_CHILDREN], int num_children,
+void vertical_handler(GUIWidget *children[MAX_CHILDREN], int num_children,
                       Layout *layout) {
+
   LayoutVertical *v = (LayoutVertical *)layout;
 
   float y_offset = 0.5 / num_children;
@@ -42,23 +44,35 @@ void vertical_handler(AABB *children[MAX_CHILDREN], int num_children,
     float y = (float)i / num_children;
     y += y_offset;
 
-    AABB tf = {0.5, y, (0.5 - v->padding), (0.5 - v->padding) / num_children};
-    memcpy(children[i], &tf, sizeof(AABB));
+    AABB tf = {0.5, 1 - y, (0.5 - v->padding),
+               (0.5 - v->padding) / num_children};
+    memcpy(&children[i]->aabb, &tf, sizeof(AABB));
   }
 }
 
-void horizontal_handler(AABB *children[MAX_CHILDREN], int num_children,
+void horizontal_handler(GUIWidget *children[MAX_CHILDREN], int num_children,
                         Layout *layout) {
   LayoutHorizontal *h = (LayoutHorizontal *)layout;
 
   float x_offset = 0.5 / num_children;
 
   for (int i = 0; i < num_children; i++) {
+    switch (children[i]->type) {
+    case WT_DRAGGABLE: {
+      if (((GUIDraggable *)children[i])->has_moved) {
+        continue;
+      }
+    } break;
+
+    default: {
+    } break;
+    }
+
     float x = (float)i / num_children;
     x += x_offset;
 
     AABB tf = {x, 0.5, (0.5 - h->padding) / num_children, (0.5 - h->padding)};
-    memcpy(children[i], &tf, sizeof(AABB));
+    memcpy(&children[i]->aabb, &tf, sizeof(AABB));
   }
 }
 
@@ -93,7 +107,8 @@ void layout_internal_push() {
   // make a new layout stack frame.
   LayoutState *new = w_stack_push(&layout_stack);
   new->num_layout_subjects = 0;
-  memcpy(&(layout_buf[0]), &(layout_buf[1]),
+  // push the layout into the internal layout.
+  memcpy(&(layout_buf[1]), &(layout_buf[0]),
          layout_sizes[((Layout *)(&layout_buf[0]))->type]);
 }
 
@@ -107,11 +122,13 @@ void layout_reset() {
   curr->num_layout_subjects = 0;
 }
 
-void layout_accept_new(AABB *aabb) {
+void layout_accept_new(GUIWidget *new_widget) {
   LayoutState *curr = get_curr_layout_state();
 
+  RUNTIME_ASSERT(new_widget->type < WT_COUNT);
+
   // store the REFERENCE to the transform for us to modify directly.
-  curr->layout_subjects[curr->num_layout_subjects] = aabb;
+  curr->layout_subjects[curr->num_layout_subjects] = new_widget;
   curr->num_layout_subjects++;
   RUNTIME_ASSERT(curr->num_layout_subjects < MAX_CHILDREN);
   // now, reorganize all the transforms based on the new information.

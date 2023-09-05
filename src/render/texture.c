@@ -1,4 +1,5 @@
 #include "texture.h"
+#include "cglm/types.h"
 #include "defines.h"
 #include "main.h"
 
@@ -12,6 +13,10 @@
 
 // just for keeping the same texture bound in the g_load_texture() function.
 static uint curr_bound_texture = 0;
+
+uint transparent_tex;
+uint black_tex;
+uint white_tex;
 
 // i think that we can call this function, then call modifiers after and still
 // modify the image texture properties properly. so, we don't need any function
@@ -125,4 +130,11 @@ void g_use_cubemap(TextureHandle handle, int slot) {
   glActiveTexture(GL_TEXTURE0 + slot);
   glBindTexture(GL_TEXTURE_CUBE_MAP, handle);
   curr_bound_texture = handle;
+}
+
+void init_helper_textures() {
+  transparent_tex =
+      g_load_texture_from_buf((byte *)(vec4){0, 0, 0, 0}, 1, 1, 4);
+  black_tex = g_load_texture_from_buf((byte *)(vec4){0, 0, 0, 1}, 1, 1, 4);
+  white_tex = g_load_texture_from_buf((byte *)(vec4){1, 1, 1, 1}, 1, 1, 4);
 }

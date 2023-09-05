@@ -1,6 +1,4 @@
-// a simple level with a model in it to verify that the bind pose is working as
-// intended.
-
+#include "animation/animator.h"
 #include "cglm/types.h"
 #include "math/mat.h"
 #include "objects/camera.h"
@@ -11,11 +9,13 @@
 
 static vec3 camera_focus;
 
-void areas_bone_test() {
+void areas_animation() {
   glm_vec3_zero(camera_focus);
 
-  RenderComp *r = make_rendercomp_from_glb(MODEL_PATH("rouge_rig.glb"));
+  RenderComp *r = make_rendercomp_from_glb(MODEL_PATH("walking.glb"));
   Model *m = (Model *)r->data;
+  Animator *a = make_animator(m);
+  anim_play(a, "walk.001", true);
 
   Camera *cam = (Camera *)object_add(
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);
@@ -46,4 +46,4 @@ void areas_bone_test() {
   }
 }
 
-void areas_bone_test_update() {}
+void areas_animation_update() {}

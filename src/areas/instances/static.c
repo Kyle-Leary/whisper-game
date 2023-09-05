@@ -137,17 +137,4 @@ void areas_static_update() {
           },
   };
   gui_function_list(&input);
-
-  gui_pop();
-  gui_pop();
-
-  // {
-  //   gui_push(NULL);
-  //   gui_draggable("subwindow");
-  //   gui_label("top left", "top left");
-  //   gui_label("top right", "top right");
-  //   gui_label("bottom left", "bottom left");
-  //   gui_label("bottom right", "bottom right");
-  //   gui_pop();
-  // }
 }

@@ -31,5 +31,5 @@ uniform sampler2D u_tex_sampler;
 
 void main() {
     // i think texture() returns a vec4?
-    color = texture(u_tex_sampler, TexCoords) + vec4(0, 0, 0, 0.5);
+    color = texture(u_tex_sampler, TexCoords) + vec4(0, 0, 0, 0.1);
 }

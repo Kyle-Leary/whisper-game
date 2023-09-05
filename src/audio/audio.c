@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "defines.h"
+#include "whisper/array.h"
 
 // compiling this with -lopenal and -lalut, two different dynlibs.
 // openal
@@ -23,11 +24,13 @@ typedef struct Track {
   char *filepath; // path to the audio file it represents.
 } Track;
 
+#define MAX_TRACKS 6
+
 typedef struct AudioState {
-  Track **tracks;
+  WArray tracks;
 } AudioState;
 
-#define MAX_TRACKS 6
+static AudioState *audio_state;
 
 static void play_track(Track *t) {
   // Play the sound
@@ -40,64 +43,58 @@ static void play_track(Track *t) {
 // create the track, and add it in a non-null spot in the tracklist
 // in the passed AudioState structure.
 static Track *make_track(AudioState *a_s, const char *filename) {
-  Track *t = (Track *)malloc(sizeof(Track));
+  Track t;
+
   int filename_len = strlen(filename);
-  t->filepath = (char *)malloc(filename_len);
-  strncpy(t->filepath, filename, filename_len);
+  t.filepath = (char *)malloc(filename_len);
+  strncpy(t.filepath, filename, filename_len);
 
-  // Create t->buffer and source
-  alGenBuffers(1, &t->buffer);
-  alGenSources(1, &t->source);
+  // Create t.buffer and source
+  alGenBuffers(1, &t.buffer);
+  alGenSources(1, &t.source);
 
-  // Load the wav file into the t->buffer
-  t->buffer = alutCreateBufferFromFile(filename);
+  // Load the wav file into the t.buffer
+  t.buffer = alutCreateBufferFromFile(filename);
 
   // Set up source parameters
-  alSourcei(t->source, AL_BUFFER, t->buffer); // al buffer contains source
-  alSourcef(t->source, AL_PITCH, 1.0F);
-  alSourcef(t->source, AL_GAIN, 0.1F);
-  alSource3f(t->source, AL_POSITION, 0, 0, 0);
-  alSource3f(t->source, AL_VELOCITY, 0, 0, 0);
-  alSourcei(t->source, AL_LOOPING, AL_FALSE);
+  alSourcei(t.source, AL_BUFFER, t.buffer); // al buffer contains source
+  alSourcef(t.source, AL_PITCH, 1.0F);
+  alSourcef(t.source, AL_GAIN, 0.1F);
+  alSource3f(t.source, AL_POSITION, 0, 0, 0);
+  alSource3f(t.source, AL_VELOCITY, 0, 0, 0);
+  alSourcei(t.source, AL_LOOPING, AL_FALSE);
 
-  for (int i = 0; i < MAX_TRACKS; i++) {
-    if (a_s->tracks[i] == NULL) {
-      // always break when the loop finishes. no unnecessary loops!!
-      a_s->tracks[i] = t;
-      break;
-    }
-  }
-
-  return t;
-}
-
-static AudioState *
-make_audio_state() { // should the state pre-malloc the track slots, or should
-                     // the track initializer malloc itself? i think it's better
-                     // to delay the initialization. it would be even better to
-                     // static-alloc all of the slots, though. how do we do
-                     // THAT? i don't really get the array[N] notation.
-  AudioState *a = (AudioState *)calloc(sizeof(AudioState), 1);
-  a->tracks = (Track **)calloc(sizeof(Track *), MAX_TRACKS);
-  return a;
+  return w_array_insert(&audio_state->tracks, &t);
 }
 
 static void clean_audio_state(AudioState *a_s) {}
-
-static AudioState *audio_state;
 
 void a_play_pcm(const char *filename) {
   play_track(make_track(audio_state, filename));
 }
 
-void a_init() {
-  audio_state = make_audio_state();
-  alutInit((int *)calloc(1, 1), (char **)calloc(sizeof(char *), 0)); // lol
+static int x = 0;
 
-  // const char *filename = SOUND_PATH("smt1_home.wav");
-  // Track *t = make_track(audio_state, filename);
-  // play_track(t);
+void a_init() {
+  // pass dummy heap pointer.
+  alutInit(&x, (char **)&x);
+
+  const char *filename = SOUND_PATH("smt1_home.wav");
+  Track *t = make_track(audio_state, filename);
+  play_track(t);
 }
+
+void a_free_track(Track *t) { free(t->filepath); }
+
+void a_stop_track(Track *t) {
+  alDeleteSources(1, &t->source);
+  alDeleteBuffers(1, &t->buffer);
+
+  a_free_track(t);
+  w_array_delete_index(WArray * array, uint index)
+}
+
+void a_stop_all() {}
 
 void a_update() {
   for (int i = 0; i < MAX_TRACKS; i++) {
@@ -119,12 +116,6 @@ void a_update() {
       continue;
 
     // we've stopped playing, free and reset the Track.
-
-    alDeleteSources(1, &curr->source);
-    alDeleteBuffers(1, &curr->buffer);
-
-    free(curr);
-    audio_state->tracks[i] = NULL;
   }
 }
 

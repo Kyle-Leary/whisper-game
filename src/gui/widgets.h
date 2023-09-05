@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sys/types.h>
+
 #include "helper_math.h"
 #include <stdbool.h>
 

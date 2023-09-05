@@ -5,6 +5,7 @@
 #include "cglm/mat4.h"
 #include "cglm/types.h"
 #include "cglm/util.h"
+#include "console/commands.h"
 #include "console/console.h"
 #include "event_types.h"
 #include "global.h"
@@ -22,6 +23,7 @@
 #include "printers.h"
 #include "render/gr_prim.h"
 #include "render/render.h"
+#include "render/texture.h"
 #include "shaders/shader_instances.h"
 #include "shaders/ubo.h"
 #include "size.h"
@@ -47,6 +49,8 @@ int entry_point(int argc, char **argv) {
   srand(time(NULL));
 
   window_init();
+
+  init_helper_textures();
 
   hot_reload_init();
 
@@ -78,6 +82,8 @@ int entry_point(int argc, char **argv) {
   shader_instantiate_all();
 
   gui_init();
+
+  init_commands();
   console_init();
 
   // api init
@@ -92,7 +98,7 @@ int entry_point(int argc, char **argv) {
   im_init();
 
   area_init();
-  area_switch("bone_test.c");
+  area_switch("gui.c");
 
   hud_init();
 
@@ -196,6 +202,7 @@ int entry_point(int argc, char **argv) {
   }
 
   console_clean();
+  clean_commands();
   gui_clean();
 
   shader_destroy_all();

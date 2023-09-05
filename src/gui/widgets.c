@@ -1,14 +1,21 @@
 #include "widgets.h"
 #include "cglm/mat4.h"
+#include "cglm/simd/sse2/mat4.h"
+#include "cglm/vec2.h"
 #include "gui.h"
+
+#include "gui/gui_layouts.h"
+#include "macros.h"
 
 #include "gui/gui_renders.h"
 #include "input/input.h"
 #include "ogl_includes.h"
 #include "path.h"
+#include "printers.h"
 #include "render/texture.h"
 #include "shaders/shader.h"
 #include "whisper/colmap.h"
+#include <string.h>
 #include <sys/types.h>
 
 static int default_z_index = 0;
@@ -21,6 +28,14 @@ uint draggable_texture;
 
 #define APPLY_Z()                                                              \
   { glm_translate(model, (vec3){0, 0, widget->z_index}); }
+
+#define QUAD_SQUISH()                                                          \
+  {                                                                            \
+    glm_translate(model, (vec3){ptr->global_aabb.center[0],                    \
+                                ptr->global_aabb.center[1], 0});               \
+    glm_scale(model, (vec3){ptr->global_aabb.extents[0] * 2,                   \
+                            ptr->global_aabb.extents[1] * 2, 1});              \
+  }
 
 #define TEXT_SQUISH()                                                          \
   {                                                                            \
@@ -58,7 +73,16 @@ uint draggable_texture;
 #define USE_TEXTURE(tex)                                                       \
   { g_use_texture(tex, 0); }
 
-static void widget_draw(GUIWidget *ptr) {}
+static void widget_draw(GUIWidget *ptr) {
+#ifdef DEBUG
+  CAST(GUIWidget);
+  QUAD_SQUISH();
+  APPLY_Z();
+  USE_TEXTURE(transparent_tex);
+  DRAW();
+#endif
+}
+
 static void widget_update(GUIWidget *ptr, GUIInputState *input_state) {}
 
 void gui_widget(const char *name) {
@@ -68,6 +92,10 @@ void gui_widget(const char *name) {
     // first time init
     ptr->type = WT_WIDGET;
     DEFAULT_Z_INDEX();
+
+#ifdef DEBUG
+    gui_quad_render(&(ptr->render));
+#endif
   } else {
     // else, it's returned NULL and we need to grab the slot ourselves.
     ptr = w_cm_get(&(gui_state.widgets), name);
@@ -159,18 +187,49 @@ bool gui_button(const char *name, const char *text) {
 
 static void draggable_draw(GUIWidget *ptr) {
   CAST(GUIDraggable);
-  glm_translate(
-      model, (vec3){ptr->global_aabb.center[0], ptr->global_aabb.center[1], 0});
-  glm_scale(model, (vec3){ptr->global_aabb.extents[0] * 2,
-                          ptr->global_aabb.extents[1] * 2, 1});
+  QUAD_SQUISH();
   APPLY_Z();
   USE_TEXTURE(draggable_texture);
   DRAW();
 }
 
 static void draggable_update(GUIWidget *ptr, GUIInputState *input_state) {
+  GUIDraggable *d = (GUIDraggable *)ptr;
+
+  if (input_state->mouse_button_just_clicked[GUI_MOUSE_LEFT] &&
+      input_state->mouse_inside) {
+    d->has_moved = 1;
+
+    vec2 obj_mouse;
+
+    // obj_mouse[0] = (i_state.pointer[0] - d->global_aabb.center[0] +
+    //                 d->global_aabb.extents[0]) /
+    //                d->global_aabb.extents[0];
+    //
+    // obj_mouse[1] = (i_state.pointer[1] - d->global_aabb.center[1] +
+    //                 d->global_aabb.extents[1]) /
+    //                d->global_aabb.extents[1];
+    //
+    // print_vec2(obj_mouse, 0);
+    // glm_vec2_scale(obj_mouse, 0.5, obj_mouse);
+    //
+    // RUNTIME_ASSERT(obj_mouse[0] <= 1);
+    // RUNTIME_ASSERT(obj_mouse[0] >= 0);
+    //
+    // RUNTIME_ASSERT(obj_mouse[1] <= 1);
+    // RUNTIME_ASSERT(obj_mouse[1] >= 0);
+
+    memcpy(&(d->last_mouse_pos), i_state.pointer, sizeof(float) * 2);
+  }
+
   if (input_state->mouse_button[GUI_MOUSE_LEFT] && input_state->mouse_inside) {
-    memcpy(&(ptr->aabb.center), i_state.pointer, sizeof(float) * 2);
+    printf("hello\n");
+    print_vec2(d->aabb.center, 0);
+    print_vec2(d->last_mouse_pos, 0);
+
+    // update it with the object-space cursor offset generated during the
+    // initial click.
+    glm_vec2_add(d->last_mouse_pos, i_state.pointer, d->aabb.center);
   }
 }
 
@@ -179,10 +238,14 @@ void gui_draggable(const char *name) {
 
   if (ptr) {
     ptr->type = WT_DRAGGABLE;
+    ptr->has_moved = 0;
 
     // new insertion.
     DEFAULT_Z_INDEX();
     gui_quad_render(&(ptr->render));
+
+    memcpy(ptr->last_mouse_pos, i_state.pointer, sizeof(float) * 2);
+    // mouse pointer into object-space.
   } else {
     ptr = w_cm_get(&(gui_state.draggables), name);
   }
@@ -215,8 +278,6 @@ WidgetHandler widget_handlers[WT_COUNT] = {
 
 void gui_widget_types_init() {
   glm_mat4_identity(model);
-
-  draggable_texture = g_load_texture(TEXTURE_PATH("draggable.png"));
 
   w_create_cm(&(gui_state.widgets), sizeof(GUIWidget), 256);
   w_create_cm(&(gui_state.labels), sizeof(GUILabel), 256);

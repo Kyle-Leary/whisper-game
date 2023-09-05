@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define IS_BETWEEN(a, min, max) ((a >= min) ? ((a < max) ? 1 : 0) : 0)
+
 #define TIMES(code, num_times)                                                 \
   {                                                                            \
     int i_times_block;                                                         \

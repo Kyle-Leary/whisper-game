@@ -5,6 +5,10 @@
 
 #define NUM_TEXTURES 16
 
+extern uint transparent_tex;
+extern uint black_tex;
+extern uint white_tex;
+
 // a handle to a texture, an id can always be rep'd as a uint, likely.
 typedef uint TextureHandle;
 
@@ -35,3 +39,5 @@ uint g_load_cubemap(char *faces[6]);
 // TODO: how to reason about texture slots?
 void g_use_texture(TextureHandle handle, int slot);
 void g_use_cubemap(TextureHandle handle, int slot);
+
+void init_helper_textures();

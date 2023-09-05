@@ -9,13 +9,27 @@
 // the hash?
 static Shader *curr_sh = NULL;
 
+static int last_was_wireframe = 0;
+
 void shader_bind(Shader *s) {
   NULL_CHECK(s);
 
+  if (last_was_wireframe) {
+    glEnable(GL_DEPTH_TEST);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  }
+
+  if (s->is_wireframe) {
+    last_was_wireframe = 1;
+    glDisable(GL_DEPTH_TEST);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  }
+
   if (s != curr_sh) {
     // new shader, so unbind the old one.
-    if (curr_sh && curr_sh->unbind)
+    if (curr_sh && curr_sh->unbind) {
       curr_sh->unbind(s);
+    }
 
     // new shader.
     // use the shader before calling the bind function, since it might set

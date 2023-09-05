@@ -121,23 +121,13 @@ void g_draw_model(Model *m) {
       glm_mat4_mul(tf, skin->ibms[i], tf);
       glm_mat4_mul(tf, bone_node->transform_calc, tf);
 
-      printf("=== (IBM) %d\n", i);
-      print_mat4(skin->ibms[i], 0);
-      printf("===\n");
-
-      printf("=== %d\n", i);
-      print_mat4(tf, 0);
-      printf("===\n");
-
-      // if (i == 1) {
-      //   glm_vec3_add(bone_node->translation, (vec3){-0.001, 0, 0},
-      //                bone_node->translation);
-      //   // bone_node->scale[1] += 0.001;
-      // }
-      // if (i == 7) {
-      //   glm_vec3_add(bone_node->translation, (vec3){0.005, 0, 0},
-      //                bone_node->translation);
-      // }
+      // printf("=== (IBM) %d\n", i);
+      // print_mat4(skin->ibms[i], 0);
+      // printf("===\n");
+      //
+      // printf("=== %d\n", i);
+      // print_mat4(tf, 0);
+      // printf("===\n");
 
       im_transform(skin->ibms[i], 0.2);
       im_transform(bone_node->transform_calc, 1);

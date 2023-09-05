@@ -17,6 +17,8 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include "macros.h"
+
 #include "ogl_includes.h"
 
 static bool has_control = false;
@@ -162,6 +164,13 @@ void console_init() {
   }
 }
 
+const char shifted_lut[255] = {
+    ['1'] = '!', ['2'] = '@',   ['3'] = '#', ['4'] = '$', ['5'] = '%',
+    ['6'] = '^', ['7'] = '&',   ['8'] = '*', ['9'] = '(', ['0'] = ')',
+    ['-'] = '_', ['='] = '+',   ['['] = '{', [']'] = '}', ['\\'] = '|',
+    [';'] = ':', ['\''] = '\"', [','] = '<', ['.'] = '>', ['/'] = '?',
+    ['`'] = '~'};
+
 void console_handle_input(int key, int scancode, int action, int mods) {
   if (!has_control)
     return;
@@ -174,20 +183,27 @@ void console_handle_input(int key, int scancode, int action, int mods) {
     return;
 
   switch (action) {
-  case GLFW_PRESS:
+  case GLFW_PRESS: {
     if (!c_input.last_input_state[key]) {
-      if (key < 255 && key > 0) {
+      if (IS_BETWEEN(key, 'a', 'z' + 1) || IS_BETWEEN(key, 'A', 'Z' + 1)) {
         // we're looking at an action representing an ASCII value.
         // copy the actual character value itself into the queue slot.
         short final_key = IS_SHIFT ? key : tolower(key);
         w_enqueue(&(c_input.char_queue), &final_key);
+      } else if (IS_BETWEEN(key, 0, 255)) {
+        // this might be a char, use the fallback lut for shifts.
+        char ch = IS_SHIFT ? shifted_lut[key] : key;
+        if (ch == 0) {
+          // if we landed on an invalid entry, revert the decision.
+          ch = key;
+        }
+        w_enqueue(&(c_input.char_queue), &ch);
       } else {
-        // only apply the tolower to chars. these are special keys, and are
-        // copied in as-is.
+        // fallback on just copying the keycode verbatim.
         w_enqueue(&(c_input.char_queue), &key);
       }
     }
-    break;
+  } break;
   case GLFW_RELEASE:
     if (c_input.last_input_state[key]) {
       // we've just released this key.
@@ -281,16 +297,16 @@ void console_printf(const char *format, ...) {
 }
 
 static void console_submit() {
-  memset(
-      c_graphics.last_command, 0,
-      LINE_BUF_SZ); // make sure there's no dangling stuff on the last command.
+  memset(c_graphics.last_command, 0,
+         LINE_BUF_SZ); // make sure there's no dangling stuff on the last
+                       // command.
   memcpy(c_graphics.last_command, CONSOLE_TEXT_ENTRY.buffer, LINE_BUF_SZ);
   c_graphics.last_command_sz = CONSOLE_TEXT_ENTRY.len;
 
   console_newline();
   CommandResponse r = {0};
-  // the command runner can handle its own printing through the exposed console
-  // api.
+  // the command runner can handle its own printing through the exposed
+  // console api.
   command_run(&r, c_graphics.last_command, c_graphics.last_command_sz);
 }
 
