@@ -22,14 +22,13 @@ typedef struct MaterialData {
 // have a wrapper structure that can double as both the raw UBO data and
 // something more expressive, without having to pointer-chase to pull the
 // structure back together.
-typedef struct ModelMaterial {
+typedef struct Material {
   MaterialData inner;
   // if a texture has an id of 0, it'll simply unbind the current texture. this
   // is fine.
   uint base_color_texture;
   bool double_sided;
-} ModelMaterial;
+} Material;
 
-// all renders from now on will use the mat Material.
-// all shaders are implicitly PBR shaders?
-void g_use_material(MaterialData *mat);
+// enable the texture in the pipeline for the preceding draw call.
+void g_use_material(Material *mat);

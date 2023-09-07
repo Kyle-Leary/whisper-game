@@ -382,10 +382,10 @@ void gltf_materials_parse(GLTFFile *file, Model *model) {
   int num_mats = v_materials->data.length.array_len;
 
   model->num_materials = num_mats;
-  model->materials = malloc(sizeof(ModelMaterial) * model->num_materials);
+  model->materials = malloc(sizeof(Material) * model->num_materials);
 
   for (int i = 0; i < num_mats; i++) {
-    ModelMaterial *curr_mat = &(model->materials[i]);
+    Material *curr_mat = &(model->materials[i]);
     WJSONValue *v_material = wjson_index(v_materials, i);
 
     // try to parse out the baseColorTexture nested ID from the material.

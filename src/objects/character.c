@@ -38,7 +38,7 @@ Character *character_build(Model *model) {
     // parse then mesh the glb file, then render it in the normal drawing loop.
     p->render = make_rendercomp_from_glb(MODEL_PATH("wiggle.glb"));
 
-    Model *player_model = (Model *)(p->render->data);
+    Model *player_model = (Model *)(p->render->data.model);
     p->animator = make_animator(player_model);
 
     anim_play(p->animator, "wiggle", true);

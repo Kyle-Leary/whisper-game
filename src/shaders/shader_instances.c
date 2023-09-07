@@ -231,6 +231,32 @@ static void init_console() {
   s->unbind = console_unbind;
 }
 
+static void video_bind(Shader *s) {}
+static void video_unbind(Shader *s) {}
+
+static void init_video() {
+  SHADER_SETUP("video", "video.shader");
+  shader_set_1i(s, "base_color_texture", 0);
+  s->bind = video_bind;
+  s->unbind = video_unbind;
+  BIND_LIGHTS();
+  BIND_MATRICES();
+}
+
+static void yuv_bind(Shader *s) {}
+static void yuv_unbind(Shader *s) {}
+
+static void init_yuv() {
+  SHADER_SETUP("yuv", "yuv.shader");
+  shader_set_1i(s, "y_tex", 0);
+  shader_set_1i(s, "u_tex", 1);
+  shader_set_1i(s, "v_tex", 2);
+  s->bind = yuv_bind;
+  s->unbind = yuv_unbind;
+  BIND_LIGHTS();
+  BIND_MATRICES();
+}
+
 void shader_instantiate_all() {
   has_initted++;
 
@@ -262,6 +288,8 @@ void shader_instantiate_all() {
   init_wireframe();
   init_gui();
   init_console();
+  init_video();
+  init_yuv();
 }
 
 #undef INSERT

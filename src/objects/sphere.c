@@ -58,7 +58,7 @@ void sphere_update(void *p) {
   }
 
   { // render setup
-    GraphicsRender *prim = sphere->render->data;
+    GraphicsRender *prim = sphere->render->data.gr;
     m4_apply_transform_from_body(prim->model, sphere->phys->body);
   }
 

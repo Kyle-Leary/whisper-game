@@ -1,5 +1,6 @@
 #include "commands.h"
 #include "areas/area_server.h"
+#include "audio/audio.h"
 #include "console/console.h"
 #include "gui/gui.h"
 #include "helper_math.h"
@@ -124,6 +125,16 @@ void gui(CommandInput *cmd) {
   }
 }
 
+void audio(CommandInput *cmd) {
+  if (strncmp(cmd->argv[1], "killall", 7) == 0) {
+    a_kill_all();
+  } else if (strncmp(cmd->argv[1], "play", 4) == 0) {
+    a_play_pcm(cmd->argv[2]);
+  } else {
+    console_printf("Invalid audio subcommand.\n");
+  }
+}
+
 #define INSERT(name, func)                                                     \
   {                                                                            \
     void *com_ptr = w_cm_insert(&command_map, name, &(Command){.fn = func});   \
@@ -143,6 +154,7 @@ void init_commands() {
   INSERT("q", quit);
   INSERT("quit", quit);
   INSERT("gui", gui);
+  INSERT("audio", audio);
 }
 
 void clean_commands() { w_free_cm(&command_map); }

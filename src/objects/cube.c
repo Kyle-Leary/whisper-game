@@ -53,7 +53,7 @@ void cube_update(void *p) {
 
   rb->ang_acceleration[0] = 5;
 
-  GraphicsRender *prim = cube->render->data;
+  GraphicsRender *prim = cube->render->data.gr;
   glm_mat4_identity(prim->model);
   glm_translate(prim->model, rb->lerp_position);
 

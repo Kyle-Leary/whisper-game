@@ -163,7 +163,7 @@ void g_draw_model(Model *m) {
     if (mat_idx != -1) {
       // if the prim is associated with a material, set that material up before
       // rendering.
-      ModelMaterial mat = m->materials[mat_idx];
+      Material mat = m->materials[mat_idx];
 
       // set the render up with the external material context.
       uint texture_id = mat.base_color_texture;

@@ -80,7 +80,7 @@ typedef struct Model {
                  // the length at parse-time.
 
   // parse out a list of materials into the Model.
-  ModelMaterial *materials;
+  Material *materials;
   int num_materials;
 
   // a model can render in multiple different segments with different shaders.

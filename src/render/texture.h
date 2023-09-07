@@ -31,8 +31,9 @@ void g_use_pbr_texture(TextureType type, TextureHandle tex);
 // graphics backend.
 uint g_load_texture(const char *filepath);
 uint g_load_texture_from_png_buf(byte *png_buf, int len);
-uint g_load_texture_from_buf(byte *img_buf, int width, int height,
-                             int channels);
+// pass 0 in the stride param if you don't need it.
+uint g_load_texture_from_buf(byte *img_buf, int width, int height, int channels,
+                             int stride);
 
 uint g_load_cubemap(char *faces[6]);
 // "activates" the texture, using it for further draw calls.

@@ -36,7 +36,7 @@ Floor *floor_build(vec3 position, float strength) {
 
   p->render =
       make_rendercomp_from_graphicsrender(gr_prim_floor_plane(sb->position));
-  GraphicsRender *prim = (GraphicsRender *)p->render->data;
+  GraphicsRender *prim = (GraphicsRender *)p->render->data.gr;
   glm_scale(prim->model, (vec3){100, 1, 100});
   glm_translate(prim->model, position);
   return p;

@@ -13,7 +13,7 @@ void areas_animation() {
   glm_vec3_zero(camera_focus);
 
   RenderComp *r = make_rendercomp_from_glb(MODEL_PATH("walking.glb"));
-  Model *m = (Model *)r->data;
+  Model *m = (Model *)r->data.model;
   Animator *a = make_animator(m);
   anim_play(a, "walk.001", true);
 

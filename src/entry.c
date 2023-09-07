@@ -8,6 +8,7 @@
 #include "console/commands.h"
 #include "console/console.h"
 #include "event_types.h"
+#include "fmv.h"
 #include "global.h"
 #include "gui/gui.h"
 #include "gui/widgets.h"
@@ -18,6 +19,7 @@
 #include "main.h"
 #include "meshing/font.h"
 #include "object.h"
+#include "os.h"
 #include "path.h"
 #include "physics/physics.h"
 #include "printers.h"
@@ -48,7 +50,11 @@ Font *simple_font = NULL;
 int entry_point(int argc, char **argv) {
   srand(time(NULL));
 
+  os_init();
+
   window_init();
+
+  fmv_init();
 
   init_helper_textures();
 
@@ -98,7 +104,7 @@ int entry_point(int argc, char **argv) {
   im_init();
 
   area_init();
-  area_switch("gui.c");
+  area_switch("video.c");
 
   hud_init();
 
@@ -167,6 +173,8 @@ int entry_point(int argc, char **argv) {
 
     hud_update();
 
+    // clear the window, anything drawn in an update() function before this will
+    // not show.
     window_begin_draw();
 
     // after admin matrix stuff is over with, actually draw all the Renders.

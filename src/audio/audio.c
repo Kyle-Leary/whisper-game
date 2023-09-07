@@ -2,35 +2,10 @@
 
 #include "defines.h"
 #include "path.h"
-
-#include <AL/alut.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "defines.h"
 #include "whisper/array.h"
+#include <stdio.h>
 
-// compiling this with -lopenal and -lalut, two different dynlibs.
-// openal
-#include <AL/al.h>
-#include <AL/alc.h>
-// wrapper library around openal
-#include <AL/alut.h>
-
-typedef struct Track {
-  ALuint buffer, source;
-  ALint state;
-  char *filepath; // path to the audio file it represents.
-} Track;
-
-#define MAX_TRACKS 6
-
-typedef struct AudioState {
-  WArray tracks;
-} AudioState;
-
-static AudioState *audio_state;
+static AudioState audio_state = {0};
 
 static void play_track(Track *t) {
   // Play the sound
@@ -54,7 +29,15 @@ static Track *make_track(AudioState *a_s, const char *filename) {
   alGenSources(1, &t.source);
 
   // Load the wav file into the t.buffer
-  t.buffer = alutCreateBufferFromFile(filename);
+  uint buf = alutCreateBufferFromFile(filename);
+  if (buf == AL_NONE) {
+    fprintf(stderr,
+            "ERROR: Could not find '%s' while trying to make pcm buffer.\n",
+            filename);
+    return NULL;
+  }
+
+  t.buffer = buf;
 
   // Set up source parameters
   alSourcei(t.source, AL_BUFFER, t.buffer); // al buffer contains source
@@ -64,62 +47,73 @@ static Track *make_track(AudioState *a_s, const char *filename) {
   alSource3f(t.source, AL_VELOCITY, 0, 0, 0);
   alSourcei(t.source, AL_LOOPING, AL_FALSE);
 
-  return w_array_insert(&audio_state->tracks, &t);
+  return w_array_insert(&audio_state.tracks, &t);
 }
 
 static void clean_audio_state(AudioState *a_s) {}
 
 void a_play_pcm(const char *filename) {
-  play_track(make_track(audio_state, filename));
+  Track *t = make_track(&audio_state, filename);
+  if (t != NULL) {
+    play_track(t);
+  } else {
+    fprintf(stderr, "ERROR: Track is NULL, could not play pcm from '%s'.\n",
+            filename);
+  }
 }
 
 static int x = 0;
 
 void a_init() {
+  w_make_array(&audio_state.tracks, sizeof(Track), MAX_TRACKS);
+
   // pass dummy heap pointer.
   alutInit(&x, (char **)&x);
 
   const char *filename = SOUND_PATH("smt1_home.wav");
-  Track *t = make_track(audio_state, filename);
+  Track *t = make_track(&audio_state, filename);
   play_track(t);
 }
 
 void a_free_track(Track *t) { free(t->filepath); }
 
-void a_stop_track(Track *t) {
+void a_kill_track(Track *t) {
   alDeleteSources(1, &t->source);
   alDeleteBuffers(1, &t->buffer);
 
   a_free_track(t);
-  w_array_delete_index(WArray * array, uint index)
+  w_array_delete_ptr(&audio_state.tracks, t);
 }
 
-void a_stop_all() {}
-
-void a_update() {
-  for (int i = 0; i < MAX_TRACKS; i++) {
-    Track *curr = audio_state->tracks[i];
-
+void a_kill_all() {
+  for (int i = 0; i < audio_state.tracks.upper_bound; i++) {
+    Track *curr = w_array_get(&audio_state.tracks, i);
     if (curr == NULL)
       continue;
 
-    // for example, we have a reference to each track and can modify them in a
-    // loop.
-    //
-    // alSourcef(curr->source, AL_GAIN, vol);
-    //
-    // there's no binding, just pass in the source pointer and it works.
+    a_kill_track(curr);
+  }
+}
+
+void a_update() {
+  for (int i = 0; i < audio_state.tracks.upper_bound; i++) {
+    Track *curr = w_array_get(&audio_state.tracks, i);
+
+    if (curr == NULL)
+      continue;
 
     alGetSourcei(curr->source, AL_SOURCE_STATE, &curr->state);
 
     if (curr->state == AL_PLAYING)
       continue;
 
-    // we've stopped playing, free and reset the Track.
+    // we've stopped playing, free the Track. looping is handled by openal, so
+    // if it's really ended we don't have to worry about that.
+    a_kill_track(curr);
   }
 }
 
 void a_clean() {
-  clean_audio_state(audio_state);
+  clean_audio_state(&audio_state);
   alutExit();
 }

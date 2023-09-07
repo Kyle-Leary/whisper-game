@@ -44,6 +44,9 @@ void g_draw_render(GraphicsRender *graphics_render) {
 
   // im_transform(graphics_render->model, 0.2);
 
+  if (graphics_render->setup_fn != NULL)
+    graphics_render->setup_fn(graphics_render);
+
   glBindVertexArray(graphics_render->vao);
   glDrawElements(GL_TRIANGLES, graphics_render->n_idx, GL_UNSIGNED_INT, 0);
 }

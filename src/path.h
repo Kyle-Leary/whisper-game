@@ -11,6 +11,7 @@
 // don't need to use the .pp at the end. is this too magical??
 #define SHADER_PATH(base_path) ASSET_PATH "shaders/" base_path ".pp"
 #define MODEL_PATH(base_path) ASSET_PATH "models/" base_path
+#define VIDEO_PATH(base_path) ASSET_PATH "videos/" base_path
 
 // general purpose resources, like random area file-formats that we'll parse and
 // use on the fly.

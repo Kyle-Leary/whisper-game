@@ -1,15 +1,18 @@
 # Variables
 CC := gcc
+WINDOWS_CC := x86_64-w64-mingw32-gcc
+
+# The final target (change this to your desired target name)
+TARGET := whisper
+WINDOWS_TARGET := $(TARGET).exe
+TARGETS := $(TARGET) $(WINDOWS_TARGET)
 
 # there are some cases where we literally can't align a vec4 on a 16 byte boundary.
 # skip the CGLM check. https://cglm.readthedocs.io/en/stable/opt.html
 CFLAGS := -DCGLM_ALL_UNALIGNED=1 -DDEBUG=1 -DAREA_HOT_RELOAD=1
-CFLAGS += -Wall -Wno-missing-braces -Wno-unused-variable
+CFLAGS += -Wall -Wno-missing-braces -Wno-unused-variable -rdynamic
 
-# The final target (change this to your desired target name)
-TARGET := whisper
-
-LIBS := -lGLEW -lGL -lglfw -lopenal -lalut -lm -lpthread -g
+LIBS := -lGLEW -lGL -lswscale -lavutil -lavformat -lavcodec -lz -lglfw -lopenal -lalut -lm -lpthread -g
 INCLUDES += -I. -Isrc -Ideps/wjson/api -Ideps -Ideps/stb -Ideps/libwhisper/api
 
 TEST_TARGET := whisper_test
@@ -19,9 +22,10 @@ SRC_DIR := src
 
 WJSON := deps/wjson/libwjson.a
 LIBWHISPER := deps/libwhisper/libwhisper.a
+GLFW := deps/glfw/libglfw3.a
 
 # all the static libaries we're linking against.
-STATIC := $(WJSON) $(LIBWHISPER)
+STATIC := $(WJSON) $(LIBWHISPER) $(GLFW)
 
 GLPP := deps/glpp/glpp
 
@@ -65,10 +69,20 @@ REQUIREMENTS += $(GLPP)
 TEST_REQUIREMENTS += $(TEST_SYMBOLS)
 TEST_REQUIREMENTS += $(REQUIREMENTS)
 
-$(info OBJS is $(OBJS))
+# use linux build by default.
+all: setup $(TARGET)
+windows: setup $(WINDOWS_TARGET)
 
-all: $(TARGET)
-	@echo "Target built at path ./$(TARGET)."
+# doing an auto submodule init here was a BAD IDEA. removed it.
+setup: 
+
+$(TARGET): $(REQUIREMENTS) main.o 
+	@echo "Making target $(1)"
+	$(CC) -o $@ $(SYMBOLS) main.o $(CFLAGS) $(LIBS)
+
+$(WINDOWS_TARGET): $(REQUIREMENTS) main.o 
+	@echo "Making target $(1)"
+	$(WINDOWS_CC) -o $@ $(SYMBOLS) main.o $(CFLAGS) $(LIBS)
 
 test: $(TEST_TARGET)
 	@echo "Test built at path ./$(TEST_TARGET). Running..."
@@ -87,9 +101,6 @@ endef
 # in total, this defines all the rules we need dynamically, each time the makefile is run.
 $(foreach dep,$(DEPS),$(eval $(call create_rule,$(dep))))
 
-# for both, just compile all the symbols into TARGET with CC
-$(TARGET): $(REQUIREMENTS) main.o 
-	$(CC) -o $@ $(SYMBOLS) main.o $(CFLAGS) $(LIBS)
 
 $(TEST_TARGET): $(REQUIREMENTS) $(TEST_REQUIREMENTS) testmain.o
 	$(CC) -o $@ $(TEST_SYMBOLS) testmain.o $(CFLAGS) $(LIBS)
@@ -109,8 +120,10 @@ testmain.c:
 	$(GLPP) $< -o $@ -I$(SHADER_PATH)
 
 clean:
-	rm -f $(SYMBOLS) $(TARGET) $(TEST_TARGET) $(GLPP) $(SHADERS)
+	rm -f $(REQUIREMENTS) $(TARGETS) $(TEST_TARGET) 
 
 # always rebuild test.c
 # always rebuild shaders, it's cheap.
-.PHONY: clean testmain.c %.shader.pp
+.PHONY: clean testmain.c %.shader.pp all
+.SECONDARY: $(OBJS)
+.PRECIOUS: %.o

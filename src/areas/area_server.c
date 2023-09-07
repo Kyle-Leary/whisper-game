@@ -54,6 +54,9 @@ void areas_animation_update();
 void areas_gui();
 void areas_gui_update();
 
+void areas_video();
+void areas_video_update();
+
 void areas_another();
 
 void area_init() {
@@ -93,6 +96,12 @@ void area_init() {
   {
     AreaEntry *area = w_cm_return_slot(&(areas), "gui.c");
     memcpy(area, &(AreaEntry){areas_gui, areas_gui_update, NULL},
+           sizeof(AreaEntry));
+  }
+
+  {
+    AreaEntry *area = w_cm_return_slot(&(areas), "video.c");
+    memcpy(area, &(AreaEntry){areas_video, areas_video_update, NULL},
            sizeof(AreaEntry));
   }
 }

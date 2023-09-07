@@ -7,3 +7,15 @@
 [submodule "deps/glpp"]
 	path = deps/glpp
 	url = https://github.com/Kyle-Leary/glpp.git
+[submodule "deps/openal"]
+	path = deps/openal
+	url = https://github.com/kcat/openal-soft.git
+[submodule "deps/freealut"]
+	path = deps/freealut
+	url = https://github.com/vancegroup/freealut.git
+[submodule "deps/glfw"]
+	path = deps/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "deps/glew"]
+	path = deps/glew
+	url = https://github.com/nigels-com/glew.git

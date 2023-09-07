@@ -6,6 +6,8 @@
 // Object subsystem.
 
 #include "render/graphics_render.h"
+#include "render/material_render.h"
+#include "render/model.h"
 
 #include <stdbool.h>
 
@@ -13,6 +15,7 @@
 
 typedef enum RenderType {
   RENDERTYPE_PRIMITIVE,
+  RENDERTYPE_MATERIAL,
   RENDERTYPE_MODEL,
   RENDERTYPE_COUNT,
 } RenderType;
@@ -22,7 +25,11 @@ typedef struct RenderComp {
 
   RenderType type; // switch over several different types of renders, all
                    // handled here in the render subsystem.
-  void *data;
+  union {
+    GraphicsRender *gr;
+    MaterialRender *mr;
+    Model *model;
+  } data;
 } RenderComp;
 
 // similar to the physics components, insert into the global render array and
@@ -30,6 +37,7 @@ typedef struct RenderComp {
 RenderComp *make_rendercomp(RenderType type, void *data);
 RenderComp *make_rendercomp_from_glb(const char *path);
 RenderComp *make_rendercomp_from_graphicsrender(GraphicsRender *gr);
+RenderComp *make_rendercomp_from_matrender(MaterialRender *mr);
 
 void render_init();
 void render_update();

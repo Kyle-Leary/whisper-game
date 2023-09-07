@@ -4,7 +4,15 @@
 #include "render/render_configuration.h"
 #include "shaders/shader_instances.h"
 
+typedef struct GraphicsRender GraphicsRender;
+
+typedef void (*render_setup_fn)(GraphicsRender *gr);
+
 typedef struct GraphicsRender {
+  // set this to NULL if you want to opt out of an extra misdirection w/ the
+  // callback.
+  render_setup_fn setup_fn;
+
   mat4 model;
 
   Shader *shader;

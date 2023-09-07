@@ -15,7 +15,7 @@ void areas_bone_test() {
   glm_vec3_zero(camera_focus);
 
   RenderComp *r = make_rendercomp_from_glb(MODEL_PATH("rouge_rig.glb"));
-  Model *m = (Model *)r->data;
+  Model *m = (Model *)r->data.model;
 
   Camera *cam = (Camera *)object_add(
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);

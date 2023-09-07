@@ -3,6 +3,8 @@
 #include "defines.h"
 #include "main.h"
 
+#include "macros.h"
+
 #include "../ogl_includes.h"
 #include <GL/gl.h>
 #include <stdbool.h>
@@ -34,7 +36,8 @@ uint g_load_texture(const char *filepath) {
     return 0;
   }
 
-  uint textureID = g_load_texture_from_buf(image_data, width, height, channels);
+  uint textureID =
+      g_load_texture_from_buf(image_data, width, height, channels, 0);
 
   // Free the image data after it has been loaded into the texture
   stbi_image_free(image_data);
@@ -54,7 +57,8 @@ uint g_load_texture_from_png_buf(byte *png_buf, int len) {
     return 0;
   }
 
-  uint textureID = g_load_texture_from_buf(image_data, width, height, channels);
+  uint textureID =
+      g_load_texture_from_buf(image_data, width, height, channels, 0);
 
   // Free the image data after it has been loaded into the texture
   stbi_image_free(image_data);
@@ -62,8 +66,8 @@ uint g_load_texture_from_png_buf(byte *png_buf, int len) {
   return textureID;
 }
 
-uint g_load_texture_from_buf(byte *img_buf, int width, int height,
-                             int channels) {
+uint g_load_texture_from_buf(byte *img_buf, int width, int height, int channels,
+                             int stride) {
   uint textureID;
   glGenTextures(1, &textureID);
   glBindTexture(GL_TEXTURE_2D, textureID);
@@ -74,11 +78,37 @@ uint g_load_texture_from_buf(byte *img_buf, int width, int height,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+  GLenum internal_format;
+  GLenum format;
   // Load the image data into the texture
-  GLenum format = channels == 4 ? GL_RGBA : GL_RGB;
-  glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
+  switch (channels) {
+  case 1: {
+    internal_format = GL_R8;
+    format = GL_RED;
+  } break;
+  case 3: {
+    format = GL_RGB;
+    internal_format = format;
+  } break;
+  case 4: {
+    format = GL_RGBA;
+    internal_format = format;
+  } break;
+  default: {
+    ERROR_NO_ARGS("Invalid channels passed to function, could not find a "
+                  "corresponding opengl tex type enum.");
+    return 0;
+  } break;
+  }
+
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format,
                GL_UNSIGNED_BYTE, img_buf);
   glGenerateMipmap(GL_TEXTURE_2D);
+
+  // Reset row length to zero (the default)
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
   return textureID;
 }
@@ -134,7 +164,7 @@ void g_use_cubemap(TextureHandle handle, int slot) {
 
 void init_helper_textures() {
   transparent_tex =
-      g_load_texture_from_buf((byte *)(vec4){0, 0, 0, 0}, 1, 1, 4);
-  black_tex = g_load_texture_from_buf((byte *)(vec4){0, 0, 0, 1}, 1, 1, 4);
-  white_tex = g_load_texture_from_buf((byte *)(vec4){1, 1, 1, 1}, 1, 1, 4);
+      g_load_texture_from_buf((byte *)(vec4){0, 0, 0, 0}, 1, 1, 4, 0);
+  black_tex = g_load_texture_from_buf((byte *)(vec4){0, 0, 0, 1}, 1, 1, 4, 0);
+  white_tex = g_load_texture_from_buf((byte *)(vec4){1, 1, 1, 1}, 1, 1, 4, 0);
 }

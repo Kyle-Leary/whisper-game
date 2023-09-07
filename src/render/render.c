@@ -2,6 +2,7 @@
 #include "meshing/gltf_mesher.h"
 #include "parsers/gltf/gltf_parse.h"
 #include "render/graphics_render.h"
+#include "render/material_render.h"
 #include "shaders/shader_instances.h"
 #include "whisper/array.h"
 
@@ -10,7 +11,7 @@ static WArray render_comps;
 RenderComp *make_rendercomp(RenderType type, void *data) {
   RenderComp rc;
   rc.type = type;
-  rc.data = data;
+  rc.data.gr = data;
   rc.is_disabled = false;
   return w_array_insert(&render_comps, &rc);
 }
@@ -18,7 +19,7 @@ RenderComp *make_rendercomp(RenderType type, void *data) {
 RenderComp *make_rendercomp_from_glb(const char *path) {
   RenderComp rc;
   rc.type = RENDERTYPE_MODEL;
-  rc.data = gltf_to_model(gltf_parse(path));
+  rc.data.model = gltf_to_model(gltf_parse(path));
   rc.is_disabled = false;
   return w_array_insert(&render_comps, &rc);
 }
@@ -26,7 +27,15 @@ RenderComp *make_rendercomp_from_glb(const char *path) {
 RenderComp *make_rendercomp_from_graphicsrender(GraphicsRender *gr) {
   RenderComp rc;
   rc.type = RENDERTYPE_PRIMITIVE;
-  rc.data = gr;
+  rc.data.gr = gr;
+  rc.is_disabled = false;
+  return w_array_insert(&render_comps, &rc);
+}
+
+RenderComp *make_rendercomp_from_matrender(MaterialRender *mr) {
+  RenderComp rc;
+  rc.type = RENDERTYPE_MATERIAL;
+  rc.data.mr = mr;
   rc.is_disabled = false;
   return w_array_insert(&render_comps, &rc);
 }
@@ -53,10 +62,13 @@ void render_draw() {
 
     switch (rc->type) {
     case RENDERTYPE_MODEL: {
-      g_draw_model(rc->data);
+      g_draw_model(rc->data.model);
     } break;
     case RENDERTYPE_PRIMITIVE: {
-      g_draw_render(rc->data);
+      g_draw_render(rc->data.gr);
+    } break;
+    case RENDERTYPE_MATERIAL: {
+      g_draw_mat_render(rc->data.mr);
     } break;
     default: {
     } break;

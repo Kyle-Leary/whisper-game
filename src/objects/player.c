@@ -83,7 +83,7 @@ Player *player_build() {
     // parse then mesh the glb file, then render it in the normal drawing loop.
     p->render = make_rendercomp_from_glb(MODEL_PATH("wiggle.glb"));
 
-    Model *player_model = (Model *)(p->render->data);
+    Model *player_model = (Model *)(p->render->data.model);
     p->animator = make_animator(player_model);
 
     // just for now, link the first root node and assume that's the one with
@@ -154,7 +154,7 @@ void player_update(void *p) {
   CAST;
   CAST_RB;
 
-  Model *player_model = player->render->data;
+  Model *player_model = player->render->data.model;
 
   player->ghost_step[1] = rb->lerp_position[1]; // make the lookahead flat,
                                                 // or else it looks weird.
