@@ -16,9 +16,10 @@
 #include <AL/alut.h>
 
 typedef struct Track {
-  ALuint buffer, source;
+  ALuint buffers[2]; // audio is double buffered by default. we won't really be
+                     // loading in sounds in bulk at all.
+  ALuint source;
   ALint state;
-  char *filepath; // path to the audio file it represents.
 } Track;
 
 #define MAX_TRACKS 6
@@ -33,6 +34,11 @@ typedef struct AudioState {
 void a_init();
 void a_update();
 void a_clean();
+
 void a_play_pcm(const char *filename); // play a wav file by path.
+// stop playing the track.
 void a_kill_track(Track *t);
 void a_kill_all();
+
+Track *a_new_stream();
+Track *a_new_file_track(const char *filename);

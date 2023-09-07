@@ -16,25 +16,28 @@
 #include "render/texture.h"
 #include "shaders/shader_instances.h"
 
+#include "macros.h"
+
 #include "ogl_includes.h"
 
 static vec3 camera_focus;
 
-static Video *video;
+static FMV *cutscene;
 static RenderComp *video_render;
 
 #define GR ((GraphicsRender *)video_render->data.gr)
 
 static void setup_video_render(GraphicsRender *gr) {
-  g_use_texture(video->tex.y_tex, 0);
-  g_use_texture(video->tex.u_tex, 1);
-  g_use_texture(video->tex.v_tex, 2);
+  g_use_texture(cutscene->video->tex.y_tex, 0);
+  g_use_texture(cutscene->video->tex.u_tex, 1);
+  g_use_texture(cutscene->video->tex.v_tex, 2);
 }
 
 void areas_video() {
   glm_vec3_zero(camera_focus);
 
-  video = fmv_init_video(VIDEO_PATH("my_friends.mp4"));
+  cutscene = new_fmv(VIDEO_PATH("my_friends.mp4"));
+  NULL_CHECK(cutscene);
 
   video_render =
       make_rendercomp_from_graphicsrender(gr_prim_upright_plane((vec3){0}));
@@ -47,4 +50,4 @@ void areas_video() {
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);
 }
 
-void areas_video_update() { fmv_get_frame_as_yuv_tex(video); }
+void areas_video_update() { fmv_get_frame_as_yuv_tex(cutscene->video); }

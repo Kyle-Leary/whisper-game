@@ -15,18 +15,37 @@ static void play_track(Track *t) {
                            // polling loop in the audio_update.
 }
 
-// create the track, and add it in a non-null spot in the tracklist
-// in the passed AudioState structure.
-static Track *make_track(AudioState *a_s, const char *filename) {
+static inline void _default_track_init(Track *t) {
+  alGenBuffers(2, t->buffers);
+  alGenSources(1, &t->source);
+}
+
+static inline void _default_param_setup(Track *t) {
+  // always play the first buffer, and use the second for buffering->
+  alSourcei(t->source, AL_BUFFER, t->buffers[0]); // al buffer contains source
+  alSourcef(t->source, AL_PITCH, 1.0F);
+  alSourcef(t->source, AL_GAIN, 0.1F);
+  alSource3f(t->source, AL_POSITION, 0, 0, 0);
+  alSource3f(t->source, AL_VELOCITY, 0, 0, 0);
+  alSourcei(t->source, AL_LOOPING, AL_FALSE);
+}
+
+Track *a_new_stream() {
   Track t;
 
-  int filename_len = strlen(filename);
-  t.filepath = (char *)malloc(filename_len);
-  strncpy(t.filepath, filename, filename_len);
+  _default_track_init(&t);
 
-  // Create t.buffer and source
-  alGenBuffers(1, &t.buffer);
-  alGenSources(1, &t.source);
+  alSourceQueueBuffers(t.source, 2, t.buffers);
+
+  _default_param_setup(&t);
+
+  return w_array_insert(&audio_state.tracks, &t);
+}
+
+Track *a_new_file_track(const char *filename) {
+  Track t;
+
+  _default_track_init(&t);
 
   // Load the wav file into the t.buffer
   uint buf = alutCreateBufferFromFile(filename);
@@ -37,23 +56,16 @@ static Track *make_track(AudioState *a_s, const char *filename) {
     return NULL;
   }
 
-  t.buffer = buf;
+  t.buffers[0] = buf;
 
-  // Set up source parameters
-  alSourcei(t.source, AL_BUFFER, t.buffer); // al buffer contains source
-  alSourcef(t.source, AL_PITCH, 1.0F);
-  alSourcef(t.source, AL_GAIN, 0.1F);
-  alSource3f(t.source, AL_POSITION, 0, 0, 0);
-  alSource3f(t.source, AL_VELOCITY, 0, 0, 0);
-  alSourcei(t.source, AL_LOOPING, AL_FALSE);
+  _default_param_setup(&t);
 
   return w_array_insert(&audio_state.tracks, &t);
 }
 
-static void clean_audio_state(AudioState *a_s) {}
-
 void a_play_pcm(const char *filename) {
-  Track *t = make_track(&audio_state, filename);
+  Track *t = a_new_file_track(filename);
+
   if (t != NULL) {
     play_track(t);
   } else {
@@ -70,20 +82,20 @@ void a_init() {
   // pass dummy heap pointer.
   alutInit(&x, (char **)&x);
 
-  const char *filename = SOUND_PATH("smt1_home.wav");
-  Track *t = make_track(&audio_state, filename);
+  Track *t = a_new_file_track(SOUND_PATH("smt1_home.wav"));
   play_track(t);
 }
 
-void a_free_track(Track *t) { free(t->filepath); }
-
-void a_kill_track(Track *t) {
+void a_free_track(Track *t) {
   alDeleteSources(1, &t->source);
-  alDeleteBuffers(1, &t->buffer);
+  alDeleteBuffers(2, t->buffers);
 
-  a_free_track(t);
+  // this will nullify the pointer in the array, and cause the track to be
+  // skipped in the update. so, this does kill/mute the track.
   w_array_delete_ptr(&audio_state.tracks, t);
 }
+
+void a_kill_track(Track *t) { a_free_track(t); }
 
 void a_kill_all() {
   for (int i = 0; i < audio_state.tracks.upper_bound; i++) {
@@ -113,7 +125,4 @@ void a_update() {
   }
 }
 
-void a_clean() {
-  clean_audio_state(&audio_state);
-  alutExit();
-}
+void a_clean() { alutExit(); }
