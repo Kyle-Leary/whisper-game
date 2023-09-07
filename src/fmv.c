@@ -1,6 +1,7 @@
 #include "fmv.h"
 
 #include "defines.h"
+#include "global.h"
 #include "helper_math.h"
 #include "os.h"
 #include "path.h"
@@ -18,6 +19,7 @@
 #include <libavutil/imgutils.h>
 #include <libavutil/mem.h>
 #include <libavutil/pixfmt.h>
+#include <libavutil/rational.h>
 #include <libswscale/swscale.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -137,6 +139,10 @@ void *fmv_decode_thread(void *data) {
     return NULL;
   }
 
+  AVRational fr_rat = format_ctx->streams[vid_stream_idx]->avg_frame_rate;
+  float framerate = ((float)fr_rat.num) / fr_rat.den;
+  v->framerate = framerate;
+
   // the codec ctx used to be a param on the stream directly, now its a parallel
   // structure we have to derive from a codec ID manually.
   codec_ctx = _codec_context_from_stream(format_ctx->streams[vid_stream_idx]);
@@ -163,13 +169,16 @@ void *fmv_decode_thread(void *data) {
           // frame->data[2] contains V (Cr) plane
 
           int y_sz = frame->linesize[0] * v->h;
-          int cbcr_sz = frame->linesize[1] * v->h;
-          int full_buf_sz = y_sz + (cbcr_sz * 2);
+          int cb_sz = (frame->linesize[1] * v->h) / 2;
+          int cr_sz = (frame->linesize[2] * v->h) / 2;
+          int full_buf_sz = y_sz + cb_sz + cr_sz;
 
           pthread_mutex_lock(&v->mutex);
           YUVFrame *f = (YUVFrame *)w_enqueue_alloc(&v->frame_queue);
           f->buffer = calloc(full_buf_sz, 1);
-          memcpy(f->buffer, frame->data[0], full_buf_sz);
+          memcpy(f->buffer, frame->data[0], y_sz);
+          memcpy(f->buffer + y_sz, frame->data[1], cb_sz);
+          memcpy(f->buffer + y_sz + cb_sz, frame->data[2], cr_sz);
           memcpy(f->strides, frame->linesize, sizeof(int) * 3);
           pthread_mutex_unlock(&v->mutex);
 
@@ -212,7 +221,23 @@ void fmv_stop_video(Video *v) {
   free(v);
 }
 
-void fmv_get_frame_as_yuv_tex(YUVTex *dest, Video *v) {
+void fmv_get_frame_as_yuv_tex(Video *v) {
+  if (v->last_frame_time == 0) {
+    // initializer case.
+    v->last_frame_time = u_time;
+  }
+
+  v->frame_wait_time += u_time - v->last_frame_time;
+  v->last_frame_time = u_time;
+
+  if (v->frame_wait_time > (1 / v->framerate)) {
+    v->frame_wait_time = 0;
+  } else {
+    // implicitly make the caller use the old frames, since they're still stuck
+    // on the Video* structure.
+    return;
+  }
+
   pthread_mutex_lock(&v->mutex);
   if (v->frame_queue.active_elements == 0) {
     pthread_mutex_unlock(&v->mutex);
@@ -222,19 +247,24 @@ void fmv_get_frame_as_yuv_tex(YUVTex *dest, Video *v) {
   YUVFrame *yuv_frame = w_dequeue(&v->frame_queue);
 
   int y_sz = yuv_frame->strides[0] * v->h;
-  int cbcr_sz = yuv_frame->strides[1] * v->h;
-  int full_buf_sz = y_sz + (cbcr_sz * 2);
+  int cb_sz = (yuv_frame->strides[1] * v->h) / 2;
+  int cr_sz = (yuv_frame->strides[2] * v->h) / 2;
+  int full_buf_sz = y_sz + cb_sz + cr_sz;
 
   // once we drop the lock, the frame will almost immediately be overwritten by
   // the other thread. we need to either copy it out of the queue or use it
   // right in the critical section.
-  dest->y_tex = g_load_texture_from_buf(yuv_frame->buffer, v->w, v->h, 1,
-                                        yuv_frame->strides[0]);
-  dest->u_tex = g_load_texture_from_buf(yuv_frame->buffer + y_sz, v->w / 2,
-                                        v->h / 2, 1, yuv_frame->strides[1]);
-  dest->v_tex =
-      g_load_texture_from_buf(yuv_frame->buffer + y_sz + cbcr_sz, v->w / 2,
+  v->tex.y_tex = g_load_texture_from_buf(yuv_frame->buffer, v->w, v->h, 1,
+                                         yuv_frame->strides[0]);
+  v->tex.u_tex = g_load_texture_from_buf(yuv_frame->buffer + y_sz, v->w / 2,
+                                         v->h / 2, 1, yuv_frame->strides[1]);
+  v->tex.v_tex =
+      g_load_texture_from_buf(yuv_frame->buffer + y_sz + cb_sz, v->w / 2,
                               v->h / 2, 1, yuv_frame->strides[2]);
+
+  // then, clean up the frame, since we won't have access to it after the
+  // unlock.
+  free(yuv_frame->buffer);
 
   pthread_mutex_unlock(&v->mutex);
 }

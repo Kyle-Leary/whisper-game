@@ -95,14 +95,19 @@ in vec2 TexCoord;
 // we load one-channel textures as GL_RED for the format, since it mainly deals with RGB.
 void main()
 {
-    float y = texture(y_tex, TexCoord).r;
-    float u = texture(u_tex, TexCoord).r;
-    float v = texture(v_tex, TexCoord).r;
+	vec2 tc = TexCoord;
+	tc.y -= 0.5;
+	tc.y *= -1;
+	tc.y += 0.5;
 
-    // Perform the YUV to RGB conversion
-    float r = y + 1.402 * (v - 0.5);
-    float g = y - 0.344136 * (u - 0.5) - 0.714136 * (v - 0.5);
-    float b = y + 1.772 * (u - 0.5);
+	float y = texture(y_tex, tc).r;
+	float u = texture(u_tex, tc).r;
+	float v = texture(v_tex, tc).r;
 
-    color = vec4(r, g, b, 1.0);
+	// Perform the YUV to RGB conversion
+	float r = y + 1.402 * (v - 0.5);
+	float g = y - 0.344136 * (u - 0.5) - 0.714136 * (v - 0.5);
+	float b = y + 1.772 * (u - 0.5);
+
+	color = vec4(r, g, b, 1.0);
 }

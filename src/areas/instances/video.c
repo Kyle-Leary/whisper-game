@@ -25,12 +25,10 @@ static RenderComp *video_render;
 
 #define GR ((GraphicsRender *)video_render->data.gr)
 
-static YUVTex tex;
-
 static void setup_video_render(GraphicsRender *gr) {
-  g_use_texture(tex.y_tex, 0);
-  g_use_texture(tex.u_tex, 1);
-  g_use_texture(tex.v_tex, 2);
+  g_use_texture(video->tex.y_tex, 0);
+  g_use_texture(video->tex.u_tex, 1);
+  g_use_texture(video->tex.v_tex, 2);
 }
 
 void areas_video() {
@@ -49,10 +47,4 @@ void areas_video() {
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);
 }
 
-void areas_video_update() {
-  if (tex.y_tex != 0) {
-    glDeleteTextures(3, (uint *)&tex);
-  }
-
-  fmv_get_frame_as_yuv_tex(&tex, video);
-}
+void areas_video_update() { fmv_get_frame_as_yuv_tex(video); }
