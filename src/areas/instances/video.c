@@ -3,7 +3,8 @@
 
 #include "audio/audio.h"
 #include "cglm/types.h"
-#include "fmv.h"
+#include "libav/fmv.h"
+#include "libav/videodec.h"
 #include "math/mat.h"
 #include "objects/camera.h"
 #include "os.h"
@@ -37,39 +38,13 @@ static void setup_video_render(GraphicsRender *gr) {
   g_use_texture(cutscene->video->tex.v_tex, 2);
 }
 
-static void empty_fn_cutscene(ALuint buffer) {
-  int cond;
-  while (1) {
-    musleep(10);
-    pthread_mutex_lock(&cutscene->audio->mutex);
-    cond = cutscene->audio->has_started_reading;
-    pthread_mutex_unlock(&cutscene->audio->mutex);
-    if (cond)
-      break;
-  }
-
-  audio_fill_al_buffer(cutscene->audio, buffer);
-}
-
 void areas_video() {
   glm_vec3_zero(camera_focus);
 
   cutscene = new_fmv(VIDEO_PATH("my_friends.mp4"));
   NULL_CHECK(cutscene);
 
-  {
-    Track *t = a_new_stream(empty_fn_cutscene);
-    a_play_track(t);
-  }
-
-  // {
-  //   Track *t = a_new_sine();
-  //   a_play_track(t);
-  // }
-  // {
-  //   Track *t = a_new_square();
-  //   a_play_track(t);
-  // }
+  fmv_play(cutscene);
 
   GraphicsRender *g = gr_prim_upright_plane((vec3){0});
   printf("g: %p, %d\n", g, g->n_idx);
@@ -83,4 +58,4 @@ void areas_video() {
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);
 }
 
-void areas_video_update() { fmv_get_frame_as_yuv_tex(cutscene->video); }
+void areas_video_update() { fmv_update(cutscene); }

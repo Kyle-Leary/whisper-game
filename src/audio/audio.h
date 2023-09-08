@@ -10,8 +10,10 @@
 #include <AL/al.h>
 #include <AL/alc.h>
 
+typedef struct Track Track;
+
 // re-fill this buffer with data generically.
-typedef void (*buffer_empty_fn)(ALuint buffer);
+typedef void (*buffer_empty_fn)(ALuint buffer, Track *t);
 
 #define NUM_AUDIO_BUFFERS 10
 
@@ -24,6 +26,7 @@ typedef struct Track {
 
   // like usual, make this NULL if you're opting out.
   buffer_empty_fn empty_fn;
+  void *data; // arbitrary data pointer for the empty_fn.
 } Track;
 
 #define MAX_TRACKS 6
@@ -44,7 +47,7 @@ void a_play_pcm(const char *filename); // play a wav file by path.
 void a_kill_track(Track *t);
 void a_kill_all();
 
-Track *a_new_stream(buffer_empty_fn empty_fn);
+Track *a_new_stream(buffer_empty_fn empty_fn, void *data);
 Track *a_new_file_track(const char *filename);
 
 Track *a_new_sine();

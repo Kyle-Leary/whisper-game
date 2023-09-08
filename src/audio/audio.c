@@ -57,11 +57,12 @@ static inline void _default_param_setup(Track *t) {
   alSourcef(t->source, AL_GAIN, 0.1F);
 }
 
-Track *a_new_stream(buffer_empty_fn empty_fn) {
+Track *a_new_stream(buffer_empty_fn empty_fn, void *data) {
   Track t;
 
   _default_track_init(&t);
   t.empty_fn = empty_fn;
+  t.data = data;
 
 #ifdef DEBUG
   if (alIsSource(t.source) != AL_TRUE) {
@@ -84,7 +85,7 @@ Track *a_new_stream(buffer_empty_fn empty_fn) {
   // sourcequeuebuffers call.
   if (empty_fn) {
     for (int i = 0; i < NUM_AUDIO_BUFFERS; i++) {
-      empty_fn(t.buffers[i]);
+      empty_fn(t.buffers[i], &t);
     }
   }
 
@@ -96,7 +97,7 @@ Track *a_new_stream(buffer_empty_fn empty_fn) {
   return w_array_insert(&audio_state.tracks, &t);
 }
 
-static void _sine_empty_fn(ALuint buffer) {
+static void _sine_empty_fn(ALuint buffer, Track *t) {
   const float amp = 0.5;
   const int sample_rate = 44100;
   const float frequency = 440.0f; // Frequency in Hz
@@ -114,7 +115,7 @@ static void _sine_empty_fn(ALuint buffer) {
                sample_rate);
 }
 
-static void _square_empty_fn(ALuint buffer) {
+static void _square_empty_fn(ALuint buffer, Track *t) {
   const float amp = 0.5;
   const int sample_rate = 44100;
   const float frequency = 440.0f; // Frequency in Hz
@@ -133,20 +134,14 @@ static void _square_empty_fn(ALuint buffer) {
                sample_rate);
 }
 
-inline Track *a_new_sine() { return a_new_stream(_sine_empty_fn); }
+inline Track *a_new_sine() { return a_new_stream(_sine_empty_fn, NULL); }
 
-inline Track *a_new_square() { return a_new_stream(_square_empty_fn); }
+inline Track *a_new_square() { return a_new_stream(_square_empty_fn, NULL); }
 
 void a_play_pcm(const char *filename) {
-  // don't have alut anymore, need to implement this manually.
-  // Track *t = a_new_file_track(filename);
+  // init the Audio* with libav here.
   //
-  // if (t != NULL) {
-  //   a_play_track(t);
-  // } else {
-  //   fprintf(stderr, "ERROR: Track is NULL, could not play pcm from '%s'.\n",
-  //           filename);
-  // }
+  // audio_fill_al_buffer(cutscene->audio, buffer);
 }
 
 static int x = 0;
@@ -220,7 +215,7 @@ void a_update() {
 
           // now we can write data into queue_buf, put it back in the queue, and
           // we shouldn't have to worry about it anymore.
-          curr->empty_fn(queue_buf);
+          curr->empty_fn(queue_buf, curr);
 
           alSourceQueueBuffers(curr->source, 1, &queue_buf);
           continue;

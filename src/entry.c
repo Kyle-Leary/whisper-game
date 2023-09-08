@@ -8,7 +8,6 @@
 #include "console/commands.h"
 #include "console/console.h"
 #include "event_types.h"
-#include "fmv.h"
 #include "global.h"
 #include "gui/gui.h"
 #include "gui/widgets.h"
@@ -16,6 +15,7 @@
 #include "hud.h"
 #include "immediate.h"
 #include "input/input.h"
+#include "libav/fmv.h"
 #include "main.h"
 #include "meshing/font.h"
 #include "object.h"
@@ -56,8 +56,6 @@ int entry_point(int argc, char **argv) {
   TIME_INIT();
 
   window_init();
-
-  fmv_init();
 
   init_helper_textures();
 
