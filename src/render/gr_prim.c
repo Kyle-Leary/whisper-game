@@ -160,16 +160,18 @@ static unsigned int planeIndices[] = {
     2, 3, 0, // Triangle 2
 };
 
-static unsigned int planeNumVertices = 4; // Number of vertices in the plane
-static unsigned int planeNumIndices = 6;  // Number of indices in the plane
+const static unsigned int planeNumVertices =
+    4; // Number of vertices in the plane
+const static unsigned int planeNumIndices = 6; // Number of indices in the plane
 
 // plane facing up, something that can easily billboard the character and
 // display a sprite, for example.
 GraphicsRender *gr_prim_upright_plane(vec3 position) {
+  printf("num index: %d\n", planeNumIndices);
   GraphicsRender *gr = g_new_render(
       (VertexData *)&(BasicVertexData){RC_BASIC, planeNumVertices,
                                        planePositions, planeNormals, planeUVs},
-      cubeIndices, cubeNumIndices);
+      planeIndices, planeNumIndices);
   glm_translate(gr->model, position); // translates it for the caller.
   gr->shader = get_shader("gouraud");
   return gr;

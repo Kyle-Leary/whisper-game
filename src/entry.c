@@ -52,6 +52,9 @@ int entry_point(int argc, char **argv) {
 
   os_init();
 
+  // expose platform-specific time variables into the entry_point namespace.
+  TIME_INIT();
+
   window_init();
 
   fmv_init();
@@ -59,9 +62,6 @@ int entry_point(int argc, char **argv) {
   init_helper_textures();
 
   hot_reload_init();
-
-  // delta_time is a global defined in global.h
-  clock_t start_time, end_time; // Variables to store the clock cycles
 
   // glm is general purpose math, this isn't gl-specific. everything uses
   // projection matrices!
@@ -110,7 +110,9 @@ int entry_point(int argc, char **argv) {
 
   timescale_init();
 
-  start_time = clock();
+  // delta_time is a global defined in global.h
+  whisper_time_t start_time, end_time;
+  GET_TIME(start_time);
 
   /// limit fps to match the main.h macro defined value.
   // Variables for controlling FPS
@@ -133,11 +135,7 @@ int entry_point(int argc, char **argv) {
 
   // Loop until the user closes the window
   while (!window_should_close()) {
-    clock_t current_time = clock();
-    double currentTime = (double)current_time / CLOCKS_PER_SEC;
-    fps_timer += (currentTime - last_time);
-    last_time = currentTime;
-
+    fps_timer += delta_time;
     if (fps_timer < frame_time) {
       continue;
     }
@@ -204,11 +202,17 @@ int entry_point(int argc, char **argv) {
     i_update(); // clear the temporary input state
 
     // Update start_time for the next iteration
-    clock_t end_time = clock();
-    double delta_time = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
+    GET_TIME(end_time);
+    double delta_time = TIME_DIFF_SECONDS(start_time, end_time);
     start_time = end_time;
   }
 
+  clean_all();
+
+  return 0;
+}
+
+void clean_all() {
   console_clean();
   clean_commands();
   gui_clean();
@@ -231,6 +235,4 @@ int entry_point(int argc, char **argv) {
   hot_reload_clean();
 
   printf("Everything cleaned successfully.\n");
-
-  return 0;
 }

@@ -12,7 +12,7 @@ TARGETS := $(TARGET) $(WINDOWS_TARGET)
 CFLAGS := -DCGLM_ALL_UNALIGNED=1 -DDEBUG=1 -DAREA_HOT_RELOAD=1
 CFLAGS += -Wall -Wno-missing-braces -Wno-unused-variable -rdynamic
 
-LIBS := -lGLEW -lGL -lswscale -lavutil -lavformat -lavcodec -lz -lglfw -lopenal -lalut -lm -lpthread -g
+LIBS := -lGLEW -lGL -lswscale -lavutil -lavformat -lavcodec -lz -lglfw -laltrace_record -lm -lpthread -g
 INCLUDES += -I. -Isrc -Ideps/wjson/api -Ideps -Ideps/stb -Ideps/libwhisper/api
 
 TEST_TARGET := whisper_test
@@ -75,6 +75,7 @@ windows: setup $(WINDOWS_TARGET)
 
 # doing an auto submodule init here was a BAD IDEA. removed it.
 setup: 
+	rm -f *.altrace
 
 $(TARGET): $(REQUIREMENTS) main.o 
 	@echo "Making target $(1)"
@@ -124,6 +125,6 @@ clean:
 
 # always rebuild test.c
 # always rebuild shaders, it's cheap.
-.PHONY: clean testmain.c %.shader.pp all
+.PHONY: clean testmain.c %.shader.pp all al-debug
 .SECONDARY: $(OBJS)
 .PRECIOUS: %.o

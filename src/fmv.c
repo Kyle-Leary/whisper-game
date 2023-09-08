@@ -1,5 +1,6 @@
 #include "fmv.h"
 
+#include "audio/audio.h"
 #include "defines.h"
 #include "global.h"
 #include "helper_math.h"
@@ -8,6 +9,7 @@
 #include "render/texture.h"
 #include "whisper/macros.h"
 #include "whisper/queue.h"
+#include <AL/al.h>
 #include <bits/pthreadtypes.h>
 #include <libavcodec/avcodec.h>
 #include <libavcodec/codec.h>
@@ -126,6 +128,12 @@ void *audio_decode_thread(void *data) {
   double duration_in_seconds = format_ctx->streams[audio_stream_idx]->duration *
                                av_q2d(codec_ctx->time_base);
 
+  a->sample_rate = sample_rate;
+  a->nb_channels = nb_channels;
+  a->bps = bps;
+  a->duration = duration_in_seconds;
+  a->sample_fmt = codec_ctx->sample_fmt;
+
   uint frame_sz = (uint)(bps * nb_channels * sample_rate);
 
   // allocate more than enough space for the audio buffer, a full second of
@@ -149,12 +157,22 @@ void *audio_decode_thread(void *data) {
         av_packet_unref(&packet);
 
         pthread_mutex_lock(&a->mutex);
+        a->has_started_reading = 1;
+
         // assume that it's a one channel interleaved format.
         AudioFrame *audio_frame =
             (AudioFrame *)w_enqueue_alloc(&a->frame_queue);
-        audio_frame->buffer = malloc(frame->nb_samples * bps);
-        audio_frame->buffer_len = frame->nb_samples * bps;
-        memcpy(audio_frame->buffer, frame->data[0], frame->nb_samples * bps);
+        audio_frame->buffer_len = frame->nb_samples * bps * nb_channels;
+        audio_frame->buffer = malloc(audio_frame->buffer_len);
+
+        // put the planar audio channels contiguously into the buffer.
+        int offset = 0;
+        for (int i = 0; i < a->nb_channels; i++) {
+          memcpy(audio_frame->buffer + offset, frame->data[1],
+                 frame->nb_samples * bps);
+          offset += frame->nb_samples * bps;
+        }
+
         pthread_mutex_unlock(&a->mutex);
 
         for (;;) {
@@ -210,6 +228,7 @@ void *video_decode_thread(void *data) {
           int full_buf_sz = y_sz + cb_sz + cr_sz;
 
           pthread_mutex_lock(&v->mutex);
+          v->has_started_reading = 1;
           YUVFrame *f = (YUVFrame *)w_enqueue_alloc(&v->frame_queue);
           f->buffer = calloc(full_buf_sz, 1);
           memcpy(f->buffer, frame->data[0], y_sz);
@@ -300,6 +319,7 @@ FMV *new_fmv(const char *file_path) {
 
   // these should both be able to run in parallel and be used independently.
   Video *v = calloc(1, sizeof(Video));
+  v->has_started_reading = 0;
   v->format_ctx = format_ctx;
   v->video_stream_idx = video_stream_idx;
   v->codec_ctx =
@@ -321,6 +341,7 @@ FMV *new_fmv(const char *file_path) {
   }
 
   Audio *a = calloc(1, sizeof(Audio));
+  a->has_started_reading = 0;
   a->format_ctx = audio_format_ctx;
   a->audio_stream_idx = audio_stream_idx;
   a->codec_ctx =
@@ -348,8 +369,9 @@ void fmv_get_frame_as_yuv_tex(Video *v) {
   v->frame_wait_time += u_time - v->last_frame_time;
   v->last_frame_time = u_time;
 
-  if (v->frame_wait_time > (1 / v->framerate)) {
-    v->frame_wait_time = 0;
+  float frame_time = 1 / v->framerate;
+  if (v->frame_wait_time > frame_time) {
+    v->frame_wait_time -= frame_time;
   } else {
     // implicitly make the caller use the old frames, since they're still stuck
     // on the Video* structure.
@@ -387,7 +409,84 @@ void fmv_get_frame_as_yuv_tex(Video *v) {
   pthread_mutex_unlock(&v->mutex);
 }
 
-void audio_fill_buffer(Audio *a, byte *dest) {}
+void audio_fill_al_buffer(Audio *a, ALuint buffer) {
+  pthread_mutex_lock(&a->mutex);
+
+  int offset = 0;
+  if (a->frame_queue.active_elements > 0) {
+    AudioFrame *frame = w_dequeue(&a->frame_queue);
+
+    byte *final_buffer = frame->buffer;
+    int final_buffer_sz = frame->buffer_len;
+
+    ALenum al_fmt;
+    switch (a->sample_fmt) {
+    case AV_SAMPLE_FMT_U8: {
+      al_fmt = (a->nb_channels == 1) ? AL_FORMAT_MONO8 : AL_FORMAT_STEREO8;
+    } break;
+
+    case AV_SAMPLE_FMT_S16: {
+      al_fmt = (a->nb_channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+    } break;
+
+    case AV_SAMPLE_FMT_FLTP: {
+      al_fmt = (a->nb_channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+
+      // Number of float samples per channel
+      int num_samples_per_channel =
+          frame->buffer_len / (sizeof(float) * a->nb_channels);
+
+      final_buffer_sz =
+          num_samples_per_channel * sizeof(int16_t) * a->nb_channels;
+
+      // Allocate a buffer for the 16-bit PCM data
+      int16_t *pcm_buffer = malloc(final_buffer_sz);
+
+      // Temporary pointer for readability
+      float *fltp_buffer = (float *)frame->buffer;
+
+      // Convert each channel from float to PCM and interleave
+      for (int sample = 0; sample < num_samples_per_channel; ++sample) {
+        for (int channel = 0; channel < a->nb_channels; ++channel) {
+          float sample_value =
+              fltp_buffer[num_samples_per_channel * channel + sample];
+          int16_t to_copy = sample_value * 32767;
+          pcm_buffer[sample * a->nb_channels + channel] = to_copy;
+        }
+      }
+
+      final_buffer = (byte *)pcm_buffer;
+    } break;
+
+    default: {
+      al_fmt = (a->nb_channels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+    } break;
+    }
+
+    alBufferData(buffer, al_fmt, final_buffer, final_buffer_sz, a->sample_rate);
+
+    if (final_buffer != frame->buffer) {
+      free(final_buffer);
+    }
+    free(frame->buffer);
+
+    AL_ERR();
+  }
+
+  pthread_mutex_unlock(&a->mutex);
+}
+
+void audio_fill_buffer(Audio *a, byte *dest) {
+  pthread_mutex_lock(&a->mutex);
+  if (a->frame_queue.active_elements == 0) {
+    pthread_mutex_unlock(&a->mutex);
+    return;
+  }
+
+  AudioFrame *frame = w_dequeue(&a->frame_queue);
+  memcpy(dest, frame->buffer, frame->buffer_len);
+  pthread_mutex_unlock(&a->mutex);
+}
 
 void fmv_init() {}
 

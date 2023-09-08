@@ -2,6 +2,7 @@
 
 #include "defines.h"
 #include "whisper/queue.h"
+#include <AL/al.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <pthread.h>
@@ -25,7 +26,14 @@ typedef struct Audio {
 
   AVCodecContext *codec_ctx;
   AVFormatContext *format_ctx;
+  enum AVSampleFormat sample_fmt;
   int audio_stream_idx;
+  int nb_channels;
+  int sample_rate;
+  int bps;
+  double duration;
+
+  int has_started_reading;
 } Audio;
 
 typedef struct Video {
@@ -45,6 +53,8 @@ typedef struct Video {
   AVCodecContext *codec_ctx;
   AVFormatContext *format_ctx;
   int video_stream_idx;
+
+  int has_started_reading;
 } Video;
 
 typedef struct FMV {
@@ -61,3 +71,4 @@ void audio_fill_buffer(Audio *a, byte *dest);
 FMV *new_fmv(const char *file_path);
 void fmv_stop_video(Video *v);
 void fmv_get_frame_as_yuv_tex(Video *v);
+void audio_fill_al_buffer(Audio *a, ALuint buffer);
