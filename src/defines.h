@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define FILE_PATH_BUF_SZ 256
+
 typedef uint8_t byte;
 
 // stdint typenames suck

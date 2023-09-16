@@ -39,7 +39,7 @@ static Input glfw_map_into_input(int key, GLFWInputType type) {
     return key + MOUSE_LEFT; // map at an offset.
   } break;
   default: {
-    ERROR_NO_ARGS("passed invalid GLFWInputType.");
+    ERROR("passed invalid GLFWInputType '%d'.", type);
   } break;
   }
 }

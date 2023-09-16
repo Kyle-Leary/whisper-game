@@ -22,7 +22,7 @@
 
 #define CAST Floor *floor = (Floor *)p
 
-Floor *floor_build(vec3 position, float strength) {
+Floor *floor_build(vec3 position) {
   Floor *p = (Floor *)calloc(sizeof(Floor), 1);
   p->type = OBJ_FLOOR;
 

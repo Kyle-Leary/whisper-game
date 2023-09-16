@@ -7,6 +7,8 @@
 #include "whisper/array.h"
 #include "whisper/hashmap.h"
 
+#include "macros.h"
+
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -84,7 +86,7 @@ static uint32_t murmur_hash3_32(const void *key, int len) {
 static void tick_channel(Channel *c, Node *nodes, float a, float b) {
   Node *target_ref = &(nodes[c->target.node_index]);
 
-  switch (c->sampler->interp) {
+  switch (IP_STEP) {
   case IP_STEP: {
     // implement generic STEP interpolation as a testing ground.
     int step_index = -1;
@@ -105,13 +107,15 @@ static void tick_channel(Channel *c, Node *nodes, float a, float b) {
     void *target_value_ptr = return_prop_base_ptr(
         nodes, &c->target, &target_value_type_sz, &target_value_num_elms);
     void *keyframe_value =
-        &(c->sampler->output[(step_index * (target_value_num_elms))]);
+        c->sampler->output +
+        (target_value_type_sz * (step_index * (target_value_num_elms)));
 
     // right now, we're copying the data into the pointer each frame, even in a
     // STEP.
     memcpy(target_value_ptr, keyframe_value,
            target_value_type_sz * target_value_num_elms);
   } break;
+
   case IP_LINEAR: {
     int lower_index = -1;
     int upper_index = -1;
@@ -175,7 +179,9 @@ static void animation_update(Animator *animator, AnimEntry *entry) {
         // then this is fine, and we can just keep looping forever.
       } else {
         // remove self from the animation pool.
-        // TODO
+        entry->name_hash = 0;
+        return; // if we're done with one channel, we're done with the whole
+                // thing? maybe wait for the last channel to finish?
       }
     }
 
@@ -183,12 +189,14 @@ static void animation_update(Animator *animator, AnimEntry *entry) {
   }
 }
 
+// only update the animentries on the animator that are set to play.
 static void animator_update(Animator *animator) {
   for (int i = 0; i < MAX_ANIMATIONS; i++) {
     AnimEntry *entry = &(animator->anims[i]);
     // if it's a valid hash, then update the animation.
-    if (entry->name_hash != 0)
+    if (entry->name_hash != 0 && entry->is_playing) {
       animation_update(animator, entry);
+    }
   }
 }
 
@@ -205,7 +213,17 @@ void anim_update() {
 
 void anim_clean() {}
 
-void anim_play(Animator *animator, const char *anim_name, bool should_loop) {
+void anim_force_tick(Animator *animator, int anim_entry_index) {
+  if (anim_entry_index < 0 || anim_entry_index >= MAX_ANIMATIONS) {
+    ERROR("Invalid animation entry index: '%d'\n", anim_entry_index);
+    return;
+  }
+
+  AnimEntry *entry = &(animator->anims[anim_entry_index]);
+  animation_update(animator, entry);
+}
+
+int anim_load(Animator *animator, const char *anim_name, bool should_loop) {
   AnimEntry ae;
   ae.model_anim_index = -1;
   // this isn't too bad. this data structure is optimized for access in the
@@ -219,8 +237,8 @@ void anim_play(Animator *animator, const char *anim_name, bool should_loop) {
     }
   }
   if (ae.model_anim_index == -1) {
-    fprintf(stderr, "ERROR: animation name \"%s\" not found.\n", anim_name);
-    return;
+    WARNING("Animation name \"%s\" not found.\n", anim_name);
+    return -1;
   }
 
   Animation target_anim = animator->target->animations[ae.model_anim_index];
@@ -234,17 +252,76 @@ void anim_play(Animator *animator, const char *anim_name, bool should_loop) {
     if (!curr_ae->name_hash) { // if the name hash is zero, then it's invalid.
       // copy in the stack copy we've been working on throughout this function.
       memcpy(curr_ae, &ae, sizeof(AnimEntry));
-      return;
+      return i;
     }
   }
 
-  fprintf(stderr,
-          "ERROR: too many animations on the Animator* %p. Exiting...\n",
-          animator);
-  exit(1);
+  ERROR("Too many animations on the Animator* %p. Exiting...\n", animator);
+}
+
+inline static void _animentry_set_playing(AnimEntry *ae) {
+  ae->curr_time = 0;
+  ae->is_playing = true;
+}
+
+void anim_play(Animator *animator, const char *anim_name, bool should_loop) {
+  int i = anim_load(animator, anim_name, should_loop);
+  if (i == -1) {
+    ERROR("Failed to load animation '%s', could not play.", anim_name);
+    return;
+  }
+
+  AnimEntry *ae = &(animator->anims[i]);
+  _animentry_set_playing(ae);
+}
+
+static AnimEntry *_find_animentry(Animator *animator, const char *anim_name) {
+  int hash = murmur_hash3_32(anim_name, strlen(anim_name));
+
+  for (int i = 0; i < MAX_ANIMATIONS; i++) {
+    AnimEntry *curr_ae = &(animator->anims[i]);
+    if (curr_ae->name_hash == hash) {
+      return curr_ae;
+    }
+  }
+
+  return NULL;
+}
+
+void anim_start(Animator *animator, const char *anim_name, bool should_loop) {
+  AnimEntry *ae = _find_animentry(animator, anim_name);
+  if (!ae) {
+    // try to load the animation if it's not already found on the animator.
+    INFO("anim_start: could not find anim '%s', loading it now.\n", anim_name);
+    int i = anim_load(animator, anim_name, should_loop);
+    if (i == -1) {
+      // if we still can't find it, then we're done here.
+      ERROR("Failed to load animation '%s', could not play.", anim_name);
+      return;
+    }
+    ae = &(animator->anims[i]);
+  }
+
+  // we've found the animentry, start playing it.
+  _animentry_set_playing(ae);
 }
 
 void anim_stop(Animator *animator, const char *anim_name) {
+  uint32_t name_hash = murmur_hash3_32(anim_name, strlen(anim_name));
+
+  AnimEntry *curr_ae = _find_animentry(animator, anim_name);
+  if (!curr_ae) {
+    WARNING("Could not find anim '%s', not stopping.\n", anim_name);
+    return;
+  }
+
+  if (curr_ae->name_hash == name_hash) {
+    curr_ae->is_playing = false;
+    return;
+  }
+}
+
+void anim_unload(Animator *animator, const char *anim_name) {
   uint32_t name_hash = murmur_hash3_32(anim_name, strlen(anim_name));
 
   for (int i = 0; i < MAX_ANIMATIONS; i++) {

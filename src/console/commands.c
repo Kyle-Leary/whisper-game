@@ -4,6 +4,9 @@
 #include "console/console.h"
 #include "gui/gui.h"
 #include "helper_math.h"
+#include "object.h"
+#include "objects/sphere.h"
+#include "physics/physics.h"
 #include "util.h"
 #include <stdio.h>
 #include <string.h>
@@ -105,6 +108,18 @@ void command_run(CommandResponse *response, char *command, int len) {
   }
 }
 
+void reload(CommandInput *cmd) { area_reload_curr(); }
+
+void sphere(CommandInput *cmd) {
+  // add it directly into the current area's object scope.
+  object_add((Object *)sphere_build((vec3){0, 9, 0}, 1.0f, 7), OT_AREA);
+}
+
+void ptimestep(CommandInput *cmd) {
+  float timestep = atof(cmd->argv[1]);
+  physics_state.accumulator_trigger = timestep;
+  console_printf("physics timestep set to %f\n", timestep);
+}
 void print(CommandInput *cmd) { console_printf("%s", cmd->joined_argv); }
 void area(CommandInput *cmd) {
   console_printf("trying to load area: %s...\n", cmd->joined_argv);
@@ -148,6 +163,9 @@ void audio(CommandInput *cmd) {
 void init_commands() {
   w_create_cm(&command_map, sizeof(Command), 509);
 
+  INSERT("reload", reload);
+  INSERT("sphere", sphere);
+  INSERT("ptimestep", ptimestep);
   INSERT("print", print);
   INSERT("clear", clear);
   INSERT("area", area);

@@ -85,6 +85,11 @@ void handle_sphere_floor() {
     glm_vec3_copy((vec3){0, -1, 0}, e_into_target.direction);
     glm_vec3_copy((vec3){0, 1, 0}, e_into_base.direction);
 
+    vec3 contact_pt;
+    glm_vec3_add(base->body->position, (vec3){0, -base->radius, 0}, contact_pt);
+    glm_vec3_copy(contact_pt, e_into_target.contact_pt);
+    glm_vec3_copy(contact_pt, e_into_base.contact_pt);
+
     DETECTION_PUSH
   }
 

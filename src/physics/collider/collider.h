@@ -42,3 +42,5 @@ typedef struct FloorCollider {
 SphereCollider *make_sphere_collider(float radius);
 FloorCollider *make_floor_collider();
 RectCollider *make_rect_collider(vec3 extents);
+
+void free_collider(Collider *c);

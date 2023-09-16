@@ -32,3 +32,4 @@ typedef struct Material {
 
 // enable the texture in the pipeline for the preceding draw call.
 void g_use_material(Material *mat);
+void free_material(Material *mat);

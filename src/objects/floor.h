@@ -17,7 +17,7 @@ typedef struct Floor {
   float speed;
 } Floor;
 
-Floor *floor_build(vec3 position, float strength);
+Floor *floor_build(vec3 position);
 void floor_destroy(Floor *f);
 
 void floor_init(void *f);

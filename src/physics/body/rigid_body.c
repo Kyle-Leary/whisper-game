@@ -145,10 +145,9 @@ static void rotation_tick(RigidBody *rb) {
   rb->ang_velocity[1] += rb->ang_acceleration[1] * delta_time;
   rb->ang_velocity[2] += rb->ang_acceleration[2] * delta_time;
 
-  // Apply angular damping
-  rb->ang_velocity[0] *= (1 - rb->angular_damping * delta_time);
-  rb->ang_velocity[1] *= (1 - rb->angular_damping * delta_time);
-  rb->ang_velocity[2] *= (1 - rb->angular_damping * delta_time);
+  // dampen velocity, not accel.
+  glm_vec3_scale(rb->ang_velocity, (1 - rb->angular_damping) * DT * 10,
+                 rb->ang_velocity);
 
   // Compute the quaternion representing the change in rotation
   float angle = sqrt(rb->ang_velocity[0] * rb->ang_velocity[0] +
@@ -164,10 +163,10 @@ static void rotation_tick(RigidBody *rb) {
                rb->ang_velocity[2] / angle};
 
   versor delta_rotation;
-  delta_rotation[3] = cos(angle * delta_time / 2);
-  delta_rotation[0] = axis[0] * sin(angle * delta_time / 2);
-  delta_rotation[1] = axis[1] * sin(angle * delta_time / 2);
-  delta_rotation[2] = axis[2] * sin(angle * delta_time / 2);
+  delta_rotation[3] = cos(angle * DT / 2);
+  delta_rotation[0] = axis[0] * sin(angle * DT / 2);
+  delta_rotation[1] = axis[1] * sin(angle * DT / 2);
+  delta_rotation[2] = axis[2] * sin(angle * DT / 2);
 
   glm_quat_mul(rb->rotation, delta_rotation, rb->rotation);
 }

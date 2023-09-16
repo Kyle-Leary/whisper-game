@@ -10,9 +10,11 @@
 #include "im_prims.h"
 #include "input_help.h"
 #include "mathdef.h"
+#include "physics/component.h"
 #include "physics/detection.h"
 #include "printers.h"
 #include "render/gr_prim.h"
+#include "render/render.h"
 #include "transform.h"
 #include "util.h"
 
@@ -30,7 +32,7 @@ Sphere *sphere_build(vec3 position, float radius, unsigned int segments) {
   p->type = OBJ_SPHERE;
 
   {
-    p->phys = make_physcomp((Body *)make_rigid_body(0.1, 0.7, 5.0, 0.5, 0.5,
+    p->phys = make_physcomp((Body *)make_rigid_body(0.3, 0.7, 5.0, 0.5, 0.1,
                                                     0.5, 0.3, true, position,
                                                     5.0, IDENTITY_VERSOR),
                             (Collider *)make_sphere_collider(radius));
@@ -54,6 +56,7 @@ void sphere_update(void *p) {
     WQueue mailbox = sphere->phys->collider->phys_events;
     while (mailbox.active_elements > 0) {
       CollisionEvent *e = w_dequeue(&mailbox);
+      im_point(e->contact_pt);
     }
   }
 
@@ -68,5 +71,7 @@ void sphere_update(void *p) {
 
 void sphere_clean(void *p) {
   Sphere *sphere = (Sphere *)p;
+  free_rendercomp(sphere->render);
+  free_physcomp(sphere->phys);
   free(sphere);
 }

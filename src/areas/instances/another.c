@@ -17,5 +17,5 @@ void areas_another() {
           (vec3){0}, &(((RigidBody *)player->phys->body)->lerp_position)),
       OT_AREA);
 
-  object_add((Object *)floor_build((vec3){0, -1, 0}, 50), OT_AREA);
+  object_add((Object *)floor_build((vec3){0, -1, 0}), OT_AREA);
 }

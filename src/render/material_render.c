@@ -14,3 +14,5 @@ void g_draw_mat_render(MaterialRender *mr) {
   g_use_material(&mr->mat);
   g_draw_render(mr->gr);
 }
+
+void free_mat_render(MaterialRender *mr) { free_graphics_render(mr->gr); }

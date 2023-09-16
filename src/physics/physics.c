@@ -15,6 +15,7 @@
 #include "physics/detection.h"
 #include "physics/dynamics.h"
 #include "physics/response.h"
+#include "util.h"
 #include "whisper/array.h"
 #include "whisper/queue.h"
 
@@ -29,6 +30,10 @@ PhysicsState physics_state = {0};
 
 // don't make sub-inits, that's just annoying to run around and try to read.
 void physics_init() {
+  physics_state.accumulator_clamp_max = 1;
+  physics_state.accumulator = 0;
+  physics_state.accumulator_trigger = 0.01;
+
 #define CALC_START_END(array)                                                  \
   {                                                                            \
     physics_state.array##_start = physics_state.array.buffer;                  \
@@ -76,22 +81,34 @@ void physics_init() {
 }
 
 void physics_update() {
-  debug_shape_maintenance_pass();
+  physics_state.accumulator += delta_time;
+  // avoid falling behind by clamping the acc.
+  physics_state.accumulator =
+      CLAMP(physics_state.accumulator, 0, physics_state.accumulator_clamp_max);
 
-  // generate all the collision point structures that we'll use to respond to
-  // collisions. this should be primarily focused on the shapes at play, not the
-  // bodies and response parameters.
-  detection_pass();
+  while (physics_state.accumulator >
+         physics_state
+             .accumulator_trigger) { // accumulate and subtract away fixed
+                                     // timesteps until there's nothing left.
+    physics_state.accumulator -= physics_state.accumulator_trigger;
 
-  // make all the changes to the internal variables of the bodies. this should
-  // use the collisionevents and the body parameters, and be mostly
-  // shape-ambivalent.
-  response_pass();
+    debug_shape_maintenance_pass();
 
-  // then, process all those changes internally to move the body. this should
-  // only ever need to use the shape, dynamics is the simplest (data-wise) of
-  // all three passes.
-  dynamics_pass();
+    // generate all the collision point structures that we'll use to respond to
+    // collisions. this should be primarily focused on the shapes at play, not
+    // the bodies and response parameters.
+    detection_pass();
+
+    // make all the changes to the internal variables of the bodies. this should
+    // use the collisionevents and the body parameters, and be mostly
+    // shape-ambivalent.
+    response_pass();
+
+    // then, process all those changes internally to move the body. this should
+    // only ever need to use the shape, dynamics is the simplest (data-wise) of
+    // all three passes.
+    dynamics_pass();
+  } // then, move on once we're done.
 }
 
 void physics_debug_draw() { debug_shape_draw(); }

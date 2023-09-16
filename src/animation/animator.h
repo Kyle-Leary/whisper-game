@@ -23,6 +23,8 @@ typedef struct AnimEntry {
   // us that the AnimEntry is invalid. if this is zero, it won't be run through
   // in the update at all.
   uint32_t name_hash; // only store the hash of a name, it's all we need.
+
+  bool is_playing;
 } AnimEntry;
 
 // animator structure targeting a single model. each movable model has an
@@ -45,5 +47,17 @@ void anim_clean();
 void anim_insert(Animator *animator);
 // void anim_remove(Animator *animator);
 
+// use the return value from anim_load to forcefully/programatically move one
+// frame through the animation.
+void anim_force_tick(Animator *animator, int anim_entry_index);
+
+int anim_load(Animator *animator, const char *anim_name, bool should_loop);
+
+// load then play. slightly more expensive than anim_start.
 void anim_play(Animator *animator, const char *anim_name, bool should_loop);
+// try to play, but don't load if it's not already loaded.
+void anim_start(Animator *animator, const char *anim_name, bool should_loop);
+
 void anim_stop(Animator *animator, const char *anim_name);
+
+void anim_unload(Animator *animator, const char *anim_name);

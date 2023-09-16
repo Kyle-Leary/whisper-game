@@ -102,3 +102,5 @@ typedef struct Model {
 } Model;
 
 void g_draw_model(Model *m);
+void free_node(Node *nodes_list, Node *node);
+void free_model(Model *m);

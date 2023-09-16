@@ -1,9 +1,12 @@
 #include "videodec.h"
 #include "defines.h"
 #include "global.h"
+#include "libav/libavhelper.h"
 #include "os.h"
 #include "render/texture.h"
+#include <libavutil/avutil.h>
 #include <pthread.h>
+#include <stdint.h>
 
 typedef struct YUVFrame {
   int strides[3]; // y, u, v strides.
@@ -26,6 +29,8 @@ void _save_as_ppm(AVCodecContext *codec_ctx, AVFrame *frame, int frame_num) {
 }
 
 void *video_decode_thread(void *data) {
+  os_thread_init();
+
   Video *v = (Video *)data;
   AVCodecContext *codec_ctx = v->codec_ctx;
   AVFormatContext *format_ctx = v->format_ctx;
@@ -45,9 +50,18 @@ void *video_decode_thread(void *data) {
 
   w_make_queue(&v->frame_queue, sizeof(YUVFrame), MAX_VIDEO_BUFFER_FRAMES);
 
+  double pts = 0;
+
   while (av_read_frame(format_ctx, &packet) >= 0) {
     if (packet.stream_index == video_stream_idx) {
       if (avcodec_send_packet(codec_ctx, &packet) >= 0) {
+        if (packet.dts != AV_NOPTS_VALUE) {
+          pts = packet.dts;
+          pts *= av_q2d(format_ctx->streams[video_stream_idx]->time_base);
+        } else {
+          pts = 0;
+        }
+
         while (avcodec_receive_frame(codec_ctx, frame) >= 0) {
           // Now, frame->data contains the YUV data.
 
@@ -79,7 +93,6 @@ void *video_decode_thread(void *data) {
           }
         }
       }
-      av_packet_unref(&packet);
     } else {
       av_packet_unref(&packet);
     }
@@ -140,4 +153,46 @@ void video_poll_frame(Video *v) {
   free(yuv_frame->buffer);
 
   pthread_mutex_unlock(&v->mutex);
+}
+
+Video *new_video_from_format_and_idx(AVFormatContext *format_ctx, int idx) {
+  for (int i = 0; i < format_ctx->nb_streams; ++i) {
+    if (i != idx) {
+      format_ctx->streams[i]->discard = AVDISCARD_ALL;
+    }
+  }
+
+  Video *v = calloc(1, sizeof(Video));
+  v->has_started_reading = 0;
+  v->format_ctx = format_ctx;
+  v->video_stream_idx = idx;
+  v->codec_ctx = av_codec_context_from_stream(format_ctx->streams[idx]);
+  pthread_mutex_init(&v->mutex, NULL);
+  pthread_create(&v->thread, NULL, video_decode_thread, (void *)v);
+  return v;
+}
+
+Video *new_video_from_format(AVFormatContext *format_ctx) {
+  int video_stream_idx = -1;
+
+  for (int i = 0; i < format_ctx->nb_streams; i++) {
+    if (format_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+      video_stream_idx = i;
+      break;
+    }
+  }
+
+  if (video_stream_idx == -1) {
+    fprintf(stderr, "No video stream found.\n");
+    return NULL;
+  }
+
+  return new_video_from_format_and_idx(format_ctx, video_stream_idx);
+}
+
+Video *new_video(const char *file_path) {
+  // a container of stream data of several different formats and types,
+  // potentially both video and video.
+  AVFormatContext *format_ctx = av_format_context_from_file(file_path);
+  return new_video_from_format(format_ctx);
 }

@@ -12,21 +12,25 @@
     }                                                                          \
   }
 
-#define INTERNAL_ERROR_MSG(msg, ...)                                           \
+#define LOG(stream, color, severity_literal, msg, ...)                         \
   {                                                                            \
-    fprintf(stderr,                                                            \
-            ANSI_RED "ERROR: " msg                                             \
-                     "\n\t[at file: (%s, %d); in: %s]" ANSI_RESET "\n",        \
+    fprintf(stream,                                                            \
+            color severity_literal msg                                         \
+            "\n\t[at file: (%s, %d); in: %s]" ANSI_RESET "\n",                 \
             ##__VA_ARGS__, __FILE__, __LINE__, __PRETTY_FUNCTION__);           \
   }
 
-#define INTERNAL_ERROR_MSG_NO_ARGS(msg)                                        \
-  {                                                                            \
-    fprintf(stderr,                                                            \
-            ANSI_RED "ERROR: " msg                                             \
-                     "\n\t[at file: (%s, %d); in: %s]" ANSI_RESET "\n",        \
-            __FILE__, __LINE__, __PRETTY_FUNCTION__);                          \
-  }
+#define INTERNAL_ERROR_MSG(msg, ...)                                           \
+  LOG(stderr, ANSI_RED, "ERROR: ", msg, ##__VA_ARGS__)
+
+#define INTERNAL_ERROR_MSG_NO_ARGS(msg) LOG(stderr, ANSI_RED, "ERROR: ", msg)
+
+#define INFO(msg, ...)                                                         \
+  { LOG(stdout, ANSI_BLUE, "INFO: ", msg, ##__VA_ARGS__); }
+
+// the same thing as ERROR, just don't crash in debug.
+#define WARNING(msg, ...)                                                      \
+  { LOG(stderr, ANSI_YELLOW, "WARNING: ", msg, ##__VA_ARGS__); }
 
 #ifdef DEBUG
 #define ERROR(msg, ...)                                                        \

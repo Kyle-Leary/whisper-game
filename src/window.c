@@ -26,43 +26,14 @@ static void framebuffer_size_callback(GLFWwindow *window, int width,
   win_h = height;
 }
 
-// dumb
-static void save_screenshot(GLFWwindow *window, const char *filename) {
+int window_get_frame_buffer_size() { return win_w * win_h * 4; }
+
+void window_get_frame_buffer(byte *buf) {
   int width, height;
   glfwGetFramebufferSize(window, &width, &height);
 
-  // Allocate space for the pixels
-  GLubyte *pixels = (GLubyte *)malloc(width * height * 4 * sizeof(GLubyte));
-  if (!pixels) {
-    fprintf(stderr, "Failed to allocate memory for screenshot\n");
-    return;
-  }
-
   // Read the pixels from the current frame buffer
-  glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-  // Flip the image vertically, as OpenGL's origin is in the lower-left
-  int channels = 4; // RGBA
-  GLubyte *flipped_pixels = (GLubyte *)malloc(width * height * channels);
-  if (!flipped_pixels) {
-    fprintf(stderr, "Failed to allocate memory for flipped image\n");
-    free(pixels);
-    return;
-  }
-
-  for (int y = 0; y < height; y++) {
-    memcpy(&flipped_pixels[y * width * channels],
-           &pixels[(height - y - 1) * width * channels], width * channels);
-  }
-
-  // Save the pixel data to a PNG file
-  if (!stbi_write_png(filename, width, height, channels, flipped_pixels,
-                      width * channels)) {
-    fprintf(stderr, "Failed to save screenshot to %s\n", filename);
-  }
-
-  free(pixels);
-  free(flipped_pixels);
+  glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buf);
 }
 
 // Function to handle GLFW errors
@@ -74,6 +45,10 @@ static void error_callback(int error, const char *description) {
 void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
                                 GLenum severity, GLsizei length,
                                 const GLchar *message, const void *userParam) {
+  // don't clog up stderr with the "memory mapping busy, stalled..." message.
+  if (type == 0x8250)
+    return;
+
   fprintf(stderr,
           "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
           (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity,
@@ -162,9 +137,6 @@ void window_begin_draw() {
 void window_update() {
   glfwPollEvents(); // call this before the input update, this signals the
                     // callbacks.
-  if (i_state.act_just_pressed[ACT_SCREENSHOT]) {
-    save_screenshot(window, "screen.png");
-  }
 }
 
 void window_end_draw() { glfwSwapBuffers(window); }

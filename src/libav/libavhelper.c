@@ -61,3 +61,19 @@ void av_print_codec_ctx(AVCodecContext *codec_ctx) {
     printf("Unknown Pixel Format\n");
   }
 }
+
+AVFormatContext *av_format_context_from_file(const char *file_path) {
+  AVFormatContext *format_ctx = NULL;
+  // get info about the file format, fill the format context.
+  if (avformat_open_input(&format_ctx, file_path, NULL, NULL) < 0) {
+    return NULL;
+  }
+
+  if (avformat_find_stream_info(format_ctx, NULL) < 0) {
+    return NULL;
+  }
+
+  av_dump_format(format_ctx, 0, file_path, 0);
+
+  return format_ctx;
+}

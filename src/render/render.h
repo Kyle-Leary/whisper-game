@@ -39,6 +39,8 @@ RenderComp *make_rendercomp_from_glb(const char *path);
 RenderComp *make_rendercomp_from_graphicsrender(GraphicsRender *gr);
 RenderComp *make_rendercomp_from_matrender(MaterialRender *mr);
 
+void free_rendercomp(RenderComp *rc);
+
 void render_init();
 void render_update();
 void render_draw();

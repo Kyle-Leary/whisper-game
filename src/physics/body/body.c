@@ -63,3 +63,15 @@ AreaBody *make_area_body(vec3 init_pos, float init_scale,
   SETUP_TF(ab)
   INDEX_AND_RETURN(ab, area_bodies)
 }
+
+// we can resolve which types each body is generically here, and handle it all
+// in one function.
+void free_body(Body *b) {
+  if (IS_RB(b)) {
+    w_array_delete_ptr(&physics_state.rigid_bodies, b);
+  } else if (IS_SB(b)) {
+    w_array_delete_ptr(&physics_state.static_bodies, b);
+  } else if (IS_AB(b)) {
+    w_array_delete_ptr(&physics_state.area_bodies, b);
+  }
+}

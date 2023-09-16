@@ -2,9 +2,12 @@
 #include "audio/audio.h"
 #include "defines.h"
 
+#include "libav/libavhelper.h"
 #include "os.h"
 
 #include <AL/al.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
 #include <pthread.h>
 
 typedef struct AudioFrame {
@@ -109,6 +112,8 @@ void audio_fill_buffer(Audio *a, byte *dest) {
 }
 
 void *audio_decode_thread(void *data) {
+  os_thread_init();
+
   Audio *a = (Audio *)data;
   AVCodecContext *codec_ctx = a->codec_ctx;
   AVFormatContext *format_ctx = a->format_ctx;
@@ -191,4 +196,49 @@ void *audio_decode_thread(void *data) {
   }
 
   return NULL;
+}
+
+Audio *new_audio_from_format_and_idx(AVFormatContext *format_ctx, int idx) {
+  for (int i = 0; i < format_ctx->nb_streams; ++i) {
+    if (i != idx) {
+      format_ctx->streams[i]->discard = AVDISCARD_ALL;
+    }
+  }
+
+  Audio *a = calloc(1, sizeof(Audio));
+  a->has_started_reading = 0;
+  a->format_ctx = format_ctx;
+  a->audio_stream_idx = idx;
+  a->codec_ctx = av_codec_context_from_stream(format_ctx->streams[idx]);
+  pthread_mutex_init(&a->mutex, NULL);
+  pthread_create(&a->thread, NULL, audio_decode_thread, (void *)a);
+  musleep(5); // very very ugly hack, we need to make sure that the audio thread
+              // has some audio before we try to convert it into openal buffers,
+              // so just wait.
+  return a;
+}
+
+Audio *new_audio_from_format(AVFormatContext *format_ctx) {
+  int audio_stream_idx = -1;
+
+  for (int i = 0; i < format_ctx->nb_streams; i++) {
+    if (format_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+      audio_stream_idx = i;
+      break;
+    }
+  }
+
+  if (audio_stream_idx == -1) {
+    fprintf(stderr, "No audio stream found.\n");
+    return NULL;
+  }
+
+  return new_audio_from_format_and_idx(format_ctx, audio_stream_idx);
+}
+
+Audio *new_audio(const char *file_path) {
+  // a container of stream data of several different formats and types,
+  // potentially both audio and video.
+  AVFormatContext *format_ctx = av_format_context_from_file(file_path);
+  return new_audio_from_format(format_ctx);
 }

@@ -18,4 +18,5 @@ typedef struct AreaEntry {
 void area_init();
 void area_clean();
 void area_switch(const char *path);
+void area_reload_curr();
 void area_update();

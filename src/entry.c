@@ -102,7 +102,7 @@ int entry_point(int argc, char **argv) {
   im_init();
 
   area_init();
-  area_switch("video.c");
+  area_switch("simple_physics.c");
 
   hud_init();
 
@@ -133,12 +133,12 @@ int entry_point(int argc, char **argv) {
 
   // Loop until the user closes the window
   while (!window_should_close()) {
-    fps_timer += delta_time;
+    fps_timer += delta_time; // chomp through time at the specified framerate.
     if (fps_timer < frame_time) {
       continue;
     }
 
-    fps_timer = 0;
+    fps_timer -= frame_time;
 
     u_time += delta_time;
 
@@ -146,11 +146,6 @@ int entry_point(int argc, char **argv) {
 
     console_update();
     gui_update();
-
-    area_update();
-
-    window_update(); // potentially poll for events?
-    a_update();
 
     {
       if (i_state.act_just_pressed[ACT_TOGGLE_DEBUG_DRAW]) {
@@ -160,6 +155,10 @@ int entry_point(int argc, char **argv) {
       }
     }
 
+    area_update();
+
+    a_update();
+
     // tick
     physics_update();
     object_update();
@@ -168,6 +167,10 @@ int entry_point(int argc, char **argv) {
     timescale_update();
 
     hud_update();
+
+    i_update(); // clear the temporary input state last, so that all functions
+                // get a chance to use it. using the input state after this
+                // point in the loop is generally unstable.
 
     // clear the window, anything drawn in an update() function before this will
     // not show.
@@ -197,7 +200,7 @@ int entry_point(int argc, char **argv) {
 
     window_end_draw();
 
-    i_update(); // clear the temporary input state
+    window_update(); // potentially poll for events?
 
     // Update start_time for the next iteration
     GET_TIME(end_time);

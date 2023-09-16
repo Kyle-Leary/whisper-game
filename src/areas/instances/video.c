@@ -3,8 +3,12 @@
 
 #include "audio/audio.h"
 #include "cglm/types.h"
+#include "global.h"
+#include "gui/gui.h"
+#include "gui/widgets.h"
 #include "libav/fmv.h"
 #include "libav/videodec.h"
+#include "libav/videorecord.h"
 #include "math/mat.h"
 #include "objects/camera.h"
 #include "os.h"
@@ -38,12 +42,13 @@ static void setup_video_render(GraphicsRender *gr) {
   g_use_texture(cutscene->video->tex.v_tex, 2);
 }
 
+static VideoRecorder *vr = NULL;
+
 void areas_video() {
   glm_vec3_zero(camera_focus);
 
   cutscene = new_fmv(VIDEO_PATH("my_friends.mp4"));
   NULL_CHECK(cutscene);
-
   fmv_play(cutscene);
 
   GraphicsRender *g = gr_prim_upright_plane((vec3){0});
@@ -58,4 +63,33 @@ void areas_video() {
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);
 }
 
-void areas_video_update() { fmv_update(cutscene); }
+void areas_video_update() {
+  fmv_update(cutscene);
+
+  gui_vert_push(0.1, 0.1);
+  gui_widget("o");
+  gui_widget("p");
+  gui_widget("q");
+  gui_widget("8");
+
+  gui_horiz_push(0.02, 0.05);
+  gui_widget("7");
+
+  if (vr) {
+    byte buf[window_get_frame_buffer_size()];
+    window_get_frame_buffer(buf);
+    video_recorder_record_frame(vr, buf, win_w, win_h);
+  }
+
+  if (gui_button("start", "start recording")) {
+    if (vr)
+      video_recorder_finish(vr);
+    vr = new_video_recorder("hello.mp4", win_w, win_h);
+  }
+
+  if (gui_button("stop", "stop recording")) {
+    if (vr)
+      video_recorder_finish(vr);
+    vr = NULL;
+  }
+}

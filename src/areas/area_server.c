@@ -48,6 +48,9 @@ void areas_static_update();
 void areas_bone_test();
 void areas_bone_test_update();
 
+void areas_simple_physics();
+void areas_simple_physics_update();
+
 void areas_animation();
 void areas_animation_update();
 
@@ -88,6 +91,14 @@ void area_init() {
   }
 
   {
+    AreaEntry *area = w_cm_return_slot(&(areas), "simple_physics.c");
+    memcpy(
+        area,
+        &(AreaEntry){areas_simple_physics, areas_simple_physics_update, NULL},
+        sizeof(AreaEntry));
+  }
+
+  {
     AreaEntry *area = w_cm_return_slot(&(areas), "animation.c");
     memcpy(area, &(AreaEntry){areas_animation, areas_animation_update, NULL},
            sizeof(AreaEntry));
@@ -104,6 +115,13 @@ void area_init() {
     memcpy(area, &(AreaEntry){areas_video, areas_video_update, NULL},
            sizeof(AreaEntry));
   }
+}
+
+void area_clean() { w_free_cm(&areas); }
+
+void area_reload_curr() {
+  if (curr)
+    area_switch_areaentry(curr);
 }
 
 #ifdef AREA_HOT_RELOAD
@@ -162,5 +180,3 @@ void area_update() {
   handle_hot_reload();
 #endif
 }
-
-void area_clean() {}

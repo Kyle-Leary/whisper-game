@@ -30,3 +30,5 @@ void graphics_render_init();
 GraphicsRender *g_new_render(VertexData *data, const unsigned int *indices,
                              unsigned int i_count);
 void g_draw_render(GraphicsRender *graphics_render);
+
+void free_graphics_render(GraphicsRender *graphics_render);

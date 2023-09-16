@@ -12,3 +12,4 @@ typedef struct PhysComp {
 } PhysComp;
 
 PhysComp *make_physcomp(Body *body, Collider *collider);
+void free_physcomp(PhysComp *physcomp);

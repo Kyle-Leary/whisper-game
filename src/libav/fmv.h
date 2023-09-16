@@ -1,5 +1,8 @@
 #pragma once
 
+// fmv is just a container structure for the audio and video decoded from a
+// single file.
+
 #include "defines.h"
 #include "libav/audiodec.h"
 #include "libav/videodec.h"

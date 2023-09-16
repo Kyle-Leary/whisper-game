@@ -14,3 +14,4 @@ typedef struct MaterialRender {
 
 void g_init_mat_render(MaterialRender *mr, GraphicsRender *graphics_render);
 void g_draw_mat_render(MaterialRender *mr);
+void free_mat_render(MaterialRender *mr);

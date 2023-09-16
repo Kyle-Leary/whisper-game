@@ -69,3 +69,5 @@ StaticBody *make_static_body(float restitution, vec3 init_pos, float init_scale,
                              versor init_rotation);
 
 AreaBody *make_area_body(vec3 init_pos, float init_scale, versor init_rotation);
+
+void free_body(Body *b);

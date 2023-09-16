@@ -8,6 +8,7 @@
 #include "helper_math.h"
 #include "hot_reload/hot_reload.h"
 #include "macros.h"
+#include "os.h"
 #include "whisper/macros.h"
 #include "whisper/queue.h"
 
@@ -164,6 +165,8 @@ static void watch_dir_for_changes(const char *dir_path, HotReloadState *state) {
 }
 
 static void *hot_reload_main(void *data) {
+  os_thread_init();
+
   HotReloadState *state = (HotReloadState *)data;
   printf("Starting up hot reload.\n");
 

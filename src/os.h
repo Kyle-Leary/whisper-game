@@ -33,4 +33,6 @@ typedef uint64_t whisper_time_t;
 #endif
 
 void os_init();
+// what should each thread do on startup?
+void os_thread_init();
 void musleep(int ms);

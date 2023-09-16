@@ -6,6 +6,8 @@
 
 #include "macros.h"
 
+#define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
+
 // Function to get the length of the file
 size_t get_file_length(const char *file_path);
 // stack return values are for chumps. pass in an address and fill it with the

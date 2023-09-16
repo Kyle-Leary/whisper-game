@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 
-#define GRAVITY_SCALE 1.3F
+#define GRAVITY_SCALE 1.0F
 
 #define MAX_RIGID_BODY 16
 #define MAX_STATIC_BODY 16
@@ -30,6 +30,11 @@
 // wrangle all of the different arrays of bodies and shapes into one physics
 // structure.
 typedef struct PhysicsState {
+  float accumulator;         // the internal state counting up the delta time.
+  float accumulator_trigger; // when does the accumulator trigger another
+                             // physics update?
+  float accumulator_clamp_max;
+
   WArray phys_comps;
 
   WArray rigid_bodies;
@@ -57,6 +62,9 @@ typedef struct PhysicsState {
 } PhysicsState;
 
 extern PhysicsState physics_state;
+
+// the consistent global fixed timestep.
+#define DT (physics_state.accumulator_trigger)
 
 #define CHECK_IN(array, obj)                                                   \
   (((void *)obj < physics_state.array##_end) &&                                \

@@ -40,6 +40,23 @@ RenderComp *make_rendercomp_from_matrender(MaterialRender *mr) {
   return w_array_insert(&render_comps, &rc);
 }
 
+void free_rendercomp(RenderComp *rc) {
+  switch (rc->type) {
+  case RENDERTYPE_MODEL: {
+    free_model(rc->data.model);
+  } break;
+  case RENDERTYPE_PRIMITIVE: {
+    free_graphics_render(rc->data.gr);
+  } break;
+  case RENDERTYPE_MATERIAL: {
+    free_mat_render(rc->data.mr);
+  } break;
+  default: {
+  } break;
+  }
+  w_array_delete_ptr(&render_comps, rc);
+}
+
 void render_init() {
   graphics_render_init();
   w_make_array(&(render_comps), sizeof(RenderComp), NUM_RENDER_COMPONENTS);

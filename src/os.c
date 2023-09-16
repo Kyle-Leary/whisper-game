@@ -1,3 +1,4 @@
+#include "os.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -32,7 +33,6 @@ void sigsegv(int sig) {
   // Get void*'s for all entries on the stack
   size = backtrace(array, 10);
 
-  system("clear");
   fprintf(stderr, "\n\nSEGFAULT sig %d: stacktrace - \n", sig);
   backtrace_symbols_fd(array, size, STDERR_FILENO);
 
@@ -42,7 +42,16 @@ void sigsegv(int sig) {
 #endif
 
 void os_init() {
+  os_thread_init();
+
 #ifdef __unix__
+#else
+#endif
+}
+
+void os_thread_init() {
+#ifdef __unix__
+  // each thread needs to independently set up its signal handlers.
   signal(SIGSEGV, sigsegv);
 #else
 #endif

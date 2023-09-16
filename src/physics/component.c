@@ -70,3 +70,9 @@ PhysComp *make_physcomp(Body *body, Collider *collider) {
 
   INDEX_AND_RETURN(comp, phys_comps)
 }
+
+void free_physcomp(PhysComp *physcomp) {
+  free_body(physcomp->body);
+  free_collider(physcomp->collider);
+  w_array_delete_ptr(&physics_state.phys_comps, physcomp);
+}

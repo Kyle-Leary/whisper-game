@@ -10,9 +10,9 @@ typedef enum InterpolationType {
 // input, output and interpolation function.
 typedef struct Sampler {
   // keyframe timing
-  float *input;
+  float *input; // always in seconds
   // keyframe output on the target.
-  float *output;
+  void *output; // some arbitrary datatype, depends on the target.
 
   // how we're going between keyframes in this animation sampler.
   InterpolationType interp;

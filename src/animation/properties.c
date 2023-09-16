@@ -37,10 +37,9 @@ void *return_prop_base_ptr(Node *nodes, Target *target, int *prop_type_sz,
     return &(target_node->scale);
   } break;
   default: {
-    fprintf(stderr,
-            "ERROR: either the node doesn't contain the property \"%s\", or "
-            "it's otherwise invalid. (return_prop_base_ptr())\n",
-            target->property_name);
+    ERROR("Either the node doesn't contain the property \"%s\", or "
+          "it's otherwise invalid. (return_prop_base_ptr())\n",
+          target->property_name);
     return NULL;
   } break;
   }

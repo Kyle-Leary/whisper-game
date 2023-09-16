@@ -11,3 +11,4 @@ void sws_apply_context(struct SwsContext *sws_ctx, const int *input_stride,
                        byte *dest_buffer);
 AVCodecContext *av_codec_context_from_stream(AVStream *av_stream);
 void av_print_codec_ctx(AVCodecContext *codec_ctx);
+AVFormatContext *av_format_context_from_file(const char *file_path);

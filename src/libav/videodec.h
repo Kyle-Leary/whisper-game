@@ -41,3 +41,7 @@ void video_poll_frame(Video *v);
 
 // pass this an initted Video*.
 void *video_decode_thread(void *data);
+
+Video *new_video_from_format_and_idx(AVFormatContext *format_ctx, int idx);
+Video *new_video_from_format(AVFormatContext *format_ctx);
+Video *new_video(const char *file_path);

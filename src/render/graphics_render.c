@@ -29,6 +29,8 @@ GraphicsRender *g_new_render(VertexData *data, const unsigned int *indices,
 
   glm_mat4_identity(r.model);
 
+  r.setup_fn = NULL;
+
   GraphicsRender *final_slot = w_array_insert(&gr_pool, &r);
   NULL_CHECK(final_slot);
 
@@ -49,4 +51,10 @@ void g_draw_render(GraphicsRender *graphics_render) {
 
   glBindVertexArray(graphics_render->vao);
   glDrawElements(GL_TRIANGLES, graphics_render->n_idx, GL_UNSIGNED_INT, 0);
+}
+
+void free_graphics_render(GraphicsRender *graphics_render) {
+  NULL_CHECK(graphics_render);
+  glDeleteVertexArrays(1, &graphics_render->vao);
+  w_array_delete_ptr(&gr_pool, graphics_render);
 }

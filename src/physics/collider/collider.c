@@ -42,3 +42,13 @@ RectCollider *make_rect_collider(vec3 extents) {
   setup_collider((Collider *)&c);
   INDEX_AND_RETURN(c, rects)
 }
+void free_collider(Collider *c) {
+  w_free_queue(&(c->phys_events));
+  if (IS_SPHERE(c)) {
+    w_array_delete_ptr(&physics_state.spheres, c);
+  } else if (IS_FLOOR(c)) {
+    w_array_delete_ptr(&physics_state.floors, c);
+  } else if (IS_RECT(c)) {
+    w_array_delete_ptr(&physics_state.rects, c);
+  }
+}

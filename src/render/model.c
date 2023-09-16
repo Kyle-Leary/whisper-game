@@ -183,3 +183,34 @@ void g_draw_model(Model *m) {
     glm_mat4_copy(temp_modelmat, curr_render->model);
   }
 }
+
+void free_node(Node *nodes_list, Node *node) {
+  for (int i = 0; i < node->num_children; i++) {
+    free_node(nodes_list, &nodes_list[node->children[i]]);
+  }
+
+  // the children index array is basically the only memory that the node manages
+  // itself. everything is static or inlined into the structure.
+  free(node->children);
+}
+
+void free_model(Model *m) {
+  for (int i = 0; i < m->num_primitives; i++) {
+    free_graphics_render(m->primitives[i].render);
+  }
+
+  for (int i = 0; i < m->num_materials; i++) {
+    free_material(&m->materials[i]);
+  }
+
+  for (int i = 0; i < m->num_roots; i++) {
+    // free each distinct root/node tree.
+    free_node(m->nodes, &m->nodes[m->roots[i]]);
+  }
+
+  free(m->primitives);
+  free(m->materials);
+  free(m->nodes);
+  free(m->roots);
+  // don't free m itself, the Model wasn't necessarily alloced.
+}
