@@ -29,7 +29,7 @@ typedef struct PointLight {
   vec4 color;
   // vec4 is already padded
   float intensity;
-  float range;
+  float falloff;
   char pad2[8];
 } PointLight;
 

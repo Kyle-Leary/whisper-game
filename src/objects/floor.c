@@ -15,10 +15,17 @@
 #include "printers.h"
 
 #include "render/gr_prim.h"
+#include "render/graphics_render.h"
+#include "render/material_render.h"
+#include "render/render.h"
+#include "render/texture.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+// mrs are not externally managed like grs? this is very confusing.
+static MaterialRender mr = {.mat = {.base_color_texture = 0}};
 
 #define CAST Floor *floor = (Floor *)p
 
@@ -34,11 +41,17 @@ Floor *floor_build(vec3 position) {
 
   StaticBody *sb = (StaticBody *)p->phys->body;
 
-  p->render =
-      make_rendercomp_from_graphicsrender(gr_prim_floor_plane(sb->position));
-  GraphicsRender *prim = (GraphicsRender *)p->render->data.gr;
-  glm_scale(prim->model, (vec3){100, 1, 100});
-  glm_translate(prim->model, position);
+  GraphicsRender *gr = gr_prim_floor_plane(sb->position);
+  gr->shader = get_shader("fraglight");
+  glm_scale(gr->model, (vec3){50, 1, 50});
+  glm_translate(gr->model, position);
+
+  mr.mat.base_color_texture = nepeta_tex;
+  g_init_mat_render(&mr, gr);
+
+  p->render = make_rendercomp_from_matrender(&mr);
+
+  GraphicsRender *prim = (GraphicsRender *)p->render->data.mr->gr;
   return p;
 }
 

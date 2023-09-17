@@ -125,6 +125,16 @@ static void init_pbr_gouraud() {
   BIND_MATRICES();
 }
 
+static void fraglight_bind(Shader *s) {}
+
+static void init_fraglight() {
+  SHADER_SETUP("fraglight", "fraglight.shader");
+  s->bind = fraglight_bind;
+  s->unbind = NULL;
+  BIND_LIGHTS();
+  BIND_MATRICES();
+}
+
 static void solid_bind(Shader *s) {
   shader_set_4f(s, "u_render_color", 0, 1, 1, 1);
 }
@@ -290,6 +300,7 @@ void shader_instantiate_all() {
   init_console();
   init_video();
   init_yuv();
+  init_fraglight();
 }
 
 #undef INSERT

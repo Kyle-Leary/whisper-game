@@ -8,6 +8,7 @@
 extern uint transparent_tex;
 extern uint black_tex;
 extern uint white_tex;
+extern uint nepeta_tex;
 
 // a handle to a texture, an id can always be rep'd as a uint, likely.
 typedef uint TextureHandle;

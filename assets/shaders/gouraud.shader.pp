@@ -28,7 +28,7 @@ struct PointLight {
     vec3 position;
     vec4 color;
     float intensity;
-    float range;
+    float falloff;
 };
 
 struct DirectionalLight {
@@ -55,13 +55,15 @@ layout(std140) uniform LightData {
     AmbientLight ambient_light;
 };
 
+// requires the light UBO to be also included.
+
 // return a scaling modifier to the light, rather than modifying the light impurely.
 vec3 apply_point_light(vec3 vert_pos, int light_index) {
 	vec3 light_from = point_lights[light_index].position;
 	vec4 pt_light_color = point_lights[light_index].color;
 	float light_intensity = point_lights[light_index].intensity;
 	float dist_from_light = distance(light_from, vert_pos);
-	light_intensity /= dist_from_light / 20;
+	light_intensity /= dist_from_light;
 	pt_light_color *= light_intensity;
 
 	return pt_light_color.xyz;
@@ -80,28 +82,30 @@ vec3 apply_directional_light(vec3 vert_pos, int light_index) {
 void main() {
 	fsTexCoord = aTexCoord;
 
-	// setup the gouraud light color that will be passed to the fs.
-	lightColor = vec3(1, 1, 1);
+	vec3 ambient = ambient_light.color.xyz;
+	ambient *= ambient_light.intensity;
+	vec3 diffuse = vec3(0);
+	vec3 specular = vec3(0);
 
-	// ambient
-	lightColor *= vec3(ambient_light.color.xyz);
-	lightColor *= ambient_light.intensity;
+	// lighting generates diffuse and specular.
+	// use the normal positions, not the transformed ones. lights are specified in object-space.
+	for (int i = 0; i < n_point_lights; i++) {
+		diffuse += apply_point_light(aPos, i);
+	}
+	for (int i = 0; i < n_spot_lights; i++) {
+		diffuse += apply_spot_light(aPos, i);
+	}
+	for (int i = 0; i < n_directional_lights; i++) {
+		diffuse += apply_directional_light(aPos, i);
+	}
+
+	// setup the gouraud light color that will be passed to the fs.
+	lightColor = vec3(0);
+	lightColor += ambient;
+	lightColor += diffuse;
+	lightColor += specular;
 
 	vec4 vert_full_pos = projection * view * u_model * (vec4(aPos, 1.0));
-	vec3 vert_pos = vert_full_pos.xyz;
-
-	for (int i = 0; i < n_point_lights; i++) {
-		lightColor *= apply_point_light(vert_pos, i);
-	}
-
-	for (int i = 0; i < n_spot_lights; i++) {
-		lightColor *= apply_spot_light(vert_pos, i);
-	}
-
-	for (int i = 0; i < n_directional_lights; i++) {
-		lightColor *= apply_directional_light(vert_pos, i);
-	}
-
 	gl_Position = vert_full_pos;
 }
 

@@ -54,7 +54,7 @@ void areas_level() {
   chr->phys->body->position[0] = -4;
   chr->phys->body->position[1] = -1;
 
-  object_add((Object *)floor_build((vec3){0, -2, 0}), OT_AREA);
+  object_add((Object *)floor_build((vec3){0, 0, 0}), OT_AREA);
 
   {   // setup global lights
     { // setup ambient light
@@ -70,7 +70,7 @@ void areas_level() {
 
       pl.intensity = 1.0f;
       pl.position[0] = 0.0f;
-      pl.position[1] = 0.0f;
+      pl.position[1] = 5.0f;
       pl.position[2] = 0.0f;
       pl.color[0] = 0.5f;
       pl.color[1] = 0.1f;

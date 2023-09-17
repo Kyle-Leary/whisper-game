@@ -118,7 +118,6 @@ int entry_point(int argc, char **argv) {
   double fps_timer = 0.0;
 
   // setup textures
-  TextureHandle nepeta = g_load_texture(TEXTURE_PATH("nepeta.jpg"));
   TextureHandle character = g_load_texture(TEXTURE_PATH("character.png"));
 
   GraphicsRender *skybox_render = gr_prim_skybox_cube();
@@ -184,7 +183,7 @@ int entry_point(int argc, char **argv) {
         // g_use_cubemap(skybox_tex, SKYBOX_TEX_SLOT);
         // g_draw_render(skybox_render);
       }
-      g_use_texture(nepeta, 0);
+      g_use_texture(nepeta_tex, 0);
       render_draw();
 
       // draw all the immediate mode stuff with the im 3d positional shader.

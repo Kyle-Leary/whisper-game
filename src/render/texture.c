@@ -6,6 +6,7 @@
 #include "macros.h"
 
 #include "../ogl_includes.h"
+#include "path.h"
 #include <GL/gl.h>
 #include <stdbool.h>
 #include <sys/types.h>
@@ -19,6 +20,7 @@ static uint curr_bound_texture = 0;
 uint transparent_tex;
 uint black_tex;
 uint white_tex;
+uint nepeta_tex;
 
 // i think that we can call this function, then call modifiers after and still
 // modify the image texture properties properly. so, we don't need any function
@@ -167,4 +169,5 @@ void init_helper_textures() {
       g_load_texture_from_buf((byte *)(vec4){0, 0, 0, 0}, 1, 1, 4, 0);
   black_tex = g_load_texture_from_buf((byte *)(vec4){0, 0, 0, 1}, 1, 1, 4, 0);
   white_tex = g_load_texture_from_buf((byte *)(vec4){1, 1, 1, 1}, 1, 1, 4, 0);
+  nepeta_tex = g_load_texture(TEXTURE_PATH("nepeta.jpg"));
 }

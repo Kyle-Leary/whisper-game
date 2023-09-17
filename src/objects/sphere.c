@@ -41,6 +41,7 @@ Sphere *sphere_build(vec3 position, float radius, unsigned int segments) {
   {
     p->render = make_rendercomp_from_graphicsrender(
         gr_prim_sphere(p->phys->body->position, radius, segments));
+    p->render->data.gr->shader = get_shader("fraglight");
   }
 
   return p;

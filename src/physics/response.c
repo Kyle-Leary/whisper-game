@@ -52,8 +52,13 @@ static void rb_apply_impulse(RigidBody *rb, vec3 impulse, vec3 contact_pt) {
 static float balance_restitutions(float e1, float e2) {
   // we estimate the total collision's restitution through the e1 and e2 rests
   // of the bodies.
-  // float e_balanced = fminf(e1, e2);
-  // float e_balanced = (e1 + e2) / 2.0f;
+  //
+  // lots of different ways to calculate how "bouncy" the collision should be.
+  // pick one that's right, maybe have some way to switch between the
+  // restitution function?
+
+  // float e_balanced = fminf(e1, e2); float e_balanced =
+  // (e1 + e2) / 2.0f;
   float e_balanced = e1 * e2;
   return e_balanced;
 }

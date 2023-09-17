@@ -130,7 +130,7 @@ void window_init() {
 bool window_should_close() { return glfwWindowShouldClose(window); }
 
 void window_begin_draw() {
-  glClearColor(0.1F, 0.1F, 0.3F, 1.0F);
+  glClearColor(0.03F, 0.03F, 0.03F, 1.0F);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 

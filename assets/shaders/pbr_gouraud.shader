@@ -12,6 +12,7 @@ out vec2 fsTexCoord;
 
 // define the basic light structures we'll need.
 #include "light.glinc"
+#include "gouraud_helper.glinc"
 
 // just use one texture here.
 uniform mat4 model;
