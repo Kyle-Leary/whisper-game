@@ -32,7 +32,7 @@ Sphere *sphere_build(vec3 position, float radius, unsigned int segments) {
   p->type = OBJ_SPHERE;
 
   {
-    p->phys = make_physcomp((Body *)make_rigid_body(0.3, 0.7, 5.0, 0.5, 0.1,
+    p->phys = make_physcomp((Body *)make_rigid_body(0.3, 0.7, 5.0, 0.5, 0.5,
                                                     0.5, 0.3, true, position,
                                                     5.0, IDENTITY_VERSOR),
                             (Collider *)make_sphere_collider(radius));

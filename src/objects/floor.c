@@ -43,7 +43,7 @@ Floor *floor_build(vec3 position) {
 
   GraphicsRender *gr = gr_prim_floor_plane(sb->position);
   gr->shader = get_shader("fraglight");
-  glm_scale(gr->model, (vec3){50, 1, 50});
+  glm_scale(gr->model, (vec3){100, 1, 100});
   glm_translate(gr->model, position);
 
   mr.mat.base_color_texture = nepeta_tex;

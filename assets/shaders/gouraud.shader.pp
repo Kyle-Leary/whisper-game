@@ -70,11 +70,11 @@ vec3 apply_point_light(vec3 vert_pos, int light_index) {
 }
 
 vec3 apply_spot_light(vec3 vert_pos, int light_index) {
-	return vec3(1);
+	return vec3(0);
 }
 
 vec3 apply_directional_light(vec3 vert_pos, int light_index) {
-	return vec3(1);
+	return vec3(0);
 }
 
 // all light discoloration is calculated on vertices and then interpolated by the rasterizer using the w coordinate.

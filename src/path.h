@@ -1,8 +1,11 @@
 #pragma once
 
+#include "os/library.h"
+
 // heavily abusing the macro concat in C here.
 
 #define ASSET_PATH "assets/"
+#define BUILD_PATH "dist/"
 
 // concat the macro, better than making functions that
 // sprintf and malloc the path at runtime. faster and easier.
@@ -19,4 +22,9 @@
 
 #define CONFIG_PATH(base_path) ASSET_PATH "config/" base_path
 
-#define AREA_PATH(base_path) "src/areas/instances/" base_path
+#define AREA_PATH BUILD_PATH "areas/"
+// eg area "x" -> "libareax.so"
+#define AREA_LIB_PATH(base_path)                                               \
+  AREA_PATH LIBRARY_PREFIX "area" base_path LIBRARY_EXTENSION
+
+void area_lib_path(char *out, const char *area_name);

@@ -32,7 +32,7 @@ PhysicsState physics_state = {0};
 void physics_init() {
   physics_state.accumulator_clamp_max = 1;
   physics_state.accumulator = 0;
-  physics_state.accumulator_trigger = 0.01;
+  physics_state.accumulator_trigger = 0.02;
 
 #define CALC_START_END(array)                                                  \
   {                                                                            \

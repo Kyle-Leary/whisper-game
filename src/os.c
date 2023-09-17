@@ -27,11 +27,11 @@ void musleep(int milliseconds) {
 
 #ifdef __unix__
 void sigsegv(int sig) {
-  void *array[10];
+  void *array[25];
   size_t size;
 
   // Get void*'s for all entries on the stack
-  size = backtrace(array, 10);
+  size = backtrace(array, 25);
 
   fprintf(stderr, "\n\nSEGFAULT sig %d: stacktrace - \n", sig);
   backtrace_symbols_fd(array, size, STDERR_FILENO);

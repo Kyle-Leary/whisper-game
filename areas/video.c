@@ -44,7 +44,7 @@ static void setup_video_render(GraphicsRender *gr) {
 
 static VideoRecorder *vr = NULL;
 
-void areas_video() {
+void init() {
   glm_vec3_zero(camera_focus);
 
   cutscene = new_fmv(VIDEO_PATH("my_friends.mp4"));
@@ -63,7 +63,7 @@ void areas_video() {
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);
 }
 
-void areas_video_update() {
+void update() {
   fmv_update(cutscene);
 
   gui_vert_push(0.1, 0.1);

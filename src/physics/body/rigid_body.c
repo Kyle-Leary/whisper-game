@@ -4,6 +4,7 @@
 #include "cglm/vec3.h"
 #include "global.h"
 #include "helper_math.h"
+#include "im_prims.h"
 #include "physics/body/body.h"
 #include "physics/dynamics.h"
 #include "physics/physics.h"
@@ -140,35 +141,45 @@ static void rotation_tick(RigidBody *rb) {
   if (!rb->should_roll)
     return;
 
+  {
+    vec3 endpoint;
+    glm_vec3_add(rb->position, rb->ang_velocity, endpoint);
+    im_vector(rb->position, endpoint, (vec4){0, 1, 0, 1});
+  }
+  {
+    vec3 endpoint;
+    glm_vec3_add(rb->position, rb->ang_acceleration, endpoint);
+    im_vector(rb->position, endpoint, (vec4){0, 0.5, 0.9, 1});
+  }
+
   // Integrate angular acceleration to get the new angular velocity
-  rb->ang_velocity[0] += rb->ang_acceleration[0] * delta_time;
-  rb->ang_velocity[1] += rb->ang_acceleration[1] * delta_time;
-  rb->ang_velocity[2] += rb->ang_acceleration[2] * delta_time;
+  rb->ang_velocity[0] += rb->ang_acceleration[0] * DT;
+  rb->ang_velocity[1] += rb->ang_acceleration[1] * DT;
+  rb->ang_velocity[2] += rb->ang_acceleration[2] * DT;
 
   // dampen velocity, not accel.
-  glm_vec3_scale(rb->ang_velocity, (1 - rb->angular_damping) * DT * 10,
+  glm_vec3_scale(rb->ang_velocity, (1 - rb->angular_damping) * DT,
                  rb->ang_velocity);
 
-  // Compute the quaternion representing the change in rotation
+  // the magnitude of rotation. ang_vel is the axis of rotation and angle is the
+  // mag. recall the ang_vel is a pseudo-vector
   float angle = sqrt(rb->ang_velocity[0] * rb->ang_velocity[0] +
                      rb->ang_velocity[1] * rb->ang_velocity[1] +
                      rb->ang_velocity[2] * rb->ang_velocity[2]);
 
-  if (angle == 0) {
-    angle = 0.001;
+  if (angle != 0) { // avoid the division by zero.
+    // so this will always be normalized?
+    vec3 axis = {rb->ang_velocity[0] / angle, rb->ang_velocity[1] / angle,
+                 rb->ang_velocity[2] / angle};
+
+    versor delta_rotation;
+    delta_rotation[3] = cos(angle * DT / 2);
+    delta_rotation[0] = axis[0] * sin(angle * DT / 2);
+    delta_rotation[1] = axis[1] * sin(angle * DT / 2);
+    delta_rotation[2] = axis[2] * sin(angle * DT / 2);
+
+    glm_quat_mul(rb->rotation, delta_rotation, rb->rotation);
   }
-
-  // so this will always be normalized?
-  vec3 axis = {rb->ang_velocity[0] / angle, rb->ang_velocity[1] / angle,
-               rb->ang_velocity[2] / angle};
-
-  versor delta_rotation;
-  delta_rotation[3] = cos(angle * DT / 2);
-  delta_rotation[0] = axis[0] * sin(angle * DT / 2);
-  delta_rotation[1] = axis[1] * sin(angle * DT / 2);
-  delta_rotation[2] = axis[2] * sin(angle * DT / 2);
-
-  glm_quat_mul(rb->rotation, delta_rotation, rb->rotation);
 }
 
 static void position_lerp(RigidBody *rb) {
@@ -184,13 +195,36 @@ void single_rb_dynamics(RigidBody *rb) {
 }
 void single_rb_response(RigidBody *rb, WQueue collider_events) {}
 
+// Applying an Impulse. instantaneous change in velocity, we skip going through
+// acceleration.
+// we want to modify the velocity directly, since a collision happens over an
+// instantaneous time, and we don't want objects to clip into eachother.
+// impulses are often used to push objects around in CR.
+void rb_apply_impulse(RigidBody *rb, vec3 impulse, vec3 contact_pt) {
+  vec3 delta_velocity;
+  glm_vec3_scale(impulse, 1.0f / rb->mass, delta_velocity);
+  glm_vec3_add(rb->velocity, delta_velocity, rb->velocity);
+
+  // Calculate torque
+  vec3 r; // Vector from the center of mass to the contact point
+  glm_vec3_sub(contact_pt, rb->position, r);
+  vec3 torque;
+  glm_vec3_cross(r, impulse, torque);
+
+  // Calculate change in angular velocity
+  vec3 delta_angular_velocity;
+  glm_mat3_mulv(rb->inverse_inertia, torque, delta_angular_velocity);
+
+  // Update angular velocity
+  glm_vec3_add(rb->ang_velocity, delta_angular_velocity, rb->ang_velocity);
+}
+
 void rb_apply_force(RigidBody *rb, vec3 direction, float magnitude,
                     vec3 contact_pt) {
   if (rb->frozen) {
     return;
   }
 
-  // F = ma <=> F/m = a
   if (rb->mass == 0) {
     fprintf(
         stderr,
@@ -205,4 +239,29 @@ void rb_apply_force(RigidBody *rb, vec3 direction, float magnitude,
 
   glm_vec3_scale(force, (1 / rb->mass), force);
   glm_vec3_add(force, rb->acceleration, rb->acceleration);
+
+  // Calculate torque
+  vec3 r; // Vector from the center of mass to the contact point
+  glm_vec3_sub(contact_pt, rb->position, r);
+  vec3 torque;
+  glm_vec3_cross(r, direction, torque);
+
+  vec3 delta_ang_accel;
+  // t = aI <=> t/I = a, we multiply by the inverse inertia tensor to get the
+  // change in angular acceleration.
+  glm_mat3_mulv(rb->inverse_inertia, torque, delta_ang_accel);
+  glm_vec3_add(rb->ang_acceleration, delta_ang_accel, rb->ang_acceleration);
+}
+
+void rb_apply_torque(RigidBody *rb, vec3 direction, float magnitude,
+                     vec3 contact_pt) {
+  if (rb->frozen) {
+    return;
+  }
+
+  vec3 torque;
+  glm_vec3_scale(direction, magnitude, torque);
+  vec3 delta_ang_accel;
+  glm_mat3_mulv(rb->inverse_inertia, torque, delta_ang_accel);
+  glm_vec3_add(rb->ang_acceleration, delta_ang_accel, rb->ang_acceleration);
 }

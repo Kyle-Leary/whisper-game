@@ -1,127 +1,53 @@
 #include "area_server.h"
+#include "macros.h"
 #include "object.h"
 #include "object_bases.h"
+#include "os/library.h"
 #include "path.h"
 #include "whisper/colmap.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-WColMap areas = {0};
-AreaEntry *curr = NULL;
-
-static void area_switch_areaentry(AreaEntry *area) {
-  if (curr) { // remove all the old area stuff generically.
-    object_clear_tag(OT_AREA);
-    if (curr->cleaner)
-      curr->cleaner();
-  }
-
-  curr = area;
-
-  { // then load in the new area, and setup the area_state.
-    // generate the area in the game world automatically through the linked
-    // function pointer.
-    if (curr->generator)
-      curr->generator();
-  }
-}
+static AreaEntry curr = {0};
+// the path to the last area, for internal reloading.
+char area_path_buf[512] = {0};
 
 void area_switch(const char *path) {
-  printf("Switching area to %s.\n", path);
+  INFO("Switching area to %s.", path);
 
-  AreaEntry *ae = w_cm_get(&areas, path);
-  if (!ae) {
-    fprintf(stderr, "No area called %s is registered.\n", path);
+  object_clear_tag(OT_AREA);
+  if (curr.cleaner)
+    curr.cleaner();
+
+  strcpy(area_path_buf, path);
+
+  load_lib(&curr.lib, path);
+
+  if (!curr.lib.handle) {
+    ERROR("No area called %s found in libraries.", path);
     return;
   } else {
-    area_switch_areaentry(ae);
+    // will just return NULL if any methods aren't found.
+    curr.generator = lib_get_proc(&curr.lib, "init");
+    curr.updater = lib_get_proc(&curr.lib, "update");
+    curr.cleaner = lib_get_proc(&curr.lib, "clean");
+
+    // then load in the new area, and setup the area_state.
+    // generate the area in the game world automatically through the linked
+    // function pointer.
+    if (curr.generator)
+      curr.generator();
   }
 }
 
-void areas_level();
-void areas_level_update();
+void area_init() { make_lib(&curr.lib); }
 
-void areas_static();
-void areas_static_update();
-
-void areas_bone_test();
-void areas_bone_test_update();
-
-void areas_simple_physics();
-void areas_simple_physics_update();
-
-void areas_animation();
-void areas_animation_update();
-
-void areas_gui();
-void areas_gui_update();
-
-void areas_video();
-void areas_video_update();
-
-void areas_another();
-
-void area_init() {
-  // hash the names of the .c files that represent the areas to get the location
-  // in the colmap.
-  w_create_cm(&(areas), sizeof(AreaEntry), 509);
-
-  {
-    AreaEntry *area = w_cm_return_slot(&(areas), "level.c");
-    memcpy(area, &(AreaEntry){areas_level, areas_level_update, NULL},
-           sizeof(AreaEntry));
-  }
-
-  {
-    AreaEntry *area = w_cm_return_slot(&(areas), "static.c");
-    memcpy(area, &(AreaEntry){areas_static, areas_static_update, NULL},
-           sizeof(AreaEntry));
-  }
-
-  {
-    AreaEntry *area = w_cm_return_slot(&(areas), "another.c");
-    memcpy(area, &(AreaEntry){areas_another, NULL, NULL}, sizeof(AreaEntry));
-  }
-
-  {
-    AreaEntry *area = w_cm_return_slot(&(areas), "bone_test.c");
-    memcpy(area, &(AreaEntry){areas_bone_test, areas_bone_test_update, NULL},
-           sizeof(AreaEntry));
-  }
-
-  {
-    AreaEntry *area = w_cm_return_slot(&(areas), "simple_physics.c");
-    memcpy(
-        area,
-        &(AreaEntry){areas_simple_physics, areas_simple_physics_update, NULL},
-        sizeof(AreaEntry));
-  }
-
-  {
-    AreaEntry *area = w_cm_return_slot(&(areas), "animation.c");
-    memcpy(area, &(AreaEntry){areas_animation, areas_animation_update, NULL},
-           sizeof(AreaEntry));
-  }
-
-  {
-    AreaEntry *area = w_cm_return_slot(&(areas), "gui.c");
-    memcpy(area, &(AreaEntry){areas_gui, areas_gui_update, NULL},
-           sizeof(AreaEntry));
-  }
-
-  {
-    AreaEntry *area = w_cm_return_slot(&(areas), "video.c");
-    memcpy(area, &(AreaEntry){areas_video, areas_video_update, NULL},
-           sizeof(AreaEntry));
-  }
-}
-
-void area_clean() { w_free_cm(&areas); }
+void area_clean() { lib_free(&curr.lib); }
 
 void area_reload_curr() {
-  if (curr)
-    area_switch_areaentry(curr);
+  area_switch(area_path_buf);
+  INFO("Reloaded area %s.", area_path_buf);
 }
 
 #ifdef AREA_HOT_RELOAD
@@ -152,18 +78,18 @@ static void handle_hot_reload() {
     if (!a)
       break;
 
-    AreaEntry *entry = w_cm_get(&(areas), a->file_name);
-    if (!entry) {
-      pthread_mutex_unlock(hot_reload_state.mutex);
-      char buf[256];
-      sprintf(buf, "Tried to reload [a->file_name: %s], no area found",
-              a->file_name);
-      ERROR_FROM_BUF(buf);
-    } else {
-      printf("loading level %s\n", a->file_name);
-      recompile_area(a->file_name);
-      area_switch_areaentry(entry);
-    }
+    // AreaEntry *entry = w_cm_get(&(areas), a->file_name);
+    // if (!entry) {
+    //   pthread_mutex_unlock(hot_reload_state.mutex);
+    //   char buf[256];
+    //   sprintf(buf, "Tried to reload [a->file_name: %s], no area found",
+    //           a->file_name);
+    //   ERROR_FROM_BUF(buf);
+    // } else {
+    //   printf("loading level %s\n", a->file_name);
+    //   recompile_area(a->file_name);
+    //   area_switch_areaentry(entry);
+    // }
   }
 
   pthread_mutex_unlock(hot_reload_state.mutex);
@@ -172,9 +98,8 @@ static void handle_hot_reload() {
 #endif
 
 void area_update() {
-  // update the current area
-  if (curr && curr->updater)
-    curr->updater();
+  if (curr.updater)
+    curr.updater();
 
 #ifdef AREA_HOT_RELOAD
   handle_hot_reload();

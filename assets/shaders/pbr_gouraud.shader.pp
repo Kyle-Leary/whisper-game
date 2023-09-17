@@ -65,11 +65,11 @@ vec3 apply_point_light(vec3 vert_pos, int light_index) {
 }
 
 vec3 apply_spot_light(vec3 vert_pos, int light_index) {
-	return vec3(1);
+	return vec3(0);
 }
 
 vec3 apply_directional_light(vec3 vert_pos, int light_index) {
-	return vec3(1);
+	return vec3(0);
 }
 
 // just use one texture here.

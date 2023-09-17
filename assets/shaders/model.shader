@@ -15,6 +15,7 @@ out vec2 oTexCoord;
 uniform mat4 u_model;
 
 #include "light.glinc"
+#include "gouraud_helper.glinc"
 #include "mats.glinc"
 #include "bone.glinc"
 

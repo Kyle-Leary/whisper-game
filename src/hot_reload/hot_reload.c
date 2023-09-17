@@ -170,7 +170,7 @@ static void *hot_reload_main(void *data) {
   HotReloadState *state = (HotReloadState *)data;
   printf("Starting up hot reload.\n");
 
-  watch_dir_for_changes("./src/areas/instances", data);
+  // watch_dir_for_changes("./src/areas/instances", data);
 
   return NULL;
 }

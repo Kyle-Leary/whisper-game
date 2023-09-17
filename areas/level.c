@@ -25,7 +25,7 @@ void setup_text3d_render() {
 }
 
 // setup all the local objects in the scene.
-void areas_level() {
+void init() {
   object_add((Object *)sphere_build((vec3){3, 5, -2}, 1, 10), OT_AREA);
   object_add((Object *)sphere_build((vec3){6, 10, -2}, 1, 10), OT_AREA);
   object_add((Object *)sphere_build((vec3){-2, 20, -2}, 1, 10), OT_AREA);
@@ -84,7 +84,7 @@ void areas_level() {
   text_3d = font_mesh_string_3d(simple_font, "hello 3d space", 0.5, 0.5);
 }
 
-void areas_level_update() {
+void update() {
   glm_rotate(text_3d->model, 0.01, (vec3){0, 1, 0});
 
   {}

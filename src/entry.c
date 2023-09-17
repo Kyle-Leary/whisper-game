@@ -31,6 +31,7 @@
 #include "size.h"
 #include "timescale.h"
 #include "util.h"
+#include "whisper/macros.h"
 #include "window.h"
 
 #include "hot_reload/hot_reload.h"
@@ -102,7 +103,7 @@ int entry_point(int argc, char **argv) {
   im_init();
 
   area_init();
-  area_switch("simple_physics.c");
+  area_switch(AREA_LIB_PATH("simple_physics"));
 
   hud_init();
 

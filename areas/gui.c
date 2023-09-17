@@ -10,12 +10,12 @@
 #include "render/model.h"
 #include "render/render.h"
 
-void areas_gui() {}
+void init() {}
 
 void function_one() { printf("function_one\n"); }
 void function_two() { printf("function_two\n"); }
 
-void areas_gui_update() {
+void update() {
   gui_vert_push(0.1, 0.1);
   gui_widget("v");
 

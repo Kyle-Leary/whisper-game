@@ -25,7 +25,7 @@ struct PointLight {
     vec3 position;
     vec4 color;
     float intensity;
-    float range;
+    float falloff;
 };
 
 struct DirectionalLight {
@@ -52,25 +52,6 @@ layout(std140) uniform LightData {
     AmbientLight ambient_light;
 };
 
-// return a scaling modifier to the light, rather than modifying the light impurely.
-vec3 apply_point_light(vec3 vert_pos, int light_index) {
-	vec3 light_from = point_lights[light_index].position;
-	vec4 pt_light_color = point_lights[light_index].color;
-	float light_intensity = point_lights[light_index].intensity;
-	float dist_from_light = distance(light_from, vert_pos);
-	light_intensity /= dist_from_light / 20;
-	pt_light_color *= light_intensity;
-
-	return pt_light_color.xyz;
-}
-
-vec3 apply_spot_light(vec3 vert_pos, int light_index) {
-	return vec3(1);
-}
-
-vec3 apply_directional_light(vec3 vert_pos, int light_index) {
-	return vec3(1);
-}
 
 uniform float u_time; // just overall useful to have a time parameter here. i don't think
 // that we can just grab this directly through glsl?

@@ -6,6 +6,7 @@
 #include "helper_math.h"
 #include "object.h"
 #include "objects/sphere.h"
+#include "path.h"
 #include "physics/physics.h"
 #include "util.h"
 #include <stdio.h>
@@ -124,7 +125,9 @@ void print(CommandInput *cmd) { console_printf("%s", cmd->joined_argv); }
 void area(CommandInput *cmd) {
   console_printf("trying to load area: %s...\n", cmd->joined_argv);
   int area_num = 0;
-  area_switch(cmd->joined_argv);
+  char buf[512];
+  area_lib_path(buf, cmd->joined_argv);
+  area_switch(buf);
   toggle_console();
 }
 void quit(CommandInput *cmd) { window_force_close(); }

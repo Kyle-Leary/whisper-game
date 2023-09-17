@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cglm/types.h"
+#include "os/library.h"
 
 #include <stdbool.h>
 
@@ -13,6 +14,7 @@ typedef struct AreaEntry {
   AreaFn generator;
   AreaUpdateFn updater;
   AreaCleanFn cleaner;
+  Lib lib;
 } AreaEntry;
 
 void area_init();

@@ -26,7 +26,7 @@ static vec3 camera_focus;
 static mat4 model;
 
 // setup all the local objects in the scene.
-void areas_static() {
+void init() {
   glm_vec3_zero(camera_focus);
 
   // RenderComp *r = make_rendercomp_from_glb(MODEL_PATH("tall_rig.glb"));
@@ -79,7 +79,7 @@ void inc_anim() {
   setting %= AS_COUNT;
 }
 
-void areas_static_update() {
+void update() {
   float t = u_time - floorf(u_time);
 
   int grid_sz = 2;

@@ -12,12 +12,13 @@
 
 static vec3 camera_focus;
 
-void areas_simple_physics() {
+void init() {
   glm_vec3_zero(camera_focus);
 
   Camera *cam = (Camera *)object_add(
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);
 
+  object_add((Object *)sphere_build((vec3){0.1, 12, 0.9}, 2.5f, 10), OT_AREA);
   object_add((Object *)sphere_build((vec3){0, 9, 0}, 1.0f, 10), OT_AREA);
   object_add((Object *)sphere_build((vec3){0, 2, 0}, 1.0f, 10), OT_AREA);
   object_add((Object *)floor_build((vec3){0}), OT_AREA);
@@ -34,7 +35,7 @@ void areas_simple_physics() {
     {
       PointLight pl;
 
-      pl.intensity = 150.5f;
+      pl.intensity = 50.5f;
       pl.position[0] = 0.0f;
       pl.position[1] = 15.0f;
       pl.position[2] = 0.0f;
@@ -49,4 +50,6 @@ void areas_simple_physics() {
   }
 }
 
-void areas_simple_physics_update() {}
+void update() {}
+
+void clean() {}

@@ -1,6 +1,7 @@
-#include "animation/animator.h"
+// a simple level with a model in it to verify that the bind pose is working as
+// intended.
+
 #include "cglm/types.h"
-#include "input/input.h"
 #include "math/mat.h"
 #include "objects/camera.h"
 #include "path.h"
@@ -8,21 +9,13 @@
 #include "render/model.h"
 #include "render/render.h"
 
-#include "macros.h"
-
 static vec3 camera_focus;
 
-static Animator *a;
-static int i;
-
-void areas_animation() {
+void init() {
   glm_vec3_zero(camera_focus);
 
-  RenderComp *r = make_rendercomp_from_glb(MODEL_PATH("long.glb"));
+  RenderComp *r = make_rendercomp_from_glb(MODEL_PATH("rouge_rig.glb"));
   Model *m = (Model *)r->data.model;
-  a = make_animator(m);
-  // anim_play(a, "wiggle", true);
-  i = 0;
 
   Camera *cam = (Camera *)object_add(
       (Object *)camera_build((vec3){0}, &camera_focus), OT_AREA);
@@ -53,9 +46,4 @@ void areas_animation() {
   }
 }
 
-void areas_animation_update() {
-  if (i_state.act_just_pressed[ACT_UP]) {
-    INFO("hello");
-    anim_force_tick(a, i);
-  }
-}
+void update() {}

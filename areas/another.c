@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-void areas_another() {
+void init() {
   Player *player = (Player *)object_add((Object *)player_build(), OT_AREA);
   player->phys->body->position[0] = 5;
   player->phys->body->position[1] = -1;

@@ -19,6 +19,8 @@ TEST_TARGET := whisper_test
 
 # Directories
 SRC_DIR := src 
+AREA_DIR := areas 
+BUILD_DIR := dist
 
 WJSON := deps/wjson/libwjson.a
 LIBWHISPER := deps/libwhisper/libwhisper.a
@@ -33,6 +35,11 @@ GLPP := deps/glpp/glpp
 # where you need and it should work.
 DEPS := $(GLPP) $(STATIC)
 
+AREA_DIR := $(strip areas)
+# Get a list of all .c files
+AREA_SRCS := $(shell find $(AREA_DIR) -name '*.c' -type f)
+AREA_LIBS := $(patsubst $(AREA_DIR)/%.c,$(BUILD_DIR)/$(AREA_DIR)/libarea%.so,$(AREA_SRCS))
+
 # Get a list of all .c files
 SRCS := $(shell find $(SRC_DIR) -name '*.c' -type f)
 # Filter out .test.c files from the list
@@ -43,7 +50,9 @@ OBJS := $(patsubst %.c,%.o,$(SRCS))
 SYMBOLS := $(OBJS)
 SYMBOLS += $(STATIC)
 
-REQUIREMENTS := $(SYMBOLS)
+# don't directly link the area libraries into the executable, we're using them at runtime.
+# we still need them, though.
+REQUIREMENTS := $(SYMBOLS) $(AREA_LIBS)
 
 TEST_SRCS := $(shell find $(SRC_DIR) -name '*.test.c' -type f)
 TEST_OBJS := $(patsubst %.test.c,%.test.o,$(TEST_SRCS))
@@ -73,8 +82,12 @@ TEST_REQUIREMENTS += $(REQUIREMENTS)
 all: setup $(TARGET)
 windows: setup $(WINDOWS_TARGET)
 
+# just build the area libraries.
+areas: setup $(AREA_LIBS)
+
 # doing an auto submodule init here was a BAD IDEA. removed it.
 setup: 
+	mkdir -p $(BUILD_DIR)/$(AREA_DIR)
 	rm -f *.altrace
 
 $(TARGET): $(REQUIREMENTS) main.o 
@@ -106,6 +119,9 @@ $(foreach dep,$(DEPS),$(eval $(call create_rule,$(dep))))
 $(TEST_TARGET): $(REQUIREMENTS) $(TEST_REQUIREMENTS) testmain.o
 	$(CC) -o $@ $(TEST_SYMBOLS) testmain.o $(CFLAGS) $(LIBS)
 
+$(BUILD_DIR)/$(AREA_DIR)/libarea%.so: $(AREA_DIR)/%.c
+	$(CC) -shared -o $@ $< $(CFLAGS) $(INCLUDES) -g -fPIC
+
 # Pattern rule to compile .c files into .o files
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCLUDES) -g
@@ -127,4 +143,4 @@ clean:
 # always rebuild shaders, it's cheap.
 .PHONY: clean testmain.c %.shader.pp all al-debug
 .SECONDARY: $(OBJS)
-.PRECIOUS: %.o
+.PRECIOUS: %.o %.c

@@ -141,7 +141,8 @@ int make_shader(const char *shader_path) {
     glGetShaderiv(into, GL_COMPILE_STATUS, &compiled);                         \
     if (!compiled) {                                                           \
       glGetShaderInfoLog(into, 512, NULL, infoLog);                            \
-      fprintf(stderr, #variant " shader compilation failed: %s\n", infoLog);   \
+      fprintf(stderr, #variant " shader compilation of '%s' failed: %s\n",     \
+              shader_path, infoLog);                                           \
       exit(1);                                                                 \
     }                                                                          \
     glAttachShader(shaderProgram, into);                                       \
